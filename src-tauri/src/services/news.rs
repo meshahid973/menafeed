@@ -22,7 +22,7 @@ struct Source {
     feed: &'static str,
 }
 
-const SOURCES: [Source; 2] = [
+const SOURCES: [Source; 3] = [
     Source {
         id: "bbc",
         name: "BBC Middle East",
@@ -32,6 +32,11 @@ const SOURCES: [Source; 2] = [
         id: "france24",
         name: "France 24",
         feed: "https://www.france24.com/en/middle-east/rss",
+    },
+    Source {
+        id: "mem",
+        name: "Middle East Monitor",
+        feed: "https://www.middleeastmonitor.com/feed/",
     },
 ];
 
@@ -95,14 +100,15 @@ pub async fn load(app: AppHandle, force: bool) -> Result<NewsFeedResponse, Strin
         .build()
         .map_err(|_| "Could not initialize the news service")?;
 
-    let (first, second) = tokio::join!(
+    let (first, second, third) = tokio::join!(
         load_source(&app, &client, SOURCES[0], force),
-        load_source(&app, &client, SOURCES[1], force)
+        load_source(&app, &client, SOURCES[1], force),
+        load_source(&app, &client, SOURCES[2], force)
     );
 
     let mut articles = Vec::new();
     let mut sources = Vec::new();
-    for result in [first, second] {
+    for result in [first, second, third] {
         sources.push(result.state);
         articles.extend(result.articles);
     }
@@ -201,7 +207,7 @@ fn approved_feed_host(url: &Url) -> bool {
     url.scheme() == "https"
         && matches!(
             url.host_str(),
-            Some("feeds.bbci.co.uk" | "www.france24.com")
+            Some("feeds.bbci.co.uk" | "www.france24.com" | "www.middleeastmonitor.com")
         )
         && url.username().is_empty()
         && url.password().is_none()
