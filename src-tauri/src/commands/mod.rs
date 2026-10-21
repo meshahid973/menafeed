@@ -1,6 +1,6 @@
 use crate::{
     models::AppStatus,
-    services::{intelligence, news},
+    services::{geoevents, intelligence, news},
 };
 use tauri_plugin_opener::OpenerExt;
 
@@ -30,6 +30,11 @@ pub fn search_cached_news(
     limit: usize,
 ) -> Result<Vec<serde_json::Value>, String> {
     intelligence::search_cached(&app, &query, limit)
+}
+
+#[tauri::command]
+pub fn get_geo_snapshot(app: tauri::AppHandle) -> Result<geoevents::GeoSnapshot, String> {
+    geoevents::snapshot(&app)
 }
 
 #[tauri::command]

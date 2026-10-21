@@ -14,6 +14,7 @@ pub fn run() {
             commands::get_app_status,
             commands::get_news_feed,
             commands::search_cached_news,
+            commands::get_geo_snapshot,
             commands::open_article
         ])
         .run(tauri::generate_context!())

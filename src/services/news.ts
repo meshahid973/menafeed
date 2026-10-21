@@ -31,3 +31,11 @@ export async function searchCachedNews(query: string, limit = 30) {
     limit: Math.max(1, Math.min(50, limit)),
   });
 }
+
+/** Only explicit country and event-location evidence appears in this snapshot. */
+export async function getGeoSnapshot(): Promise<
+  import('../features/news/geographicEvents').GeoSnapshot
+> {
+  if (!isTauri()) return { markers: [], countries: [] };
+  return invoke<import('../features/news/geographicEvents').GeoSnapshot>('get_geo_snapshot');
+}
