@@ -20,7 +20,7 @@ export function createMenaProjection() {
   return geoConicConformal()
     .parallels([15, 42])
     .center([24, 27])
-    .scale(610)
+    .scale(560)
     .translate([MAP_WIDTH / 2, MAP_HEIGHT / 2])
     .clipExtent([
       [MAP_BOUNDS.minX, MAP_BOUNDS.minY],
