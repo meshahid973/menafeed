@@ -1,0 +1,42 @@
+name: Format MENA map feature
+
+on:
+  push:
+    branches:
+      - feat/mena-globe
+
+permissions:
+  contents: write
+
+jobs:
+  format-map:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/mena-globe
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned Prettier
+        run: npm install --global prettier@3.6.2
+      - name: Format feature sources
+        run: |
+          prettier --write \
+            src/features/map/components/MenaGlobe.test.tsx \
+            src/features/map/components/MenaGlobe.tsx \
+            src/features/map/components/MenaGlobeDemo.tsx \
+            src/features/map/data/coverage.ts \
+            src/features/map/data/mena-countries.geojson \
+            src/features/map/geography.test.ts \
+            src/features/map/geography.ts \
+            src/features/map/README.md
+      - name: Commit formatting changes
+        run: |
+          if ! git diff --quiet; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add src/features/map
+            git commit -m "style(map): apply Prettier formatting"
+            git push origin HEAD:feat/mena-globe
+          fi
