@@ -48,6 +48,14 @@ The feature has no dependency on SIGNAL's news feature or app state. It reuses t
 
 The editorial coverage manifest contains 27 entries, including Western Sahara, Palestine and Cyprus. Coverage is a product decision, not a declaration of sovereignty. Natural Earth-style cartography is generalized at small scales and commonly represents de-facto administrative lines. Western Sahara, Israel/Palestine, Cyprus and other contested areas can differ by cartographic source or zoom level. The boundaries are for context and news visualization only; they are not legal, surveying, military, or diplomatic reference lines. Bahrain uses a higher-resolution supplement because very small Gulf island geometry is lost in generalized country datasets.
 
+## Country focus and newsroom filtering
+
+Selecting a country animates the regional map camera over 560 ms using ease-in-out cubic easing. Its target is derived from the selected feature's projected bounds and centroid. A principal-axis estimate from the largest exterior ring rotates elongated country shapes toward an upright alignment; nearly round outlines avoid unstable rotations. The camera interpolates from its current transform, so rapidly switching countries cancels the previous animation cleanly. Clearing selection animates back to the regional overview, and system reduced-motion preferences bypass the animation.
+
+This feature remains a projected 2D regional map, not a perspective 3D globe. The focus motion centres, zooms and reorients the map plane; it does not claim to perform true spherical camera rotation.
+
+Country-news filtering consumes the article location contract already used by `NewsFeed`. The Rust RSS parser assigns country precision **only** when publisher-provided RSS category metadata exactly identifies one MENA country. It never infers country from title or summary text. Items with no explicit country category or multiple different country categories remain `precision: "unknown"` and are omitted from country-filtered views. Many regional RSS items have no country taxonomy, so country views can legitimately be empty; the UI states that limitation instead of mixing in unrelated stories. No new news API or fabricated location data is introduced.
+
 ## Interaction and accessibility
 
 - The region opens centered on North Africa and West Asia with country hover/selection highlighting.
