@@ -29,6 +29,8 @@
   --signal-duration-fast: 120ms;
   --signal-duration-normal: 200ms;
   --signal-duration-slow: 360ms;
+  --signal-duration-reader: 190ms;
+  --signal-duration-nav: 220ms;
   --signal-ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
@@ -37,5 +39,7 @@
     --signal-duration-fast: 0ms;
     --signal-duration-normal: 0ms;
     --signal-duration-slow: 0ms;
+    --signal-duration-reader: 0ms;
+    --signal-duration-nav: 0ms;
   }
 }
