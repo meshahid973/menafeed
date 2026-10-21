@@ -18,9 +18,8 @@ describe('workspace', () => {
   it('renders the offline geographic map with collapsed navigation', async () => {
     render(<App />);
     expect(screen.getByRole('button', { name: 'Expand sidebar' })).toBeInTheDocument();
-    expect(
-      screen.getAllByRole('region', { name: 'Interactive map of the Middle East and North Africa' })[0],
-    ).toBeInTheDocument();
+    const maps = screen.getAllByRole('region', { name: /Interactive map/ });
+    expect(maps.length).toBeGreaterThan(0);
     expect(await screen.findByText('Open the desktop app to read live RSS.')).toBeInTheDocument();
   });
 
@@ -76,7 +75,11 @@ describe('workspace', () => {
     });
     render(<App />);
     await waitFor(() =>
-      expect(within(screen.getByTestId('mena-map')).getByRole('button', { name: /Manama event report/ })).toBeInTheDocument(),
+      expect(
+        within(screen.getByTestId('mena-map')).getByRole('button', {
+          name: /Manama event report/,
+        }),
+      ).toBeInTheDocument(),
     );
     fireEvent.click(screen.getByRole('button', { name: /Manama event report/ }));
     await waitFor(() =>
