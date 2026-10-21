@@ -59,8 +59,14 @@ export function AppShell({ desktopStatus }: AppShellProps) {
   );
 
   const mapView = useMemo(
-    () => <MapSlot selectedCountry={country} onCountrySelect={setCountry}
-        markers={markers} onMarkerSelect={onMarkerSelect} />,
+    () => (
+      <MapSlot
+        selectedCountry={country}
+        onCountrySelect={setCountry}
+        markers={markers}
+        onMarkerSelect={onMarkerSelect}
+      />
+    ),
     [country, markers, onMarkerSelect],
   );
 
@@ -172,10 +178,7 @@ export function AppShell({ desktopStatus }: AppShellProps) {
         </header>
         <div className={`signal-shell__workspace signal-shell__workspace--${view}`}>
           {view === 'explore' ? (
-            <WorkspaceSplit
-              map={mapView}
-              feed={news}
-            />
+            <WorkspaceSplit map={mapView} feed={news} />
           ) : (
             <section className="signal-shell__feed" aria-label="Regional news">
               {news}

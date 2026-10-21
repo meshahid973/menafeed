@@ -101,8 +101,12 @@ describe('news desk', () => {
     expect(screen.getByText('Regional energy talks')).toBeInTheDocument();
   });
   it('does not infer a country from an unlocated RSS headline', async () => {
-    render(<FeedHarness desktopStatus={{ kind: 'ready', schemaVersion: 1 }} selectedCountry="BH" />);
-    await waitFor(() => expect(screen.getByText(/No location-verified reports/)).toBeInTheDocument());
+    render(
+      <FeedHarness desktopStatus={{ kind: 'ready', schemaVersion: 1 }} selectedCountry="BH" />,
+    );
+    await waitFor(() =>
+      expect(screen.getByText(/No location-verified reports/)).toBeInTheDocument(),
+    );
     expect(screen.queryByText('Regional energy talks')).not.toBeInTheDocument();
   });
 
@@ -123,5 +127,4 @@ describe('news desk', () => {
     fireEvent.keyDown(first, { key: 'ArrowDown' });
     expect(second).toHaveFocus();
   });
-
 });

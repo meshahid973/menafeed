@@ -151,9 +151,13 @@ export function NewsFeed({
 
   function handleListKeyDown(event: ReactKeyboardEvent<HTMLDivElement>) {
     if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
-    const current = (event.target as HTMLElement).closest<HTMLButtonElement>('.signal-story__headline');
+    const current = (event.target as HTMLElement).closest<HTMLButtonElement>(
+      '.signal-story__headline',
+    );
     if (!current || !listRef.current) return;
-    const items = Array.from(listRef.current.querySelectorAll<HTMLButtonElement>('.signal-story__headline'));
+    const items = Array.from(
+      listRef.current.querySelectorAll<HTMLButtonElement>('.signal-story__headline'),
+    );
     const index = items.indexOf(current);
     if (index < 0) return;
     const nextIndex = event.key === 'ArrowDown' ? index + 1 : index - 1;
@@ -267,7 +271,13 @@ export function NewsFeed({
       )}
 
       <div className="signal-feed__body">
-        <div className="signal-feed__list" ref={listRef} tabIndex={-1} hidden={selected !== null} onKeyDown={handleListKeyDown}>
+        <div
+          className="signal-feed__list"
+          ref={listRef}
+          tabIndex={-1}
+          hidden={selected !== null}
+          onKeyDown={handleListKeyDown}
+        >
           {loading && view !== 'saved' && (
             <div className="signal-feed__skeletons" role="status" aria-label="Loading news">
               {[0, 1, 2, 3].map((item) => (
