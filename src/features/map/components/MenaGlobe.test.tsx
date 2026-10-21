@@ -70,12 +70,10 @@ describe('MenaGlobe', () => {
       const translateY = Number(values![2]);
       const zoom = Number(values![3]);
       const rotation = (Number(values![4]) * Math.PI) / 180;
-      const projectedX = translateX + zoom * (
-        Math.cos(rotation) * focus!.x - Math.sin(rotation) * focus!.y
-      );
-      const projectedY = translateY + zoom * (
-        Math.sin(rotation) * focus!.x + Math.cos(rotation) * focus!.y
-      );
+      const projectedX =
+        translateX + zoom * (Math.cos(rotation) * focus!.x - Math.sin(rotation) * focus!.y);
+      const projectedY =
+        translateY + zoom * (Math.sin(rotation) * focus!.x + Math.cos(rotation) * focus!.y);
 
       expect(projectedX).toBeCloseTo(MAP_WIDTH / 2, 2);
       expect(projectedY).toBeCloseTo(MAP_HEIGHT / 2, 2);

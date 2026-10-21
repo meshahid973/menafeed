@@ -557,7 +557,11 @@ export function MenaGlobe({
             <ZoomOut size={18} aria-hidden="true" />
           </button>
           <span aria-hidden="true" />
-          <button type="button" onClick={() => animateCamera(INITIAL_VIEW)} aria-label="Reset map view">
+          <button
+            type="button"
+            onClick={() => animateCamera(INITIAL_VIEW)}
+            aria-label="Reset map view"
+          >
             <RotateCcw size={17} aria-hidden="true" />
           </button>
         </div>

@@ -69,7 +69,6 @@ export function isInsideMap(point: readonly [number, number]): boolean {
   );
 }
 
-
 export interface CountryFocus {
   x: number;
   y: number;
@@ -127,14 +126,12 @@ function uprightRotation(points: readonly [number, number][]): number {
 
   const principalAngle = (0.5 * Math.atan2(2 * xy, xx - yy) * 180) / Math.PI;
   const candidates = [90 - principalAngle, -90 - principalAngle].map((angle) => {
-    let normalized = ((angle + 180) % 360 + 360) % 360 - 180;
+    let normalized = ((((angle + 180) % 360) + 360) % 360) - 180;
     if (normalized > 90) normalized -= 180;
     if (normalized < -90) normalized += 180;
     return normalized;
   });
-  return candidates.reduce((best, value) =>
-    Math.abs(value) < Math.abs(best) ? value : best,
-  );
+  return candidates.reduce((best, value) => (Math.abs(value) < Math.abs(best) ? value : best));
 }
 
 /**

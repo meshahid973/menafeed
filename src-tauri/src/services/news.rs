@@ -276,7 +276,11 @@ fn location_from_categories(categories: &[feed_rs::model::Category]) -> ArticleL
 
     if country_codes.len() == 1 {
         ArticleLocation::Country {
-            country_code: country_codes.into_iter().next().unwrap_or_default().to_string(),
+            country_code: country_codes
+                .into_iter()
+                .next()
+                .unwrap_or_default()
+                .to_string(),
         }
     } else {
         // Multiple country tags are ambiguous for a single-country filter.
