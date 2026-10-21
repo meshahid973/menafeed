@@ -62,8 +62,8 @@
 .signal-map__zoom-controls button {
   min-height: 34px;
   color: var(--signal-text);
-  background: var(--signal-surface);
-  border: 1px solid var(--signal-border);
+  background: #0a0e0e;
+  border: 1px solid #263230;
   border-radius: var(--signal-radius-sm);
   cursor: pointer;
   transition:
@@ -87,6 +87,7 @@
 .signal-map__zoom-controls button:hover {
   color: var(--signal-accent);
   border-color: var(--signal-accent);
+  background: #111913;
 }
 
 .signal-map__clear:disabled {
@@ -97,7 +98,8 @@
 .signal-map__stage {
   position: relative;
   overflow: hidden;
-  background: #0b0f10;
+  background:
+    radial-gradient(ellipse at 50% 48%, #0b1516 0%, #050909 54%, #020303 100%);
   border-bottom: 1px solid var(--signal-border);
 }
 
@@ -138,61 +140,88 @@
 }
 
 .signal-map__background {
-  fill: #0b0f10;
+  fill: #030606;
 }
 
-.signal-map__grid-pattern {
+.signal-map__sphere-glow {
+  pointer-events: none;
+}
+
+.signal-map__sphere-base {
+  stroke: #537e70;
+  stroke-opacity: 0.24;
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.signal-map__sphere-highlight {
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
+
+.signal-map__sphere-outline {
   fill: none;
-  stroke: #1b2322;
-  stroke-width: 0.65;
-  opacity: 0.43;
+  stroke: #83b69a;
+  stroke-opacity: 0.56;
+  stroke-width: 1;
+  pointer-events: none;
+  vector-effect: non-scaling-stroke;
 }
 
 .signal-map__graticule {
   fill: none;
-  stroke: #28312f;
-  stroke-width: 0.85;
-  stroke-dasharray: 2 5;
+  stroke: #2d4a48;
+  stroke-width: 0.75;
+  stroke-opacity: 0.6;
+  stroke-dasharray: 2 4;
   pointer-events: none;
+  vector-effect: non-scaling-stroke;
 }
 
 .signal-map__country {
-  vector-effect: non-scaling-stroke;
   stroke-linejoin: round;
-  stroke-width: 0.9;
+  stroke-width: 0.75;
+  vector-effect: non-scaling-stroke;
   transition:
     fill var(--signal-duration-fast) var(--signal-ease-standard),
     stroke var(--signal-duration-fast) var(--signal-ease-standard);
 }
 
 .signal-map__country--context {
-  fill: #121819;
-  stroke: #303a38;
-  pointer-events: none;
+  fill: #132023;
+  fill-opacity: 0.94;
+  stroke: #405357;
+  stroke-opacity: 0.9;
+  pointer-events: visiblePainted;
 }
 
 .signal-map__country--selectable {
-  fill: #202827;
-  stroke: #53615a;
+  fill: #263a32;
+  fill-opacity: 0.98;
+  stroke: #8da997;
+  stroke-opacity: 0.94;
   cursor: pointer;
   outline: none;
 }
 
 .signal-map__country--selectable:hover,
 .signal-map__country--hovered {
-  fill: #34412b;
-  stroke: #a9c77c;
+  fill: #385743;
+  stroke: #c0e5a0;
+  stroke-opacity: 1;
 }
 
 .signal-map__country--selected {
   fill: var(--signal-accent);
-  stroke: #edf8d4;
-  stroke-width: 1.25;
+  fill-opacity: 1;
+  stroke: #f0ffdb;
+  stroke-opacity: 1;
+  stroke-width: 1.15;
 }
 
 .signal-map__country--selected:hover,
 .signal-map__country--selected.signal-map__country--hovered {
-  fill: #dfff91;
+  fill: #e2ffa1;
 }
 
 .signal-map__country--selectable:focus-visible {
@@ -207,16 +236,16 @@
 
 .signal-map__marker-halo {
   fill: #d4fd73;
-  fill-opacity: 0.1;
+  fill-opacity: 0.08;
   stroke: #d4fd73;
-  stroke-opacity: 0.52;
+  stroke-opacity: 0.62;
   stroke-width: 0.8;
   vector-effect: non-scaling-stroke;
 }
 
 .signal-map__marker-dot {
   fill: var(--signal-accent);
-  stroke: #090b0c;
+  stroke: #07100d;
   stroke-width: 1;
   vector-effect: non-scaling-stroke;
 }
@@ -227,12 +256,12 @@
 }
 
 .signal-map__corner-label {
-  fill: #95a39e;
+  fill: #91a49c;
   pointer-events: none;
 }
 
 .signal-map__coordinate-label {
-  fill: #66736e;
+  fill: #667d75;
   font-size: 9px;
   pointer-events: none;
 }
@@ -246,14 +275,21 @@
 }
 
 .signal-map__zoom-controls button {
-  width: 34px;
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
   padding: 0;
-  font-size: 17px;
   line-height: 1;
+  backdrop-filter: blur(8px);
 }
 
-.signal-map__zoom-controls button:last-child {
-  font-size: 20px;
+.signal-map__zoom-controls button svg {
+  transition: transform var(--signal-duration-fast) var(--signal-ease-standard);
+}
+
+.signal-map__zoom-controls button:hover svg {
+  transform: scale(1.1);
 }
 
 .signal-map__zoom-controls span {
@@ -266,7 +302,7 @@
   position: absolute;
   right: 15px;
   bottom: 14px;
-  color: #8a9791;
+  color: #8a9b93;
   font-family: var(--signal-font-mono);
   font-size: 9px;
   letter-spacing: 0.02em;
@@ -281,7 +317,7 @@
 .signal-map__selection {
   min-height: 65px;
   padding: 14px 22px;
-  background: #0d1112;
+  background: #080d0d;
   border-bottom: 1px solid var(--signal-border);
 }
 
@@ -303,7 +339,7 @@
 .signal-map__country-code {
   padding: 5px 7px;
   color: var(--signal-accent);
-  border: 1px solid #49533b;
+  border: 1px solid #495d4f;
   font-family: var(--signal-font-mono);
   font-size: 11px;
 }
@@ -331,8 +367,8 @@
   padding: 10px 9px;
   color: #c4cdc7;
   text-align: left;
-  background: #0d1112;
-  border: 1px solid #222c29;
+  background: #0a1010;
+  border: 1px solid #25312e;
   border-radius: var(--signal-radius-sm);
   cursor: pointer;
   transition:
@@ -343,12 +379,12 @@
 
 .signal-map__country-option:hover {
   color: var(--signal-text);
-  border-color: #67775a;
+  border-color: #748c70;
 }
 
 .signal-map__country-option--selected {
   color: var(--signal-accent);
-  background: #171f16;
+  background: #142016;
   border-color: #7d9659;
 }
 
@@ -481,6 +517,7 @@
   .signal-map__country,
   .signal-map__clear,
   .signal-map__zoom-controls button,
+  .signal-map__zoom-controls button svg,
   .signal-map__country-option {
     transition: none;
   }
