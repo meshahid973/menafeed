@@ -1,5 +1,5 @@
 import { geoGraticule, geoPath } from 'd3-geo';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useId, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent, PointerEvent, WheelEvent } from 'react';
 import rawCountryData from '../data/mena-countries.geojson';
 import { MENA_COUNTRIES } from '../data/coverage';
@@ -28,6 +28,7 @@ interface DragStart {
   clientY: number;
   panX: number;
   panY: number;
+  zoom: number;
 }
 
 const INITIAL_VIEW: ViewTransform = { panX: 0, panY: 0, zoom: 1 };
@@ -73,6 +74,9 @@ export function MenaGlobe({
   className,
   ariaLabel = 'Interactive map of the Middle East and North Africa',
 }: MenaGlobeProps) {
+  const instanceId = useId().replace(/:/g, '');
+  const gridPatternId = `signal-map-grid-${instanceId}`;
+  const clipId = `signal-map-clip-${instanceId}`;
   const [internalSelection, setInternalSelection] = useState<MenaCountryCode | null>(null);
   const [hoveredCountry, setHoveredCountry] = useState<MenaCountryCode | null>(null);
   const [view, setView] = useState<ViewTransform>(INITIAL_VIEW);
@@ -137,13 +141,14 @@ export function MenaGlobe({
         clientY: event.clientY,
         panX: view.panX,
         panY: view.panY,
+        zoom: view.zoom,
       };
       didDragRef.current = false;
       if (event.currentTarget.setPointerCapture) {
         event.currentTarget.setPointerCapture(event.pointerId);
       }
     },
-    [pointInMap, view.panX, view.panY],
+    [pointInMap, view.panX, view.panY, view.zoom],
   );
 
   const movePan = useCallback(
@@ -161,7 +166,7 @@ export function MenaGlobe({
       const deltaY = ((event.clientY - start.clientY) / rect.height) * MAP_HEIGHT;
       if (Math.hypot(deltaX, deltaY) > 3) didDragRef.current = true;
       const next = {
-        ...view,
+        zoom: start.zoom,
         panX: Math.max(-MAP_WIDTH * 0.8, Math.min(MAP_WIDTH * 0.8, start.panX + deltaX)),
         panY: Math.max(-MAP_HEIGHT * 0.8, Math.min(MAP_HEIGHT * 0.8, start.panY + deltaY)),
       };
@@ -198,6 +203,8 @@ export function MenaGlobe({
         : view;
       dragStartRef.current = null;
       setView(next);
+      const target = event.target as Element;
+      if (!target.closest('[data-country-code], [data-marker-id]')) didDragRef.current = false;
       if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
         event.currentTarget.releasePointerCapture(event.pointerId);
       }
@@ -303,10 +310,10 @@ export function MenaGlobe({
           data-testid="mena-map"
         >
           <defs>
-            <pattern id="signal-map-grid" width="24" height="24" patternUnits="userSpaceOnUse">
+            <pattern id={gridPatternId} width="24" height="24" patternUnits="userSpaceOnUse">
               <path d="M 24 0 L 0 0 0 24" className="signal-map__grid-pattern" />
             </pattern>
-            <clipPath id="signal-map-clip">
+            <clipPath id={clipId}>
               <rect x="0" y="0" width={MAP_WIDTH} height={MAP_HEIGHT} />
             </clipPath>
           </defs>
@@ -316,9 +323,9 @@ export function MenaGlobe({
             y="0"
             width={MAP_WIDTH}
             height={MAP_HEIGHT}
-            fill="url(#signal-map-grid)"
+            fill={`url(#${gridPatternId})`}
           />
-          <g clipPath="url(#signal-map-clip)">
+          <g clipPath={`url(#${clipId})`}>
             <g
               ref={mapLayerRef}
               transform={transformString(view)}
@@ -376,7 +383,13 @@ export function MenaGlobe({
                   role={onMarkerSelect ? 'button' : 'img'}
                   tabIndex={onMarkerSelect ? 0 : undefined}
                   aria-label={`${marker.label}, ${formatCoordinate(marker.latitude, 'latitude')}, ${formatCoordinate(marker.longitude, 'longitude')}`}
-                  onClick={() => onMarkerSelect?.(marker)}
+                  onClick={() => {
+                    if (didDragRef.current) {
+                      didDragRef.current = false;
+                      return;
+                    }
+                    onMarkerSelect?.(marker);
+                  }}
                   onKeyDown={(event) => {
                     if (onMarkerSelect && (event.key === 'Enter' || event.key === ' ')) {
                       event.preventDefault();
