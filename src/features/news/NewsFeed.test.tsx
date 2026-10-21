@@ -105,7 +105,7 @@ describe('news desk', () => {
       <FeedHarness desktopStatus={{ kind: 'ready', schemaVersion: 1 }} selectedCountry="BH" />,
     );
     await waitFor(() =>
-      expect(screen.getByText(/No location-verified reports/)).toBeInTheDocument(),
+      expect(screen.getByText(/No country-related reports/)).toBeInTheDocument(),
     );
     expect(screen.queryByText('Regional energy talks')).not.toBeInTheDocument();
   });
