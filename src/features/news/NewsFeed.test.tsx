@@ -100,4 +100,28 @@ describe('news desk', () => {
     expect(getNewsFeed).not.toHaveBeenCalled();
     expect(screen.getByText('Regional energy talks')).toBeInTheDocument();
   });
+  it('does not infer a country from an unlocated RSS headline', async () => {
+    render(<FeedHarness desktopStatus={{ kind: 'ready', schemaVersion: 1 }} selectedCountry="BH" />);
+    await waitFor(() => expect(screen.getByText(/No location-verified reports/)).toBeInTheDocument());
+    expect(screen.queryByText('Regional energy talks')).not.toBeInTheDocument();
+  });
+
+  it('offers a retry after a failed source request', async () => {
+    vi.mocked(getNewsFeed).mockRejectedValueOnce(new Error('network'));
+    render(<FeedHarness desktopStatus={{ kind: 'ready', schemaVersion: 1 }} />);
+    expect(await screen.findByText('Could not reach the news service.')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    await waitFor(() => expect(getNewsFeed).toHaveBeenCalledTimes(2));
+    expect(await screen.findByText('Regional energy talks')).toBeInTheDocument();
+  });
+
+  it('moves keyboard focus between reports with arrow keys', async () => {
+    render(<FeedHarness desktopStatus={{ kind: 'ready', schemaVersion: 1 }} />);
+    const first = (await screen.findByText('Regional energy talks')).closest('button')!;
+    const second = screen.getByText('Cultural event announced').closest('button')!;
+    first.focus();
+    fireEvent.keyDown(first, { key: 'ArrowDown' });
+    expect(second).toHaveFocus();
+  });
+
 });
