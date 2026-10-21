@@ -456,7 +456,7 @@ mod tests {
         </channel></rss>"#;
         let articles = parse_source(feed, SOURCES[0]).unwrap();
         assert_eq!(articles.len(), 1);
-        assert!(matches!(articles[0].location, ArticleLocation::Unknown));
+        assert!(matches!(&articles[0].location, ArticleLocation::Unknown));
     }
 
     #[test]
@@ -466,7 +466,7 @@ mod tests {
         <category>Egypt</category><category>Morocco</category></item>
         </channel></rss>"#;
         let articles = parse_source(feed, SOURCES[0]).unwrap();
-        assert!(matches!(articles[0].location, ArticleLocation::Unknown));
+        assert!(matches!(&articles[0].location, ArticleLocation::Unknown));
     }
 
     #[test]
