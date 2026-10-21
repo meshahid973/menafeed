@@ -67,7 +67,9 @@ mod tests {
             )
             .expect("table count");
         assert_eq!(count, 2);
-        let articles: i64 = db.query_row("SELECT count(*) FROM news_articles", [], |row| row.get(0)).unwrap();
+        let articles: i64 = db
+            .query_row("SELECT count(*) FROM news_articles", [], |row| row.get(0))
+            .unwrap();
         assert_eq!(articles, 0);
     }
 

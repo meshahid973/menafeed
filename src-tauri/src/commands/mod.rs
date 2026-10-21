@@ -1,4 +1,7 @@
-use crate::{models::AppStatus, services::{news, intelligence}};
+use crate::{
+    models::AppStatus,
+    services::{intelligence, news},
+};
 use tauri_plugin_opener::OpenerExt;
 
 #[tauri::command]
@@ -21,7 +24,11 @@ pub async fn get_news_feed(
 }
 
 #[tauri::command]
-pub fn search_cached_news(app: tauri::AppHandle, query: String, limit: usize) -> Result<Vec<serde_json::Value>, String> {
+pub fn search_cached_news(
+    app: tauri::AppHandle,
+    query: String,
+    limit: usize,
+) -> Result<Vec<serde_json::Value>, String> {
     intelligence::search_cached(&app, &query, limit)
 }
 
