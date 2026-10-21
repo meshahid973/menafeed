@@ -17,6 +17,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Upgrade npm dependency resolver
+        run: npm install --global npm@11.6.3
       - name: Install dependencies
         run: npm install --no-audit
       - name: Typecheck, lint, format, tests, build
@@ -36,6 +38,8 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
+      - name: Upgrade npm dependency resolver
+        run: npm install --global npm@11.6.3
       - name: Install frontend dependencies
         run: npm install --no-audit
       - name: Rust format
