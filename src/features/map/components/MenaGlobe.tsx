@@ -1,6 +1,6 @@
 import { geoGraticule, geoPath } from 'd3-geo';
 import { RotateCcw, ZoomIn, ZoomOut } from 'lucide-react';
-import { useCallback, useId, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent, PointerEvent, WheelEvent } from 'react';
 import rawCountryData from '../data/mena-countries.geojson?raw';
 import { MENA_COUNTRIES, MENA_COUNTRY_CODES } from '../data/coverage';
