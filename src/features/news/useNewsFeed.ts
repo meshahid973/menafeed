@@ -37,10 +37,15 @@ export function useNewsFeed(enabled: boolean) {
   useEffect(() => {
     if (enabled) {
       void refresh(false);
-      // Re-check each minute; Rust enforces each provider's cache interval.
-      const timer = window.setInterval(() => void refresh(false), 60_000);
+      // Refresh while visible; Rust enforces each provider's cache interval.
+      const poll = () => {
+        if (!document.hidden) void refresh(false);
+      };
+      const timer = window.setInterval(poll, 60_000);
+      document.addEventListener('visibilitychange', poll);
       return () => {
         window.clearInterval(timer);
+        document.removeEventListener('visibilitychange', poll);
         requestId.current += 1;
       };
     } else {
