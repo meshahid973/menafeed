@@ -64,7 +64,7 @@ describe('geographic coordinates', () => {
     ['Egypt', 'EG'],
     ['Saudi Arabia', 'SA'],
     ['Morocco', 'MA'],
-  ])('computes a finite geometry-aware camera target for %s', (_, code) => {
+  ])('computes a finite zoom-and-centre target for %s without rotation data', (_, code) => {
     const feature = dataset.features.find((item) => item.properties.code === code);
 
     expect(feature).toBeDefined();
@@ -72,8 +72,6 @@ describe('geographic coordinates', () => {
     expect(focus).not.toBeNull();
     expect(focus!.width).toBeGreaterThan(0);
     expect(focus!.height).toBeGreaterThan(0);
-    expect(Number.isFinite(focus!.rotation)).toBe(true);
-    expect(Math.abs(focus!.rotation)).toBeLessThanOrEqual(90);
   });
 
   it('does not project invalid marker coordinates', () => {
