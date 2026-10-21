@@ -121,18 +121,24 @@ describe('news desk', () => {
     const { rerender } = render(
       <FeedHarness desktopStatus={{ kind: 'ready', schemaVersion: 1 }} selectedCountry="EG" />,
     );
-    expect(await screen.findByText('Egyptian aid talks continue after Gaza meeting')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Egyptian aid talks continue after Gaza meeting'),
+    ).toBeInTheDocument();
 
     rerender(
       <FeedHarness desktopStatus={{ kind: 'ready', schemaVersion: 1 }} selectedCountry="PS" />,
     );
-    expect(await screen.findByText('Egyptian aid talks continue after Gaza meeting')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Egyptian aid talks continue after Gaza meeting'),
+    ).toBeInTheDocument();
 
     rerender(
       <FeedHarness desktopStatus={{ kind: 'ready', schemaVersion: 1 }} selectedCountry="BH" />,
     );
     await waitFor(() =>
-      expect(screen.queryByText('Egyptian aid talks continue after Gaza meeting')).not.toBeInTheDocument(),
+      expect(
+        screen.queryByText('Egyptian aid talks continue after Gaza meeting'),
+      ).not.toBeInTheDocument(),
     );
   });
 
