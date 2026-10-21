@@ -6,16 +6,22 @@ vi.mock('../services/desktop', () => ({
   readDesktopStatus: vi.fn(),
 }));
 
+vi.mock('../services/news', () => ({
+  getNewsFeed: vi.fn(),
+  openArticle: vi.fn(),
+}));
+
 import { readDesktopStatus } from '../services/desktop';
 
-describe('foundation shell', () => {
+describe('desktop layout', () => {
   beforeEach(() => {
     vi.mocked(readDesktopStatus).mockResolvedValue({ kind: 'preview' });
   });
 
-  it('displays application identity and browser preview status', async () => {
+  it('shows the editorial feed and reserved map slot', async () => {
     render(<App />);
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('The region.');
-    expect(await screen.findByText('BROWSER / PREVIEW MODE')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'The Briefing.' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Regional map area' })).toBeInTheDocument();
+    expect(await screen.findByText('BROWSER PREVIEW')).toBeInTheDocument();
   });
 });
