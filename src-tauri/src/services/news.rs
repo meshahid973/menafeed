@@ -230,21 +230,30 @@ async fn load_reliefweb(
     }
     match super::reliefweb::fetch_reports(client, app_name).await {
         Ok(reports) => {
-            let articles: Vec<FeedArticle> = reports.into_iter().filter_map(|item| {
-                let url = safe_article_url(&item.url).ok()?;
-                Some(FeedArticle {
-                    id: url.clone(),
-                    source_id: source.id.into(),
-                    source_name: source.name.into(),
-                    title: item.title,
-                    url,
-                    published_at: item.published_at,
-                    summary: None,
-                    location: UnknownLocation { precision: "unknown".into() },
+            let articles: Vec<FeedArticle> = reports
+                .into_iter()
+                .filter_map(|item| {
+                    let url = safe_article_url(&item.url).ok()?;
+                    Some(FeedArticle {
+                        id: url.clone(),
+                        source_id: source.id.into(),
+                        source_name: source.name.into(),
+                        title: item.title,
+                        url,
+                        published_at: item.published_at,
+                        summary: None,
+                        location: UnknownLocation {
+                            precision: "unknown".into(),
+                        },
+                    })
                 })
-            }).take(source.max_articles).collect();
+                .take(source.max_articles)
+                .collect();
             let _ = write_cache(app, source, &articles, &CacheHeaders::default());
-            SourceResult { state: source_state(source, "fresh", articles.len()), articles }
+            SourceResult {
+                state: source_state(source, "fresh", articles.len()),
+                articles,
+            }
         }
         Err(_) => match cached {
             Some(cache) => SourceResult {

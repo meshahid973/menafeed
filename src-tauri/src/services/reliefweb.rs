@@ -40,17 +40,28 @@ pub struct Report {
 }
 
 fn parse_reports(bytes: &[u8]) -> Result<Vec<Report>, String> {
-    let parsed: ApiResponse = serde_json::from_slice(bytes)
-        .map_err(|_| "Invalid ReliefWeb response".to_string())?;
+    let parsed: ApiResponse =
+        serde_json::from_slice(bytes).map_err(|_| "Invalid ReliefWeb response".to_string())?;
     let mut reports = Vec::new();
     for item in parsed.data {
         let fields = item.fields;
-        let (Some(title), Some(url)) = (fields.title, fields.url) else { continue };
-        let regions = fields.country.unwrap_or_default().into_iter()
-            .filter_map(|c| c.name).collect::<Vec<_>>().join(" ");
-        if !is_mena_relevant(&format!("{title} {regions}")) { continue; }
+        let (Some(title), Some(url)) = (fields.title, fields.url) else {
+            continue;
+        };
+        let regions = fields
+            .country
+            .unwrap_or_default()
+            .into_iter()
+            .filter_map(|c| c.name)
+            .collect::<Vec<_>>()
+            .join(" ");
+        if !is_mena_relevant(&format!("{title} {regions}")) {
+            continue;
+        }
         let title = title.split_whitespace().collect::<Vec<_>>().join(" ");
-        if title.is_empty() { continue; }
+        if title.is_empty() {
+            continue;
+        }
         reports.push(Report {
             title: title.chars().take(170).collect(),
             url,
@@ -62,8 +73,11 @@ fn parse_reports(bytes: &[u8]) -> Result<Vec<Report>, String> {
 }
 
 pub async fn fetch_reports(client: &Client, appname: &str) -> Result<Vec<Report>, String> {
-    if !(3..=96).contains(&appname.len()) ||
-        !appname.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '-' | '_')) {
+    if !(3..=96).contains(&appname.len())
+        || !appname
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '-' | '_'))
+    {
         return Err("ReliefWeb app identity not configured".into());
     }
     let mut url = Url::parse("https://api.reliefweb.int/v2/reports")
@@ -76,14 +90,23 @@ pub async fn fetch_reports(client: &Client, appname: &str) -> Result<Vec<Report>
         .append_pair("fields[include][]", "title")
         .append_pair("fields[include][]", "date.created")
         .append_pair("fields[include][]", "country.name");
-    let mut response = client.get(url).send().await
+    let mut response = client
+        .get(url)
+        .send()
+        .await
         .map_err(|_| "ReliefWeb unavailable")?
-        .error_for_status().map_err(|_| "ReliefWeb rejected the request")?;
-    if response.url().scheme() != "https" || response.url().host_str() != Some("api.reliefweb.int") {
+        .error_for_status()
+        .map_err(|_| "ReliefWeb rejected the request")?;
+    if response.url().scheme() != "https" || response.url().host_str() != Some("api.reliefweb.int")
+    {
         return Err("Unexpected ReliefWeb origin".into());
     }
     let mut bytes = Vec::new();
-    while let Some(chunk) = response.chunk().await.map_err(|_| "ReliefWeb request failed")? {
+    while let Some(chunk) = response
+        .chunk()
+        .await
+        .map_err(|_| "ReliefWeb request failed")?
+    {
         if bytes.len().saturating_add(chunk.len()) > MAX_API_BYTES {
             return Err("ReliefWeb response too large".into());
         }

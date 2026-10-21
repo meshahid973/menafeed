@@ -1,3 +1,3 @@
 pub mod news;
-mod sources;
 mod reliefweb;
+mod sources;
