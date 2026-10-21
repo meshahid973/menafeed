@@ -247,21 +247,35 @@ pub fn recent(conn: &Connection, limit: usize) -> rusqlite::Result<Vec<Value>> {
     let mut stmt = conn.prepare(
         "SELECT payload_json FROM news_articles ORDER BY published_at DESC, last_seen DESC LIMIT ?1"
     )?;
-    let rows = stmt.query_map(params![limit.clamp(1, 150) as i64], |row| row.get::<_, String>(0))?;
-    rows.map(|row| {
-        serde_json::from_str(&row?).map_err(|_| rusqlite::Error::InvalidQuery)
-    }).collect()
+    let rows = stmt.query_map(params![limit.clamp(1, 150) as i64], |row| {
+        row.get::<_, String>(0)
+    })?;
+    rows.map(|row| serde_json::from_str(&row?).map_err(|_| rusqlite::Error::InvalidQuery))
+        .collect()
 }
 
 pub fn restore_offline(app: &AppHandle, response: &mut Value) {
-    let empty = response.get("articles").and_then(Value::as_array).is_none_or(Vec::is_empty);
-    if !empty { return; }
-    let Ok(conn) = database::open(app) else { return; };
-    let Ok(saved) = recent(&conn, 150) else { return; };
-    if saved.is_empty() { return; }
+    let empty = response
+        .get("articles")
+        .and_then(Value::as_array)
+        .is_none_or(Vec::is_empty);
+    if !empty {
+        return;
+    }
+    let Ok(conn) = database::open(app) else {
+        return;
+    };
+    let Ok(saved) = recent(&conn, 150) else {
+        return;
+    };
+    if saved.is_empty() {
+        return;
+    }
 
     let mut counts = HashMap::<String, usize>::new();
-    for item in &saved { *counts.entry(text(item, "sourceId")).or_default() += 1; }
+    for item in &saved {
+        *counts.entry(text(item, "sourceId")).or_default() += 1;
+    }
     if let Some(sources) = response.get_mut("sources").and_then(Value::as_array_mut) {
         for item in sources {
             let source_id = text(item, "id");
@@ -335,11 +349,12 @@ mod tests {
     #[test]
     fn can_restore_persisted_history_when_sources_fail() {
         let mut conn = Connection::open_in_memory().unwrap();
-        conn.execute_batch(include_str!("../../migrations/0002_news_intelligence.sql")).unwrap();
-        let mut response=json!({"articles":[{"id":"1","url":"https://example.org/offline","title":"Offline saved article","sourceId":"bbc","publishedAt":"2026-10-21T10:00:00Z","location":{"precision":"unknown"}}]});
+        conn.execute_batch(include_str!("../../migrations/0002_news_intelligence.sql"))
+            .unwrap();
+        let mut response = json!({"articles":[{"id":"1","url":"https://example.org/offline","title":"Offline saved article","sourceId":"bbc","publishedAt":"2026-10-21T10:00:00Z","location":{"precision":"unknown"}}]});
         enrich(&mut response);
-        save(&mut conn,&response).unwrap();
-        assert_eq!(recent(&conn,10).unwrap().len(),1);
+        save(&mut conn, &response).unwrap();
+        assert_eq!(recent(&conn, 10).unwrap().len(), 1);
     }
 
     #[test]

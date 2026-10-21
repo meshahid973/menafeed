@@ -25,7 +25,10 @@ export function useNewsFeed(enabled: boolean) {
         if (current !== requestId.current) return;
         hasLoaded.current = true;
         setData(result);
-        if (result.sources.length && result.sources.every((source) => source.mode === 'unavailable')) {
+        if (
+          result.sources.length &&
+          result.sources.every((source) => source.mode === 'unavailable')
+        ) {
           setError('Sources are currently unavailable. Try again later.');
         }
       } catch {
