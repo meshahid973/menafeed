@@ -1,0 +1,22 @@
+# JavaScript
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+*.log
+
+# Rust and Tauri
+/src-tauri/target/
+**/*.rs.bk
+
+# Editor and OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
