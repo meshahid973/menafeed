@@ -5,41 +5,19 @@ use std::{
 };
 
 use feed_rs::parser;
-use reqwest::{redirect::Policy, Client, Url};
+use reqwest::{
+    header::{ETAG, IF_MODIFIED_SINCE, IF_NONE_MATCH, LAST_MODIFIED},
+    redirect::Policy,
+    Client, StatusCode, Url,
+};
 use rusqlite::{params, OptionalExtension};
 use serde::{Deserialize, Serialize};
 use tauri::AppHandle;
 
+use super::sources::{approved_feed_host, is_mena_relevant, Source, SOURCES};
 use crate::database;
 
 const MAX_FEED_BYTES: usize = 1_500_000;
-const CACHE_SECONDS: i64 = 300;
-
-#[derive(Clone, Copy)]
-struct Source {
-    id: &'static str,
-    name: &'static str,
-    feed: &'static str,
-}
-
-const SOURCES: [Source; 3] = [
-    Source {
-        id: "bbc",
-        name: "BBC Middle East",
-        feed: "https://feeds.bbci.co.uk/news/world/middle_east/rss.xml",
-    },
-    Source {
-        id: "france24",
-        name: "France 24",
-        feed: "https://www.france24.com/en/middle-east/rss",
-    },
-    Source {
-        id: "mem",
-        name: "Middle East Monitor",
-        feed: "https://www.middleeastmonitor.com/feed/",
-    },
-];
-
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FeedArticle {
@@ -65,6 +43,7 @@ pub struct SourceState {
     name: String,
     mode: &'static str,
     count: usize,
+    checked_at: String,
 }
 
 #[derive(Serialize)]
@@ -83,6 +62,31 @@ struct SourceResult {
 struct Cached {
     articles: Vec<FeedArticle>,
     expires_at: i64,
+    headers: CacheHeaders,
+}
+
+#[derive(Clone, Default, Serialize, Deserialize)]
+struct CacheHeaders {
+    etag: Option<String>,
+    last_modified: Option<String>,
+}
+
+#[derive(Serialize, Deserialize)]
+struct StoredFeed {
+    articles: Vec<FeedArticle>,
+    headers: CacheHeaders,
+}
+
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum StoredFormat {
+    Legacy(Vec<FeedArticle>),
+    Current(StoredFeed),
+}
+
+enum Fetched {
+    Updated(Vec<FeedArticle>, CacheHeaders),
+    NotModified,
 }
 
 pub async fn load(app: AppHandle, force: bool) -> Result<NewsFeedResponse, String> {
@@ -100,15 +104,28 @@ pub async fn load(app: AppHandle, force: bool) -> Result<NewsFeedResponse, Strin
         .build()
         .map_err(|_| "Could not initialize the news service")?;
 
-    let (first, second, third) = tokio::join!(
+    // API requests remain opt-in; all enabled sources load concurrently.
+    let reliefweb_task = async {
+        let app_name = std::env::var("SIGNAL_RELIEFWEB_APPNAME").ok()?;
+        Some(load_reliefweb(&app, &client, &app_name, force).await)
+    };
+    let (a, b, c, d, e, f, reliefweb) = tokio::join!(
         load_source(&app, &client, SOURCES[0], force),
         load_source(&app, &client, SOURCES[1], force),
-        load_source(&app, &client, SOURCES[2], force)
+        load_source(&app, &client, SOURCES[2], force),
+        load_source(&app, &client, SOURCES[3], force),
+        load_source(&app, &client, SOURCES[4], force),
+        load_source(&app, &client, SOURCES[5], force),
+        reliefweb_task
     );
 
     let mut articles = Vec::new();
     let mut sources = Vec::new();
-    for result in [first, second, third] {
+    for result in [a, b, c, d, e, f] {
+        sources.push(result.state);
+        articles.extend(result.articles);
+    }
+    if let Some(result) = reliefweb {
         sources.push(result.state);
         articles.extend(result.articles);
     }
@@ -118,7 +135,7 @@ pub async fn load(app: AppHandle, force: bool) -> Result<NewsFeedResponse, Strin
     let mut seen = HashSet::new();
     articles.retain(|article| seen.insert(article.url.clone()));
     articles.sort_by(|a, b| b.published_at.cmp(&a.published_at));
-    articles.truncate(100);
+    articles.truncate(150);
 
     Ok(NewsFeedResponse {
         articles,
@@ -145,13 +162,26 @@ async fn load_source(
         }
     }
 
-    match fetch_source(client, source).await {
-        Ok(articles) => {
-            // A failed cache write must not hide a successful network response.
-            let _ = write_cache(app, source.id, &articles);
+    match fetch_source(client, source, cached.as_ref()).await {
+        Ok(Fetched::Updated(articles, headers)) => {
+            let _ = write_cache(app, source, &articles, &headers);
             SourceResult {
                 state: source_state(source, "fresh", articles.len()),
                 articles,
+            }
+        }
+        Ok(Fetched::NotModified) => {
+            if let Some(cache) = cached {
+                let _ = write_cache(app, source, &cache.articles, &cache.headers);
+                SourceResult {
+                    state: source_state(source, "cached", cache.articles.len()),
+                    articles: cache.articles,
+                }
+            } else {
+                SourceResult {
+                    state: source_state(source, "unavailable", 0),
+                    articles: Vec::new(),
+                }
             }
         }
         Err(_) => {
@@ -170,28 +200,121 @@ async fn load_source(
     }
 }
 
+const RELIEFWEB_SOURCE: Source = Source {
+    id: "reliefweb",
+    name: "ReliefWeb",
+    feed: "https://api.reliefweb.int/v2/reports",
+    interval_seconds: 300,
+    max_articles: 24,
+    require_region_match: true,
+};
+
+async fn load_reliefweb(
+    app: &AppHandle,
+    client: &Client,
+    app_name: &str,
+    force: bool,
+) -> SourceResult {
+    let source = RELIEFWEB_SOURCE;
+    let cached = read_cache(app, source.id).ok().flatten();
+    if !force {
+        if let Some(ref cache) = cached {
+            if cache.expires_at > now() {
+                return SourceResult {
+                    state: source_state(source, "cached", cache.articles.len()),
+                    articles: cache.articles.clone(),
+                };
+            }
+        }
+    }
+    match super::reliefweb::fetch_reports(client, app_name).await {
+        Ok(reports) => {
+            let articles: Vec<FeedArticle> = reports
+                .into_iter()
+                .filter_map(|item| {
+                    let url = safe_article_url(&item.url).ok()?;
+                    Some(FeedArticle {
+                        id: url.clone(),
+                        source_id: source.id.into(),
+                        source_name: source.name.into(),
+                        title: item.title,
+                        url,
+                        published_at: item.published_at,
+                        summary: None,
+                        location: UnknownLocation {
+                            precision: "unknown".into(),
+                        },
+                    })
+                })
+                .take(source.max_articles)
+                .collect();
+            let _ = write_cache(app, source, &articles, &CacheHeaders::default());
+            SourceResult {
+                state: source_state(source, "fresh", articles.len()),
+                articles,
+            }
+        }
+        Err(_) => match cached {
+            Some(cache) => SourceResult {
+                state: source_state(source, "stale", cache.articles.len()),
+                articles: cache.articles,
+            },
+            None => SourceResult {
+                state: source_state(source, "unavailable", 0),
+                articles: Vec::new(),
+            },
+        },
+    }
+}
+
 fn source_state(source: Source, mode: &'static str, count: usize) -> SourceState {
     SourceState {
         id: source.id.into(),
         name: source.name.into(),
         mode,
         count,
+        checked_at: chrono::Utc::now().to_rfc3339(),
     }
 }
 
-async fn fetch_source(client: &Client, source: Source) -> Result<Vec<FeedArticle>, String> {
-    let mut response = client
-        .get(source.feed)
-        .send()
-        .await
-        .map_err(|_| "Source unavailable")?
-        .error_for_status()
-        .map_err(|_| "Source returned an error")?;
-
+async fn fetch_source(
+    client: &Client,
+    source: Source,
+    cached: Option<&Cached>,
+) -> Result<Fetched, String> {
+    let mut request = client.get(source.feed);
+    if let Some(cache) = cached {
+        if let Some(ref tag) = cache.headers.etag {
+            request = request.header(IF_NONE_MATCH, tag.as_str());
+        }
+        if let Some(ref value) = cache.headers.last_modified {
+            request = request.header(IF_MODIFIED_SINCE, value.as_str());
+        }
+    }
+    let response = request.send().await.map_err(|_| "Source unavailable")?;
     if !approved_feed_host(response.url()) {
         return Err("Unexpected feed origin".into());
     }
-
+    if response.status() == StatusCode::NOT_MODIFIED {
+        return Ok(Fetched::NotModified);
+    }
+    let mut response = response
+        .error_for_status()
+        .map_err(|_| "Source returned an error")?;
+    let headers = CacheHeaders {
+        etag: response
+            .headers()
+            .get(ETAG)
+            .and_then(|v| v.to_str().ok())
+            .filter(|v| v.len() <= 200)
+            .map(str::to_owned),
+        last_modified: response
+            .headers()
+            .get(LAST_MODIFIED)
+            .and_then(|v| v.to_str().ok())
+            .filter(|v| v.len() <= 200)
+            .map(str::to_owned),
+    };
     let mut bytes = Vec::new();
     while let Some(chunk) = response.chunk().await.map_err(|_| "Feed download failed")? {
         if bytes.len().saturating_add(chunk.len()) > MAX_FEED_BYTES {
@@ -199,18 +322,8 @@ async fn fetch_source(client: &Client, source: Source) -> Result<Vec<FeedArticle
         }
         bytes.extend_from_slice(&chunk);
     }
-
-    parse_source(&bytes, source)
-}
-
-fn approved_feed_host(url: &Url) -> bool {
-    url.scheme() == "https"
-        && matches!(
-            url.host_str(),
-            Some("feeds.bbci.co.uk" | "www.france24.com" | "www.middleeastmonitor.com")
-        )
-        && url.username().is_empty()
-        && url.password().is_none()
+    let articles = parse_source(&bytes, source)?;
+    Ok(Fetched::Updated(articles, headers))
 }
 
 fn parse_source(xml: &[u8], source: Source) -> Result<Vec<FeedArticle>, String> {
@@ -236,6 +349,12 @@ fn parse_source(xml: &[u8], source: Source) -> Result<Vec<FeedArticle>, String> 
             .map(|value| clean_text(&value.content, 280))
             .filter(|value| !value.is_empty());
 
+        if source.require_region_match
+            && !is_mena_relevant(&format!("{} {}", title, summary.as_deref().unwrap_or("")))
+        {
+            continue;
+        }
+
         articles.push(FeedArticle {
             id: url.clone(),
             source_id: source.id.into(),
@@ -253,6 +372,7 @@ fn parse_source(xml: &[u8], source: Source) -> Result<Vec<FeedArticle>, String> 
         });
     }
 
+    articles.truncate(source.max_articles);
     Ok(articles)
 }
 
@@ -305,39 +425,55 @@ fn now() -> i64 {
 
 fn read_cache(app: &AppHandle, source: &str) -> Result<Option<Cached>, String> {
     let connection = database::open(app).map_err(|_| "Cache unavailable")?;
-    let row: Option<(String, i64)> = connection
-        .query_row(
-            "SELECT payload_json, expires_at FROM cache_entries WHERE provider = 'rss' AND cache_key = ?1",
-            params![source],
-            |row| Ok((row.get(0)?, row.get(1)?)),
-        )
-        .optional()
-        .map_err(|_| "Cache read failed")?;
+    let row: Option<(String, i64)> = connection.query_row(
+        "SELECT payload_json, expires_at FROM cache_entries WHERE provider = 'rss' AND cache_key = ?1",
+        params![source],
+        |row| Ok((row.get(0)?, row.get(1)?)),
+    ).optional().map_err(|_| "Cache read failed")?;
 
     row.map(|(json, expires_at)| {
-        serde_json::from_str(&json)
-            .map(|articles| Cached {
-                articles,
-                expires_at,
-            })
-            .map_err(|_| "Cached feed is invalid".into())
+        let stored: StoredFormat =
+            serde_json::from_str(&json).map_err(|_| "Cached feed is invalid")?;
+        let (articles, headers) = match stored {
+            StoredFormat::Legacy(articles) => (articles, CacheHeaders::default()),
+            StoredFormat::Current(data) => (data.articles, data.headers),
+        };
+        Ok(Cached {
+            articles,
+            headers,
+            expires_at,
+        })
     })
     .transpose()
 }
 
-fn write_cache(app: &AppHandle, source: &str, articles: &[FeedArticle]) -> Result<(), String> {
+fn write_cache(
+    app: &AppHandle,
+    source: Source,
+    articles: &[FeedArticle],
+    headers: &CacheHeaders,
+) -> Result<(), String> {
     let connection = database::open(app).map_err(|_| "Cache unavailable")?;
     let timestamp = now();
-    let json = serde_json::to_string(articles).map_err(|_| "Cannot encode feed")?;
+    let json = serde_json::to_string(&StoredFeed {
+        articles: articles.to_vec(),
+        headers: headers.clone(),
+    })
+    .map_err(|_| "Cannot encode feed")?;
     connection
         .execute(
             "INSERT INTO cache_entries (provider, cache_key, payload_json, fetched_at, expires_at)
-            VALUES ('rss', ?1, ?2, ?3, ?4)
-            ON CONFLICT (provider, cache_key) DO UPDATE SET
-            payload_json = excluded.payload_json,
-            fetched_at = excluded.fetched_at,
-            expires_at = excluded.expires_at",
-            params![source, json, timestamp, timestamp + CACHE_SECONDS],
+         VALUES ('rss', ?1, ?2, ?3, ?4)
+         ON CONFLICT (provider, cache_key) DO UPDATE SET
+         payload_json = excluded.payload_json,
+         fetched_at = excluded.fetched_at,
+         expires_at = excluded.expires_at",
+            params![
+                source.id,
+                json,
+                timestamp,
+                timestamp + source.interval_seconds
+            ],
         )
         .map_err(|_| "Cache write failed")?;
     Ok(())
