@@ -34,10 +34,10 @@ Node.js must be at least 22.12.0. Tauri needs a supported Rust stable MSVC toolc
 ```powershell
 git clone https://github.com/meshahid973/menafeed.git
 cd menafeed
-npm install
+npm ci
 ```
 
-After lockfiles are committed, prefer `npm ci` over `npm install` for reproducible clean installs. Never check in `node_modules`.
+Lockfiles are committed. Use `npm ci` for reproducible clean installs, and never check in `node_modules`.
 
 ## 3. Development
 

@@ -18,7 +18,7 @@ Install Node.js 22+, Rust stable MSVC, Microsoft C++ Build Tools (Desktop develo
 ```powershell
 git clone https://github.com/meshahid973/menafeed.git
 cd menafeed
-npm install
+npm ci
 npm run dev:desktop
 ```
 

@@ -20,7 +20,7 @@ jobs:
       - name: Upgrade npm dependency resolver
         run: npm install --global npm@11.6.3
       - name: Install dependencies
-        run: npm install --no-audit
+        run: npm ci --no-audit
       - name: Typecheck, lint, format, tests, build
         run: npm run check
 
@@ -41,13 +41,13 @@ jobs:
       - name: Upgrade npm dependency resolver
         run: npm install --global npm@11.6.3
       - name: Install frontend dependencies
-        run: npm install --no-audit
+        run: npm ci --no-audit
       - name: Rust format
         run: cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check
       - name: Rust lint
-        run: cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
+        run: cargo clippy --locked --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
       - name: Rust tests
-        run: cargo test --manifest-path src-tauri/Cargo.toml
+        run: cargo test --locked --manifest-path src-tauri/Cargo.toml
       - name: Build Windows installer
         run: npm run build:desktop
       - name: Preserve installer
