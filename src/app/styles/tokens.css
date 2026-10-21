@@ -1,24 +1,20 @@
 :root {
   color-scheme: dark;
 
-  /* Surfaces */
-  --signal-bg: #090b0c;
-  --signal-surface: #14191b;
-  --signal-surface-raised: #1c2325;
-  --signal-border: #303a38;
+  --signal-bg: #000000;
+  --signal-surface: #0c0c0c;
+  --signal-surface-raised: #181818;
+  --signal-border: #242424;
 
-  /* Semantic text and accents */
-  --signal-text: #e6e6df;
-  --signal-text-muted: #95a39e;
+  --signal-text: #f2f2ee;
+  --signal-text-muted: #999b98;
   --signal-accent: #d4fd73;
   --signal-accent-text: #15200b;
   --signal-danger: #ff9a8f;
 
-  /* Typography: system fallbacks permit offline demonstrations. */
-  --signal-font-editorial: 'Space Grotesk', 'Segoe UI', Arial, sans-serif;
+  --signal-font-editorial: 'Geist', 'Segoe UI Variable', 'Segoe UI', Arial, sans-serif;
   --signal-font-mono: 'IBM Plex Mono', 'Cascadia Code', Consolas, monospace;
 
-  /* Spacing */
   --signal-space-1: 4px;
   --signal-space-2: 8px;
   --signal-space-3: 12px;
@@ -27,14 +23,12 @@
   --signal-space-8: 32px;
   --signal-space-12: 48px;
 
-  /* Shape */
-  --signal-radius-sm: 4px;
-  --signal-radius-md: 8px;
+  --signal-radius-sm: 5px;
+  --signal-radius-md: 9px;
 
-  /* Motion; animations must honor prefers-reduced-motion. */
   --signal-duration-fast: 120ms;
-  --signal-duration-normal: 220ms;
-  --signal-duration-slow: 420ms;
+  --signal-duration-normal: 200ms;
+  --signal-duration-slow: 360ms;
   --signal-ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
