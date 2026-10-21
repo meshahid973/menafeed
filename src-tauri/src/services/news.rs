@@ -7,14 +7,15 @@ use std::{
 use feed_rs::parser;
 use reqwest::{
     header::{ETAG, IF_MODIFIED_SINCE, IF_NONE_MATCH, LAST_MODIFIED},
-    redirect::Policy, Client, StatusCode, Url,
+    redirect::Policy,
+    Client, StatusCode, Url,
 };
 use rusqlite::{params, OptionalExtension};
 use serde::{Deserialize, Serialize};
 use tauri::AppHandle;
 
-use crate::database;
 use super::sources::{approved_feed_host, is_mena_relevant, Source, SOURCES};
+use crate::database;
 
 const MAX_FEED_BYTES: usize = 1_500_000;
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -220,12 +221,22 @@ async fn fetch_source(
     if response.status() == StatusCode::NOT_MODIFIED {
         return Ok(Fetched::NotModified);
     }
-    let mut response = response.error_for_status().map_err(|_| "Source returned an error")?;
+    let mut response = response
+        .error_for_status()
+        .map_err(|_| "Source returned an error")?;
     let headers = CacheHeaders {
-        etag: response.headers().get(ETAG).and_then(|v| v.to_str().ok())
-            .filter(|v| v.len() <= 200).map(str::to_owned),
-        last_modified: response.headers().get(LAST_MODIFIED).and_then(|v| v.to_str().ok())
-            .filter(|v| v.len() <= 200).map(str::to_owned),
+        etag: response
+            .headers()
+            .get(ETAG)
+            .and_then(|v| v.to_str().ok())
+            .filter(|v| v.len() <= 200)
+            .map(str::to_owned),
+        last_modified: response
+            .headers()
+            .get(LAST_MODIFIED)
+            .and_then(|v| v.to_str().ok())
+            .filter(|v| v.len() <= 200)
+            .map(str::to_owned),
     };
     let mut bytes = Vec::new();
     while let Some(chunk) = response.chunk().await.map_err(|_| "Feed download failed")? {
@@ -261,8 +272,9 @@ fn parse_source(xml: &[u8], source: Source) -> Result<Vec<FeedArticle>, String> 
             .map(|value| clean_text(&value.content, 280))
             .filter(|value| !value.is_empty());
 
-        if source.require_region_match &&
-            !is_mena_relevant(&format!("{} {}", title, summary.as_deref().unwrap_or(""))) {
+        if source.require_region_match
+            && !is_mena_relevant(&format!("{} {}", title, summary.as_deref().unwrap_or("")))
+        {
             continue;
         }
 
@@ -343,32 +355,50 @@ fn read_cache(app: &AppHandle, source: &str) -> Result<Option<Cached>, String> {
     ).optional().map_err(|_| "Cache read failed")?;
 
     row.map(|(json, expires_at)| {
-        let stored: StoredFormat = serde_json::from_str(&json)
-            .map_err(|_| "Cached feed is invalid")?;
+        let stored: StoredFormat =
+            serde_json::from_str(&json).map_err(|_| "Cached feed is invalid")?;
         let (articles, headers) = match stored {
             StoredFormat::Legacy(articles) => (articles, CacheHeaders::default()),
             StoredFormat::Current(data) => (data.articles, data.headers),
         };
-        Ok(Cached { articles, headers, expires_at })
-    }).transpose()
+        Ok(Cached {
+            articles,
+            headers,
+            expires_at,
+        })
+    })
+    .transpose()
 }
 
-fn write_cache(app: &AppHandle, source: Source, articles: &[FeedArticle], headers: &CacheHeaders) -> Result<(), String> {
+fn write_cache(
+    app: &AppHandle,
+    source: Source,
+    articles: &[FeedArticle],
+    headers: &CacheHeaders,
+) -> Result<(), String> {
     let connection = database::open(app).map_err(|_| "Cache unavailable")?;
     let timestamp = now();
     let json = serde_json::to_string(&StoredFeed {
         articles: articles.to_vec(),
         headers: headers.clone(),
-    }).map_err(|_| "Cannot encode feed")?;
-    connection.execute(
-        "INSERT INTO cache_entries (provider, cache_key, payload_json, fetched_at, expires_at)
+    })
+    .map_err(|_| "Cannot encode feed")?;
+    connection
+        .execute(
+            "INSERT INTO cache_entries (provider, cache_key, payload_json, fetched_at, expires_at)
          VALUES ('rss', ?1, ?2, ?3, ?4)
          ON CONFLICT (provider, cache_key) DO UPDATE SET
          payload_json = excluded.payload_json,
          fetched_at = excluded.fetched_at,
          expires_at = excluded.expires_at",
-        params![source.id, json, timestamp, timestamp + source.interval_seconds],
-    ).map_err(|_| "Cache write failed")?;
+            params![
+                source.id,
+                json,
+                timestamp,
+                timestamp + source.interval_seconds
+            ],
+        )
+        .map_err(|_| "Cache write failed")?;
     Ok(())
 }
 
