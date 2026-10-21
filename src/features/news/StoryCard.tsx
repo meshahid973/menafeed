@@ -13,7 +13,10 @@ function formatTime(value: string | null) {
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return 'TIME UNKNOWN';
   return new Intl.DateTimeFormat('en', {
-    month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
   }).format(parsed);
 }
 
@@ -35,7 +38,10 @@ export function StoryCard({ article, index, expanded, onToggle, onOpen }: Props)
           <span className="signal-story__time">{formatTime(article.publishedAt)}</span>
         </span>
         <span className="signal-story__title">{article.title}</span>
-        <span className="signal-story__hint">{expanded ? 'CLOSE BRIEF' : 'VIEW BRIEF'} <span aria-hidden="true">{expanded ? '−' : '+'}</span></span>
+        <span className="signal-story__hint">
+          {expanded ? 'CLOSE BRIEF' : 'VIEW BRIEF'}{' '}
+          <span aria-hidden="true">{expanded ? '−' : '+'}</span>
+        </span>
       </button>
       {expanded && (
         <div className="signal-story__detail" id={detailId}>

@@ -38,7 +38,9 @@ export function useNewsFeed(enabled: boolean) {
       setLoading(false);
       setRefreshing(false);
     }
-    return () => { requestId.current += 1; };
+    return () => {
+      requestId.current += 1;
+    };
   }, [enabled, refresh]);
 
   return { data, error, loading, refreshing, refresh };

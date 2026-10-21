@@ -121,7 +121,12 @@ pub async fn load(app: AppHandle, force: bool) -> Result<NewsFeedResponse, Strin
     })
 }
 
-async fn load_source(app: &AppHandle, client: &Client, source: Source, force: bool) -> SourceResult {
+async fn load_source(
+    app: &AppHandle,
+    client: &Client,
+    source: Source,
+    force: bool,
+) -> SourceResult {
     let cached = read_cache(app, source.id).ok().flatten();
     if !force {
         if let Some(ref cache) = cached {
@@ -194,7 +199,10 @@ async fn fetch_source(client: &Client, source: Source) -> Result<Vec<FeedArticle
 
 fn approved_feed_host(url: &Url) -> bool {
     url.scheme() == "https"
-        && matches!(url.host_str(), Some("feeds.bbci.co.uk" | "www.france24.com"))
+        && matches!(
+            url.host_str(),
+            Some("feeds.bbci.co.uk" | "www.france24.com")
+        )
         && url.username().is_empty()
         && url.password().is_none()
 }
@@ -228,7 +236,10 @@ fn parse_source(xml: &[u8], source: Source) -> Result<Vec<FeedArticle>, String> 
             source_name: source.name.into(),
             title,
             url,
-            published_at: entry.published.or(entry.updated).map(|date| date.to_rfc3339()),
+            published_at: entry
+                .published
+                .or(entry.updated)
+                .map(|date| date.to_rfc3339()),
             summary,
             location: UnknownLocation {
                 precision: "unknown".into(),
@@ -299,7 +310,10 @@ fn read_cache(app: &AppHandle, source: &str) -> Result<Option<Cached>, String> {
 
     row.map(|(json, expires_at)| {
         serde_json::from_str(&json)
-            .map(|articles| Cached { articles, expires_at })
+            .map(|articles| Cached {
+                articles,
+                expires_at,
+            })
             .map_err(|_| "Cached feed is invalid".into())
     })
     .transpose()

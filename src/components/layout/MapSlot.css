@@ -15,8 +15,10 @@
   position: absolute;
   z-index: -1;
   inset: 0;
-  opacity: .44;
-  background-image: linear-gradient(to right, #26302c 1px, transparent 1px), linear-gradient(to bottom, #26302c 1px, transparent 1px);
+  opacity: 0.44;
+  background-image:
+    linear-gradient(to right, #26302c 1px, transparent 1px),
+    linear-gradient(to bottom, #26302c 1px, transparent 1px);
   background-size: 64px 64px;
   mask-image: radial-gradient(ellipse at 49% 45%, #000 0%, transparent 76%);
 }
@@ -29,10 +31,12 @@
   gap: 10px;
   color: var(--signal-text-muted);
   font: 500 10px/1.4 var(--signal-font-mono);
-  letter-spacing: .08em;
+  letter-spacing: 0.08em;
 }
 
-.signal-map-slot__top span:first-child { color: var(--signal-text); }
+.signal-map-slot__top span:first-child {
+  color: var(--signal-text);
+}
 
 .signal-map-slot__indicator {
   display: inline-block;
@@ -60,17 +64,19 @@
 .signal-map-slot__note {
   color: var(--signal-accent);
   font: 500 10px/1.5 var(--signal-font-mono);
-  letter-spacing: .15em;
+  letter-spacing: 0.15em;
 }
 
 .signal-map-slot__center h1 {
   margin: 17px 0 20px;
   color: var(--signal-text);
-  font: 550 clamp(45px, 5.5vw, 88px)/.96 var(--signal-font-editorial);
-  letter-spacing: -.075em;
+  font: 550 clamp(45px, 5.5vw, 88px)/0.96 var(--signal-font-editorial);
+  letter-spacing: -0.075em;
 }
 
-.signal-map-slot__center h1 span { color: var(--signal-accent); }
+.signal-map-slot__center h1 span {
+  color: var(--signal-accent);
+}
 
 .signal-map-slot__center p {
   margin: 0;
@@ -85,18 +91,33 @@
   padding: 10px 12px;
   border: 1px solid #3c5142;
   color: #adca83;
-  letter-spacing: .07em;
+  letter-spacing: 0.07em;
 }
 
 @media (max-width: 1020px) {
-  .signal-map-slot__center h1 { font-size: clamp(41px, 5vw, 72px); }
-  .signal-map-slot__bottom span:last-child { display: none; }
+  .signal-map-slot__center h1 {
+    font-size: clamp(41px, 5vw, 72px);
+  }
+  .signal-map-slot__bottom span:last-child {
+    display: none;
+  }
 }
 
 @media (max-width: 720px) {
-  .signal-map-slot__crosshair { display: none; }
-  .signal-map-slot__center { padding: 10px 0; }
-  .signal-map-slot__center h1 { font-size: 44px; margin: 10px 0; }
-  .signal-map-slot__center p { display: none; }
-  .signal-map-slot__note { margin-top: 18px; }
+  .signal-map-slot__crosshair {
+    display: none;
+  }
+  .signal-map-slot__center {
+    padding: 10px 0;
+  }
+  .signal-map-slot__center h1 {
+    font-size: 44px;
+    margin: 10px 0;
+  }
+  .signal-map-slot__center p {
+    display: none;
+  }
+  .signal-map-slot__note {
+    margin-top: 18px;
+  }
 }

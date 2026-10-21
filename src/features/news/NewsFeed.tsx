@@ -23,7 +23,8 @@ export function NewsFeed({ desktopStatus }: Props) {
       if (source !== 'all' && article.sourceId !== source) return false;
       if (!deferredQuery) return true;
       return `${article.title} ${article.summary ?? ''} ${article.sourceName}`
-        .toLocaleLowerCase().includes(deferredQuery);
+        .toLocaleLowerCase()
+        .includes(deferredQuery);
     });
   }, [data, source, deferredQuery]);
 
@@ -49,7 +50,9 @@ export function NewsFeed({ desktopStatus }: Props) {
         <div className="signal-feed__heading">
           <div>
             <span className="signal-feed__section">FROM ACROSS THE REGION</span>
-            <h2 id="news-title">The Briefing<span>.</span></h2>
+            <h2 id="news-title">
+              The Briefing<span>.</span>
+            </h2>
           </div>
           <button
             className="signal-feed__refresh"
@@ -59,19 +62,45 @@ export function NewsFeed({ desktopStatus }: Props) {
             aria-label="Refresh news"
             title="Refresh news"
           >
-            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
-              <path d="M20 11a8 8 0 1 0-2 6M20 4v7h-7" strokeLinecap="round" strokeLinejoin="round" />
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.7"
+            >
+              <path
+                d="M20 11a8 8 0 1 0-2 6M20 4v7h-7"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
             </svg>
           </button>
         </div>
-        <p className="signal-feed__description">Reporting from trusted publishers. Read beyond the headline.</p>
+        <p className="signal-feed__description">
+          Reporting from trusted publishers. Read beyond the headline.
+        </p>
         <div className="signal-feed__metrics">
-          <span><strong>{data?.articles.length ?? '—'}</strong> STORIES</span>
-          <span><strong>{available || '—'}</strong> SOURCES</span>
+          <span>
+            <strong>{data?.articles.length ?? '—'}</strong> STORIES
+          </span>
+          <span>
+            <strong>{available || '—'}</strong> SOURCES
+          </span>
           <span className="signal-feed__state">
-            {loading ? 'CONNECTING' : desktopStatus.kind === 'preview' ? 'BROWSER PREVIEW' :
-              desktopStatus.kind === 'checking' ? 'STARTING' : desktopStatus.kind === 'error' ?
-              'DESKTOP OFFLINE' : stale ? 'CACHED NEWS' : available ? 'SOURCE SYNCED' : 'AWAITING SOURCES'}
+            {loading
+              ? 'CONNECTING'
+              : desktopStatus.kind === 'preview'
+                ? 'BROWSER PREVIEW'
+                : desktopStatus.kind === 'checking'
+                  ? 'STARTING'
+                  : desktopStatus.kind === 'error'
+                    ? 'DESKTOP OFFLINE'
+                    : stale
+                      ? 'CACHED NEWS'
+                      : available
+                        ? 'SOURCE SYNCED'
+                        : 'AWAITING SOURCES'}
           </span>
         </div>
       </div>
@@ -89,41 +118,71 @@ export function NewsFeed({ desktopStatus }: Props) {
           <kbd>/</kbd>
         </label>
         <div className="signal-feed__sources" role="group" aria-label="Filter news sources">
-          <button type="button" className={source === 'all' ? 'is-active' : ''} onClick={() => { setSource('all'); setSelected(null); }}>All sources</button>
+          <button
+            type="button"
+            className={source === 'all' ? 'is-active' : ''}
+            onClick={() => {
+              setSource('all');
+              setSelected(null);
+            }}
+          >
+            All sources
+          </button>
           {data?.sources.map((item) => (
             <button
               key={item.id}
               type="button"
               className={source === item.id ? 'is-active' : ''}
-              onClick={() => { setSource(item.id); setSelected(null); }}
-            >{item.name}</button>
+              onClick={() => {
+                setSource(item.id);
+                setSelected(null);
+              }}
+            >
+              {item.name}
+            </button>
           ))}
         </div>
       </div>
 
       <div className="signal-feed__bar">
         <span>LATEST REPORTS</span>
-        <span>{articles.length} RESULTS <span aria-hidden="true">↙</span></span>
+        <span>
+          {articles.length} RESULTS <span aria-hidden="true">↙</span>
+        </span>
       </div>
 
       <div className="signal-feed__scroll">
-        {error && <div className="signal-feed__message" role="status">{error}</div>}
-        {openError && <div className="signal-feed__message" role="alert">Could not open this article.</div>}
+        {error && (
+          <div className="signal-feed__message" role="status">
+            {error}
+          </div>
+        )}
+        {openError && (
+          <div className="signal-feed__message" role="alert">
+            Could not open this article.
+          </div>
+        )}
         {loading && <div className="signal-feed__message">Loading regional reporting…</div>}
         {!enabled && (
           <div className="signal-feed__empty">
             <span>WIRE / STANDBY</span>
-            <p>{desktopStatus.kind === 'preview'
-              ? 'Launch the Tauri desktop application to load publisher RSS feeds.'
-              : desktopStatus.kind === 'error'
-                ? 'The desktop service could not start.'
-                : 'Connecting to the desktop service…'}</p>
+            <p>
+              {desktopStatus.kind === 'preview'
+                ? 'Launch the Tauri desktop application to load publisher RSS feeds.'
+                : desktopStatus.kind === 'error'
+                  ? 'The desktop service could not start.'
+                  : 'Connecting to the desktop service…'}
+            </p>
           </div>
         )}
         {enabled && !loading && articles.length === 0 && (
           <div className="signal-feed__empty">
             <span>NO REPORTS FOUND</span>
-            <p>{query || source !== 'all' ? 'Try another keyword or publisher.' : 'No articles are available from configured sources.'}</p>
+            <p>
+              {query || source !== 'all'
+                ? 'Try another keyword or publisher.'
+                : 'No articles are available from configured sources.'}
+            </p>
           </div>
         )}
         {articles.map((article, index) => (
@@ -136,7 +195,10 @@ export function NewsFeed({ desktopStatus }: Props) {
             onOpen={(url) => void handleOpen(url)}
           />
         ))}
-        <p className="signal-feed__attribution">Headlines and short excerpts belong to their respective publishers. Source links open original reporting.</p>
+        <p className="signal-feed__attribution">
+          Headlines and short excerpts belong to their respective publishers. Source links open
+          original reporting.
+        </p>
       </div>
       <div className="signal-feed__foot">
         <span>{desktopStatus.kind === 'ready' ? 'RSS / LOCAL CACHE' : 'SIGNAL / PREVIEW'}</span>

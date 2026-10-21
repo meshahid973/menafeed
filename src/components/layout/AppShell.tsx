@@ -18,7 +18,9 @@ export function AppShell({ desktopStatus }: AppShellProps) {
           <span className="signal-shell__brand-region">MENA</span>
         </div>
         <span className="signal-shell__header-title">REGIONAL NEWS INTELLIGENCE</span>
-        <span className="signal-shell__edition">DESKTOP EDITION <span>01</span></span>
+        <span className="signal-shell__edition">
+          DESKTOP EDITION <span>01</span>
+        </span>
       </header>
       <div className="signal-shell__workspace">
         <main className="signal-shell__map">
