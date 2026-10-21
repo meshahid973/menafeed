@@ -42,7 +42,7 @@ describe('MenaGlobe', () => {
     { name: 'Egypt', code: 'EG' },
     { name: 'Saudi Arabia', code: 'SA' },
     { name: 'Morocco', code: 'MA' },
-  ])('centres and reorients the camera for $name using its boundary geometry', ({ name, code }) => {
+  ])('gently zooms to and centres $name without rotating the map', ({ name, code }) => {
     const previousMatchMedia = Object.getOwnPropertyDescriptor(window, 'matchMedia');
     Object.defineProperty(window, 'matchMedia', {
       configurable: true,
@@ -56,9 +56,10 @@ describe('MenaGlobe', () => {
       const transform = screen.getByTestId('map-layer').getAttribute('transform');
       expect(transform).not.toBeNull();
       const values = transform!.match(
-        /^translate\(([-\d.eE]+) ([-\d.eE]+)\) scale\(([-\d.eE]+)\) rotate\(([-\d.eE]+)\)$/,
+        /^translate\\(([-\\d.eE]+) ([-\\d.eE]+)\\) scale\\(([-\\d.eE]+)\\)$/,
       );
       expect(values).not.toBeNull();
+      expect(transform).not.toContain('rotate');
 
       const dataset = JSON.parse(rawCountryData) as CountryCollection;
       const feature = dataset.features.find((item) => item.properties.code === code);
@@ -69,16 +70,13 @@ describe('MenaGlobe', () => {
       const translateX = Number(values![1]);
       const translateY = Number(values![2]);
       const zoom = Number(values![3]);
-      const rotation = (Number(values![4]) * Math.PI) / 180;
-      const projectedX =
-        translateX + zoom * (Math.cos(rotation) * focus!.x - Math.sin(rotation) * focus!.y);
-      const projectedY =
-        translateY + zoom * (Math.sin(rotation) * focus!.x + Math.cos(rotation) * focus!.y);
+      const projectedX = translateX + zoom * focus!.x;
+      const projectedY = translateY + zoom * focus!.y;
 
       expect(projectedX).toBeCloseTo(MAP_WIDTH / 2, 2);
       expect(projectedY).toBeCloseTo(MAP_HEIGHT / 2, 2);
       expect(zoom).toBeGreaterThan(1);
-      expect(Math.abs(Number(values![4]))).toBeLessThanOrEqual(90);
+      expect(zoom).toBeLessThanOrEqual(3.5);
     } finally {
       if (previousMatchMedia) {
         Object.defineProperty(window, 'matchMedia', previousMatchMedia);
