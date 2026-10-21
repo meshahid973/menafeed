@@ -23,7 +23,12 @@ export function NewsFeed({ desktopStatus }: Props) {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== '/' || event.altKey || event.ctrlKey || event.metaKey) return;
       const target = event.target;
-      if (target instanceof HTMLElement && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))) return;
+      if (
+        target instanceof HTMLElement &&
+        (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))
+      ) {
+        return;
+      }
       event.preventDefault();
       searchRef.current?.focus();
     };
