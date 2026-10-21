@@ -10,7 +10,12 @@ interface Props {
 
 export function storyDate(value: string | null): string {
   if (!value || Number.isNaN(Date.parse(value))) return 'Date unavailable';
-  return new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(value));
+  return new Intl.DateTimeFormat('en', {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(new Date(value));
 }
 
 export function StoryCard({ article, featured = false, saved, onSelect, onToggleSave }: Props) {
@@ -22,7 +27,9 @@ export function StoryCard({ article, featured = false, saved, onSelect, onToggle
           <time dateTime={article.publishedAt ?? undefined}>{storyDate(article.publishedAt)}</time>
         </span>
         <span className="signal-story__title">{article.title}</span>
-        {featured && article.summary && <span className="signal-story__summary">{article.summary}</span>}
+        {featured && article.summary && (
+          <span className="signal-story__summary">{article.summary}</span>
+        )}
       </button>
       <button
         type="button"
@@ -32,7 +39,16 @@ export function StoryCard({ article, featured = false, saved, onSelect, onToggle
         aria-pressed={saved}
         title={saved ? 'Remove from Saved' : 'Save story'}
       >
-        <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill={saved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round">
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 24 24"
+          width="18"
+          height="18"
+          fill={saved ? 'currentColor' : 'none'}
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinejoin="round"
+        >
           <path d="M6 3.5h12V21l-6-4-6 4z" />
         </svg>
       </button>

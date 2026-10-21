@@ -56,8 +56,14 @@
   color: var(--signal-text);
 }
 
-.signal-feed__actions button:disabled { opacity: 0.38; cursor: not-allowed; }
-.signal-feed__actions svg { width: 18px; height: 18px; }
+.signal-feed__actions button:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+.signal-feed__actions svg {
+  width: 18px;
+  height: 18px;
+}
 
 .signal-feed__search {
   display: block;
@@ -121,7 +127,9 @@
   display: none;
 }
 
-.signal-feed__list:focus { outline: none; }
+.signal-feed__list:focus {
+  outline: none;
+}
 
 .signal-feed__message,
 .signal-feed__empty {
@@ -210,8 +218,12 @@
 }
 
 .signal-story__save:hover,
-.signal-story__save--active { color: var(--signal-accent); }
-.signal-story__save:hover { background: var(--signal-surface-raised); }
+.signal-story__save--active {
+  color: var(--signal-accent);
+}
+.signal-story__save:hover {
+  background: var(--signal-surface-raised);
+}
 
 .signal-feed--full .signal-feed__intro,
 .signal-feed--full .signal-feed__list > .signal-story,
@@ -251,8 +263,12 @@
   font-size: 13px;
 }
 
-.signal-reader__back:hover { color: var(--signal-text); }
-.signal-reader__back span { margin-right: 8px; }
+.signal-reader__back:hover {
+  color: var(--signal-text);
+}
+.signal-reader__back span {
+  margin-right: 8px;
+}
 
 .signal-reader__body {
   max-width: 740px;
@@ -315,9 +331,13 @@
 }
 
 @media (max-width: 900px) {
-  .signal-feed__heading h2 { font-size: 26px; }
+  .signal-feed__heading h2 {
+    font-size: 26px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .signal-story__headline { transition: none; }
+  .signal-story__headline {
+    transition: none;
+  }
 }

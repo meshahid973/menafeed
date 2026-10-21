@@ -7,9 +7,14 @@ const MAX_SAVED = 200;
 function validArticle(value: unknown): value is FeedArticle {
   if (!value || typeof value !== 'object') return false;
   const article = value as Partial<FeedArticle>;
-  if (typeof article.title !== 'string' || typeof article.sourceName !== 'string' ||
-      typeof article.sourceId !== 'string' || typeof article.url !== 'string' ||
-      typeof article.id !== 'string') return false;
+  if (
+    typeof article.title !== 'string' ||
+    typeof article.sourceName !== 'string' ||
+    typeof article.sourceId !== 'string' ||
+    typeof article.url !== 'string' ||
+    typeof article.id !== 'string'
+  )
+    return false;
 
   try {
     const url = new URL(article.url);
@@ -25,16 +30,19 @@ function readSaved(): FeedArticle[] {
     if (!raw) return [];
     const parsed: unknown = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
-    return parsed.filter(validArticle).slice(0, MAX_SAVED).map((article) => ({
-      id: article.id,
-      sourceId: article.sourceId,
-      sourceName: article.sourceName,
-      title: article.title.slice(0, 250),
-      url: article.url,
-      publishedAt: typeof article.publishedAt === 'string' ? article.publishedAt : null,
-      summary: typeof article.summary === 'string' ? article.summary.slice(0, 500) : undefined,
-      location: { precision: 'unknown' as const },
-    }));
+    return parsed
+      .filter(validArticle)
+      .slice(0, MAX_SAVED)
+      .map((article) => ({
+        id: article.id,
+        sourceId: article.sourceId,
+        sourceName: article.sourceName,
+        title: article.title.slice(0, 250),
+        url: article.url,
+        publishedAt: typeof article.publishedAt === 'string' ? article.publishedAt : null,
+        summary: typeof article.summary === 'string' ? article.summary.slice(0, 500) : undefined,
+        location: { precision: 'unknown' as const },
+      }));
   } catch {
     return [];
   }
@@ -56,16 +64,19 @@ export function useBookmarks() {
       if (current.some((saved) => saved.url === article.url)) {
         return current.filter((saved) => saved.url !== article.url);
       }
-      return [{
-        id: article.id,
-        sourceId: article.sourceId,
-        sourceName: article.sourceName,
-        title: article.title,
-        url: article.url,
-        publishedAt: article.publishedAt,
-        summary: article.summary,
-        location: { precision: 'unknown' },
-      }, ...current].slice(0, MAX_SAVED);
+      return [
+        {
+          id: article.id,
+          sourceId: article.sourceId,
+          sourceName: article.sourceName,
+          title: article.title,
+          url: article.url,
+          publishedAt: article.publishedAt,
+          summary: article.summary,
+          location: { precision: 'unknown' },
+        },
+        ...current,
+      ].slice(0, MAX_SAVED);
     });
   }
 

@@ -14,20 +14,32 @@ const sample: NewsFeedResponse = {
   ],
   articles: [
     {
-      id: 'one', sourceId: 'bbc', sourceName: 'BBC Middle East',
-      title: 'Regional energy talks', url: 'https://www.bbc.com/news/example',
-      summary: 'A brief summary about energy.', publishedAt: '2026-10-21T11:00:00Z',
+      id: 'one',
+      sourceId: 'bbc',
+      sourceName: 'BBC Middle East',
+      title: 'Regional energy talks',
+      url: 'https://www.bbc.com/news/example',
+      summary: 'A brief summary about energy.',
+      publishedAt: '2026-10-21T11:00:00Z',
       location: { precision: 'unknown' },
     },
     {
-      id: 'duplicated', sourceId: 'bbc', sourceName: 'BBC Middle East',
-      title: 'Regional energy talks', url: 'https://www.bbc.com/news/example-2',
-      publishedAt: '2026-10-21T10:15:00Z', location: { precision: 'unknown' },
+      id: 'duplicated',
+      sourceId: 'bbc',
+      sourceName: 'BBC Middle East',
+      title: 'Regional energy talks',
+      url: 'https://www.bbc.com/news/example-2',
+      publishedAt: '2026-10-21T10:15:00Z',
+      location: { precision: 'unknown' },
     },
     {
-      id: 'two', sourceId: 'france24', sourceName: 'France 24',
-      title: 'Cultural event announced', url: 'https://www.france24.com/en/example',
-      publishedAt: '2026-10-21T10:00:00Z', location: { precision: 'unknown' },
+      id: 'two',
+      sourceId: 'france24',
+      sourceName: 'France 24',
+      title: 'Cultural event announced',
+      url: 'https://www.france24.com/en/example',
+      publishedAt: '2026-10-21T10:00:00Z',
+      location: { precision: 'unknown' },
     },
   ],
 };
@@ -43,7 +55,9 @@ describe('news desk', () => {
     render(<NewsFeed desktopStatus={{ kind: 'ready', schemaVersion: 1 }} />);
     expect(await screen.findByText('Regional energy talks')).toBeInTheDocument();
     expect(screen.getAllByText('Regional energy talks')).toHaveLength(1);
-    fireEvent.change(screen.getByRole('combobox', { name: 'Publisher' }), { target: { value: 'france24' } });
+    fireEvent.change(screen.getByRole('combobox', { name: 'Publisher' }), {
+      target: { value: 'france24' },
+    });
     expect(screen.queryByText('Regional energy talks')).not.toBeInTheDocument();
     expect(screen.getByText('Cultural event announced')).toBeInTheDocument();
   });
@@ -55,15 +69,21 @@ describe('news desk', () => {
     expect(screen.getByRole('heading', { name: 'Regional energy talks' })).toBeInTheDocument();
     expect(screen.getByText('A brief summary about energy.')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /Read original/ }));
-    await waitFor(() => expect(openArticle).toHaveBeenCalledWith('https://www.bbc.com/news/example'));
+    await waitFor(() =>
+      expect(openArticle).toHaveBeenCalledWith('https://www.bbc.com/news/example'),
+    );
   });
 
   it('searches from the shortcut and filters headlines', async () => {
     render(<NewsFeed desktopStatus={{ kind: 'ready', schemaVersion: 1 }} />);
     expect(await screen.findByText('Regional energy talks')).toBeInTheDocument();
     fireEvent.keyDown(window, { key: '/' });
-    fireEvent.change(screen.getByRole('searchbox', { name: 'Search headlines' }), { target: { value: 'cultural' } });
-    await waitFor(() => expect(screen.queryByText('Regional energy talks')).not.toBeInTheDocument());
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Search headlines' }), {
+      target: { value: 'cultural' },
+    });
+    await waitFor(() =>
+      expect(screen.queryByText('Regional energy talks')).not.toBeInTheDocument(),
+    );
     expect(screen.getByText('Cultural event announced')).toBeInTheDocument();
   });
 

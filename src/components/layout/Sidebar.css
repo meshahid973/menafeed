@@ -53,7 +53,9 @@
   text-align: left;
   cursor: pointer;
   font-size: 13px;
-  transition: color var(--signal-duration-fast), background var(--signal-duration-fast);
+  transition:
+    color var(--signal-duration-fast),
+    background var(--signal-duration-fast);
 }
 
 .signal-sidebar__control {

@@ -14,10 +14,18 @@ const sample = {
 
 function BookmarksHarness() {
   const { items, toggle } = useBookmarks();
-  return <>
-    <div>{items.map((item) => <span key={item.id}>{item.title}</span>)}</div>
-    <button type="button" onClick={() => toggle(sample)}>Toggle saved</button>
-  </>;
+  return (
+    <>
+      <div>
+        {items.map((item) => (
+          <span key={item.id}>{item.title}</span>
+        ))}
+      </div>
+      <button type="button" onClick={() => toggle(sample)}>
+        Toggle saved
+      </button>
+    </>
+  );
 }
 
 describe('saved stories', () => {

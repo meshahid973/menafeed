@@ -77,7 +77,10 @@ export function AppShell({ desktopStatus }: AppShellProps) {
         expanded={expanded}
         onToggle={() => setExpanded((current) => !current)}
         onSelect={navigate}
-        onSettings={() => { setSettingsOpen(true); if (window.innerWidth <= 720) setExpanded(false); }}
+        onSettings={() => {
+          setSettingsOpen(true);
+          if (window.innerWidth <= 720) setExpanded(false);
+        }}
       />
       <div className="signal-shell__content">
         <header className="signal-shell__header">
@@ -100,15 +103,40 @@ export function AppShell({ desktopStatus }: AppShellProps) {
         </div>
       </div>
       {settingsOpen && (
-        <div className="signal-settings-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setSettingsOpen(false); }}>
-          <section className="signal-settings" role="dialog" aria-modal="true" aria-labelledby="signal-settings-title">
+        <div
+          className="signal-settings-backdrop"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setSettingsOpen(false);
+          }}
+        >
+          <section
+            className="signal-settings"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="signal-settings-title"
+          >
             <div className="signal-settings__header">
               <h2 id="signal-settings-title">Settings</h2>
-              <button type="button" onClick={() => setSettingsOpen(false)} aria-label="Close settings"><SidebarIcon name="close" /></button>
+              <button
+                type="button"
+                onClick={() => setSettingsOpen(false)}
+                aria-label="Close settings"
+              >
+                <SidebarIcon name="close" />
+              </button>
             </div>
-            <div className="signal-settings__row"><span>Appearance</span><strong>OLED dark</strong></div>
-            <div className="signal-settings__row"><span>Sidebar shortcut</span><kbd>Ctrl+B</kbd></div>
-            <div className="signal-settings__row"><span>Search shortcut</span><kbd>Ctrl+K</kbd></div>
+            <div className="signal-settings__row">
+              <span>Appearance</span>
+              <strong>OLED dark</strong>
+            </div>
+            <div className="signal-settings__row">
+              <span>Sidebar shortcut</span>
+              <kbd>Ctrl+B</kbd>
+            </div>
+            <div className="signal-settings__row">
+              <span>Search shortcut</span>
+              <kbd>Ctrl+K</kbd>
+            </div>
             <p>News from publisher RSS feeds. Links open the original source.</p>
           </section>
         </div>

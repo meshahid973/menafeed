@@ -30,7 +30,9 @@ export function ArticleReader({ article, saved, onBack, onOpen, onToggleSave }: 
             {saved ? 'Remove saved' : 'Save story'}
           </button>
         </div>
-        <p className="signal-reader__note">Source content belongs to its publisher. Story location has not been verified.</p>
+        <p className="signal-reader__note">
+          Source content belongs to its publisher. Story location has not been verified.
+        </p>
       </div>
     </article>
   );
