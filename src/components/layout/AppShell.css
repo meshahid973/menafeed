@@ -1,0 +1,142 @@
+.signal-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding: 0 clamp(20px, 5.5vw, 90px);
+}
+
+.signal-shell__header,
+.signal-shell__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--signal-space-6);
+  font-family: var(--signal-font-mono);
+  letter-spacing: 0.06em;
+}
+
+.signal-shell__header {
+  min-height: 76px;
+  border-bottom: 1px solid var(--signal-border);
+}
+
+.signal-shell__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--signal-space-2);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.signal-shell__beacon {
+  width: 9px;
+  height: 9px;
+  margin-right: var(--signal-space-2);
+  border-radius: 2px;
+  background: var(--signal-accent);
+}
+
+.signal-shell__slash,
+.signal-shell__region,
+.signal-shell__header-note,
+.signal-shell__phase,
+.signal-shell__footer {
+  color: var(--signal-text-muted);
+}
+
+.signal-shell__header-note,
+.signal-shell__phase,
+.signal-shell__footer {
+  font-size: 10px;
+}
+
+.signal-shell__main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 64px 0;
+}
+
+.signal-shell__eyebrow,
+.signal-shell__status {
+  font-family: var(--signal-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.09em;
+}
+
+.signal-shell__eyebrow {
+  margin-bottom: 30px;
+  color: var(--signal-accent);
+}
+
+.signal-shell__title {
+  margin: 0;
+  font-size: clamp(54px, 8.7vw, 130px);
+  font-weight: 550;
+  line-height: 0.97;
+  letter-spacing: -0.08em;
+}
+
+.signal-shell__period {
+  color: var(--signal-accent);
+}
+
+.signal-shell__description {
+  max-width: 470px;
+  margin: 36px 0 44px;
+  color: var(--signal-text-muted);
+  font-size: clamp(14px, 1.5vw, 17px);
+  line-height: 1.65;
+}
+
+.signal-shell__status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid var(--signal-border);
+  color: var(--signal-text);
+}
+
+.signal-shell__status-light {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--signal-accent);
+}
+
+.signal-shell__status-light--error {
+  background: var(--signal-danger);
+}
+
+.signal-shell__status-detail {
+  color: var(--signal-text-muted);
+}
+
+.signal-shell__footer {
+  min-height: 65px;
+  border-top: 1px solid var(--signal-border);
+}
+
+@media (max-width: 700px) {
+  .signal-shell__header {
+    min-height: 64px;
+  }
+
+  .signal-shell__header-note,
+  .signal-shell__footer span:last-child {
+    display: none;
+  }
+
+  .signal-shell__title {
+    letter-spacing: -0.065em;
+  }
+
+  .signal-shell__description {
+    margin: 28px 0 36px;
+  }
+}

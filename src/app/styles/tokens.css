@@ -1,0 +1,47 @@
+:root {
+  color-scheme: dark;
+
+  /* Surfaces */
+  --signal-bg: #090b0c;
+  --signal-surface: #14191b;
+  --signal-surface-raised: #1c2325;
+  --signal-border: #303a38;
+
+  /* Semantic text and accents */
+  --signal-text: #e6e6df;
+  --signal-text-muted: #95a39e;
+  --signal-accent: #d4fd73;
+  --signal-accent-text: #15200b;
+  --signal-danger: #ff9a8f;
+
+  /* Typography: system fallbacks permit offline demonstrations. */
+  --signal-font-editorial: 'Space Grotesk', 'Segoe UI', Arial, sans-serif;
+  --signal-font-mono: 'IBM Plex Mono', 'Cascadia Code', Consolas, monospace;
+
+  /* Spacing */
+  --signal-space-1: 4px;
+  --signal-space-2: 8px;
+  --signal-space-3: 12px;
+  --signal-space-4: 16px;
+  --signal-space-6: 24px;
+  --signal-space-8: 32px;
+  --signal-space-12: 48px;
+
+  /* Shape */
+  --signal-radius-sm: 4px;
+  --signal-radius-md: 8px;
+
+  /* Motion; animations must honor prefers-reduced-motion. */
+  --signal-duration-fast: 120ms;
+  --signal-duration-normal: 220ms;
+  --signal-duration-slow: 420ms;
+  --signal-ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --signal-duration-fast: 0ms;
+    --signal-duration-normal: 0ms;
+    --signal-duration-slow: 0ms;
+  }
+}

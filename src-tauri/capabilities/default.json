@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "main",
+  "description": "Minimal core window capabilities for the main SIGNAL window.",
+  "windows": ["main"],
+  "permissions": ["core:default"]
+}
