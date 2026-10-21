@@ -292,8 +292,7 @@ fn country_code_from_category(value: &str) -> Option<&'static str> {
     let normalized = value
         .trim()
         .to_ascii_lowercase()
-        .replace('_', " ")
-        .replace('-', " ")
+        .replace(['_', '-'], " ")
         .split_whitespace()
         .collect::<Vec<_>>()
         .join(" ");
