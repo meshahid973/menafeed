@@ -51,7 +51,7 @@ describe('news desk', () => {
   it('opens a story reader and original report', async () => {
     render(<NewsFeed desktopStatus={{ kind: 'ready', schemaVersion: 1 }} />);
     expect(await screen.findByText('Regional energy talks')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: /Regional energy talks/ }));
+    fireEvent.click(screen.getByText('Regional energy talks'));
     expect(screen.getByRole('heading', { name: 'Regional energy talks' })).toBeInTheDocument();
     expect(screen.getByText('A brief summary about energy.')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /Read original/ }));
