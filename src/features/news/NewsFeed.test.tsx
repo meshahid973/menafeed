@@ -162,6 +162,34 @@ describe('news desk', () => {
     expect(screen.queryByText('Saudi Arabia tagged report')).not.toBeInTheDocument();
   });
 
+  it('keeps country filtering active in the full News view', async () => {
+    vi.mocked(getNewsFeed).mockResolvedValueOnce({
+      ...sample,
+      articles: [
+        {
+          ...sample.articles[0]!,
+          id: 'egypt-only',
+          title: 'Publisher-tagged Egypt report',
+          url: 'https://www.bbc.com/news/egypt-only',
+          location: { precision: 'country', countryCode: 'EG' },
+        },
+        sample.articles[0]!,
+      ],
+    });
+
+    render(
+      <FeedHarness
+        desktopStatus={{ kind: 'ready', schemaVersion: 1 }}
+        view="news"
+        selectedCountry="EG"
+      />,
+    );
+
+    expect(await screen.findByText('Publisher-tagged Egypt report')).toBeInTheDocument();
+    expect(screen.getByText('Now showing news for Egypt')).toBeInTheDocument();
+    expect(screen.queryByText('Regional energy talks')).not.toBeInTheDocument();
+  });
+
   it('offers a retry after a failed source request', async () => {
     vi.mocked(getNewsFeed).mockRejectedValueOnce(new Error('network'));
     render(<FeedHarness desktopStatus={{ kind: 'ready', schemaVersion: 1 }} />);
