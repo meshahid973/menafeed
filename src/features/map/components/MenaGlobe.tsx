@@ -2,7 +2,7 @@ import { geoGraticule, geoPath } from 'd3-geo';
 import { useCallback, useId, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent, PointerEvent, WheelEvent } from 'react';
 import rawCountryData from '../data/mena-countries.geojson?raw';
-import { MENA_COUNTRIES } from '../data/coverage';
+import { MENA_COUNTRIES, MENA_COUNTRY_CODES } from '../data/coverage';
 import {
   createMenaProjection,
   isInsideMap,
@@ -49,7 +49,7 @@ function formatCoordinate(value: number, axis: 'latitude' | 'longitude'): string
 }
 
 function isCountryCode(value: string): value is MenaCountryCode {
-  return MENA_COUNTRIES.some((country) => country.code === value);
+  return MENA_COUNTRY_CODES.has(value);
 }
 
 function validMarker(marker: MenaMarker): boolean {
@@ -130,7 +130,7 @@ export function MenaGlobe({
     (event: PointerEvent<SVGSVGElement>) => {
       if (event.button !== 0) return;
       const target = event.target as Element;
-      const startedOnControl = Boolean(target.closest('[data-country-code], [data-marker-id]'));
+      if (target.closest('[data-country-code], [data-marker-id]')) return;
       const point = pointInMap(event);
       if (!point) return;
       dragStartRef.current = {
@@ -142,7 +142,7 @@ export function MenaGlobe({
         zoom: view.zoom,
       };
       didDragRef.current = false;
-      if (!startedOnControl && event.currentTarget.setPointerCapture) {
+      if (event.currentTarget.setPointerCapture) {
         event.currentTarget.setPointerCapture(event.pointerId);
       }
     },
