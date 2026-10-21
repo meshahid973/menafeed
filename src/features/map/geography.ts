@@ -28,8 +28,11 @@ export function createMenaProjection() {
     ]);
 }
 
+const MENA_PROJECTION = createMenaProjection();
+const COUNTRY_PATH = geoPath(MENA_PROJECTION);
+
 export function getCountryPath(feature: CountryFeature): string | null {
-  return geoPath(createMenaProjection())(feature);
+  return COUNTRY_PATH(feature);
 }
 
 export function projectCoordinate(
@@ -37,7 +40,7 @@ export function projectCoordinate(
   latitude: number,
 ): [number, number] | null {
   if (!isValidGeoCoordinate(longitude, latitude)) return null;
-  const point = createMenaProjection()([longitude, latitude]);
+  const point = MENA_PROJECTION([longitude, latitude]);
   if (!point || !point.every(Number.isFinite)) return null;
   return [point[0], point[1]];
 }
@@ -60,7 +63,7 @@ export function markerPosition(marker: MenaMarker): [number, number] | null {
   return projectCoordinate(marker.longitude, marker.latitude);
 }
 
-export function isInsideMap(point: readonly number[]): boolean {
+export function isInsideMap(point: readonly [number, number]): boolean {
   const [x, y] = point;
   return (
     Number.isFinite(x) &&
