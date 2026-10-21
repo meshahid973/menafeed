@@ -1,7 +1,7 @@
 use reqwest::{Client, Url};
 use serde::Deserialize;
 
-use super::sources::is_mena_relevant;
+use super::sources::{country_codes_from_text, is_mena_relevant};
 
 const MAX_API_BYTES: usize = 1_000_000;
 
@@ -37,6 +37,7 @@ pub struct Report {
     pub title: String,
     pub url: String,
     pub published_at: Option<String>,
+    pub country_codes: Vec<String>,
 }
 
 fn parse_reports(bytes: &[u8]) -> Result<Vec<Report>, String> {
@@ -55,6 +56,7 @@ fn parse_reports(bytes: &[u8]) -> Result<Vec<Report>, String> {
             .filter_map(|c| c.name)
             .collect::<Vec<_>>()
             .join(" ");
+        let country_codes = country_codes_from_text(&format!("{title} {regions}"));
         if !is_mena_relevant(&format!("{title} {regions}")) {
             continue;
         }
@@ -66,6 +68,7 @@ fn parse_reports(bytes: &[u8]) -> Result<Vec<Report>, String> {
             title: title.chars().take(170).collect(),
             url,
             published_at: fields.date.and_then(|d| d.created),
+            country_codes,
         });
     }
     reports.truncate(24);
@@ -128,6 +131,7 @@ mod tests {
         let reports = parse_reports(fixture).unwrap();
         assert_eq!(reports.len(), 1);
         assert_eq!(reports[0].title, "Flood response in Sudan");
+        assert!(reports[0].country_codes.contains(&"SD".to_string()));
         assert!(reports[0].published_at.is_some());
     }
 }

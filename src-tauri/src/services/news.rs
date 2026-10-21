@@ -14,7 +14,9 @@ use rusqlite::{params, OptionalExtension};
 use serde::{Deserialize, Serialize};
 use tauri::AppHandle;
 
-use super::sources::{approved_feed_host, is_mena_relevant, Source, SOURCES};
+use super::sources::{
+    approved_feed_host, country_codes_from_text, is_mena_relevant, Source, SOURCES,
+};
 use crate::database;
 
 const MAX_FEED_BYTES: usize = 1_500_000;
@@ -29,6 +31,8 @@ pub struct FeedArticle {
     published_at: Option<String>,
     summary: Option<String>,
     location: ArticleLocation,
+    #[serde(default)]
+    country_codes: Vec<String>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -247,6 +251,7 @@ async fn load_reliefweb(
                         published_at: item.published_at,
                         summary: None,
                         location: ArticleLocation::Unknown,
+                        country_codes: item.country_codes,
                     })
                 })
                 .take(source.max_articles)
@@ -358,6 +363,11 @@ fn parse_source(xml: &[u8], source: Source) -> Result<Vec<FeedArticle>, String> 
             continue;
         }
 
+        let country_codes = country_codes_from_entry(
+            &entry.categories,
+            &title,
+            summary.as_deref().unwrap_or(""),
+        );
         articles.push(FeedArticle {
             id: url.clone(),
             source_id: source.id.into(),
@@ -370,6 +380,7 @@ fn parse_source(xml: &[u8], source: Source) -> Result<Vec<FeedArticle>, String> 
                 .map(|date| date.to_rfc3339()),
             summary,
             location: location_from_categories(&entry.categories),
+            country_codes,
         });
     }
 
@@ -404,6 +415,31 @@ fn location_from_categories(categories: &[feed_rs::model::Category]) -> ArticleL
         // Multiple country tags are ambiguous for a single-country filter.
         ArticleLocation::Unknown
     }
+}
+
+fn country_codes_from_entry(
+    categories: &[feed_rs::model::Category],
+    title: &str,
+    summary: &str,
+) -> Vec<String> {
+    let mut country_codes = HashSet::new();
+    for category in categories {
+        if let Some(code) = country_code_from_category(&category.term) {
+            country_codes.insert(code.to_string());
+        }
+        if let Some(label) = category.label.as_deref() {
+            if let Some(code) = country_code_from_category(label) {
+                country_codes.insert(code.to_string());
+            }
+            country_codes.extend(country_codes_from_text(label));
+        }
+        country_codes.extend(country_codes_from_text(&category.term));
+    }
+    country_codes.extend(country_codes_from_text(title));
+    country_codes.extend(country_codes_from_text(summary));
+    let mut country_codes = country_codes.into_iter().collect::<Vec<_>>();
+    country_codes.sort();
+    country_codes
 }
 
 fn country_code_from_category(value: &str) -> Option<&'static str> {
@@ -505,10 +541,24 @@ fn read_cache(app: &AppHandle, source: &str) -> Result<Option<Cached>, String> {
     row.map(|(json, expires_at)| {
         let stored: StoredFormat =
             serde_json::from_str(&json).map_err(|_| "Cached feed is invalid")?;
-        let (articles, headers) = match stored {
+        let (mut articles, headers) = match stored {
             StoredFormat::Legacy(articles) => (articles, CacheHeaders::default()),
             StoredFormat::Current(data) => (data.articles, data.headers),
         };
+        // Older cache entries predate country relevance tags. Backfill them
+        // from their saved text so country filters work immediately after upgrade.
+        for article in &mut articles {
+            if article.country_codes.is_empty() {
+                let text = format!("{} {}", article.title, article.summary.as_deref().unwrap_or(""));
+                let mut codes = country_codes_from_text(&text);
+                if let ArticleLocation::Country { country_code } = &article.location {
+                    codes.push(country_code.clone());
+                }
+                codes.sort();
+                codes.dedup();
+                article.country_codes = codes;
+            }
+        }
         Ok(Cached {
             articles,
             headers,
@@ -580,9 +630,26 @@ mod tests {
             &articles[0].location,
             ArticleLocation::Country { country_code } if country_code == "EG"
         ));
+        assert_eq!(articles[0].country_codes, vec!["EG"]);
         let json = serde_json::to_value(&articles[0]).unwrap();
         assert_eq!(json["location"]["precision"], "country");
         assert_eq!(json["location"]["countryCode"], "EG");
+    }
+
+    #[test]
+    fn country_mentions_create_relevance_tags_without_claiming_exact_location() {
+        let feed = br#"<rss version="2.0"><channel><title>Test</title>
+        <item><title>Egyptian officials discuss aid with Saudi Arabia</title>
+        <link>https://example.org/story</link>
+        <description>Talks also cover neighbouring countries.</description></item>
+        </channel></rss>"#;
+        let articles = parse_source(feed, SOURCES[0]).unwrap();
+        assert_eq!(articles.len(), 1);
+        assert_eq!(articles[0].country_codes, vec!["EG", "SA"]);
+        assert!(matches!(&articles[0].location, ArticleLocation::Unknown));
+        let json = serde_json::to_value(&articles[0]).unwrap();
+        assert_eq!(json["countryCodes"], serde_json::json!(["EG", "SA"]));
+        assert_eq!(json["location"]["precision"], "unknown");
     }
 
     #[test]

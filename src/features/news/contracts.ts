@@ -21,6 +21,8 @@ export type ArticleLocation =
     };
 
 export interface Article {
+  /** Country relevance tags from publisher metadata and named places in story text; not geolocation. */
+  countryCodes?: string[];
   id: string;
   sourceId: string;
   title: string;

@@ -124,8 +124,10 @@ export function NewsFeed({
       if (view !== 'saved' && source !== 'all' && article.sourceId !== source) return false;
       if (view !== 'saved' && selectedCountry) {
         const location = article.location;
-        if (location.precision === 'unknown' || location.countryCode !== selectedCountry)
-          return false;
+        const matchesCountry =
+          article.countryCodes?.includes(selectedCountry) ||
+          (location.precision !== 'unknown' && location.countryCode === selectedCountry);
+        if (!matchesCountry) return false;
       }
       return (
         !deferredQuery ||
@@ -306,7 +308,7 @@ export function NewsFeed({
               {view === 'saved'
                 ? 'No saved stories yet. Bookmark a report to see it here.'
                 : selectedCountry
-                  ? 'No location-verified reports for this country yet. RSS stories are not automatically geotagged.'
+                  ? 'No country-related reports for this country yet. Try refreshing for the latest stories.'
                   : query || source !== 'all'
                     ? 'No matching stories.'
                     : 'No reports available.'}

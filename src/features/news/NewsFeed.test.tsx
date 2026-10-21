@@ -110,6 +110,32 @@ describe('news desk', () => {
     expect(screen.queryByText('Regional energy talks')).not.toBeInTheDocument();
   });
 
+  it('shows country-relevant stories without pretending a text mention is exact geolocation', async () => {
+    const taggedStory = {
+      ...sample.articles[0]!,
+      title: 'Egyptian aid talks continue after Gaza meeting',
+      countryCodes: ['EG', 'PS'],
+      location: { precision: 'unknown' as const },
+    };
+    vi.mocked(getNewsFeed).mockResolvedValueOnce({ ...sample, articles: [taggedStory] });
+    const { rerender } = render(
+      <FeedHarness desktopStatus={{ kind: 'ready', schemaVersion: 1 }} selectedCountry="EG" />,
+    );
+    expect(await screen.findByText('Egyptian aid talks continue after Gaza meeting')).toBeInTheDocument();
+
+    rerender(
+      <FeedHarness desktopStatus={{ kind: 'ready', schemaVersion: 1 }} selectedCountry="PS" />,
+    );
+    expect(await screen.findByText('Egyptian aid talks continue after Gaza meeting')).toBeInTheDocument();
+
+    rerender(
+      <FeedHarness desktopStatus={{ kind: 'ready', schemaVersion: 1 }} selectedCountry="BH" />,
+    );
+    await waitFor(() =>
+      expect(screen.queryByText('Egyptian aid talks continue after Gaza meeting')).not.toBeInTheDocument(),
+    );
+  });
+
   it('keeps the selected-country label and articles synchronized across rapid country changes', async () => {
     const countryArticles: NewsFeedResponse['articles'] = [
       {
