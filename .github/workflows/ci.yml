@@ -2,7 +2,7 @@ name: Verify SIGNAL
 
 on:
   push:
-    branches: [main, feat/phase-1-foundation]
+    branches: [main]
   pull_request:
 
 permissions:
