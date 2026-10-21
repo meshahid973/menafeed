@@ -3,7 +3,6 @@ import { Search } from 'lucide-react';
 import { NewsFeed } from '../../features/news/NewsFeed';
 import { useBookmarks } from '../../features/news/useBookmarks';
 import { useNewsFeed } from '../../features/news/useNewsFeed';
-import type { FeedArticle } from '../../features/news/contracts';
 import { getMenaCountryName } from '../../features/map';
 import type { MenaCountryCode, MenaMarker } from '../../features/map';
 import type { DesktopStatus } from '../../services/desktop';
@@ -67,6 +66,7 @@ export function AppShell({ desktopStatus }: AppShellProps) {
   const news = <NewsFeed desktopStatus={desktopStatus} view={view} bookmarks={bookmarks.items}
     onToggleBookmark={bookmarks.toggle} searchRequest={searchRequest}
     feed={feed} selectedCountry={view === 'explore' ? country : null}
+    onClearCountry={() => setCountry(null)}
     selectedArticleId={selectedStory} onStoryHandled={() => setSelectedStory(null)} />;
 
   return (

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { PointerEvent, KeyboardEvent, ReactNode } from 'react';
+import type { PointerEvent, KeyboardEvent, ReactNode, CSSProperties } from 'react';
 import { GripVertical } from 'lucide-react';
 import './WorkspaceSplit.css';
 
@@ -64,7 +64,7 @@ export function WorkspaceSplit({ map, feed }: { map: ReactNode; feed: ReactNode 
   }
 
   return (
-    <div ref={container} className="signal-split" style={{ '--signal-feed-width': `${feedWidth}%` } as React.CSSProperties}>
+    <div ref={container} className="signal-split" style={{ '--signal-feed-width': `${feedWidth}%` } as CSSProperties}>
       <main className="signal-split__map" aria-label="Map workspace">{map}</main>
       <div
         className="signal-split__handle"

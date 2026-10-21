@@ -2,6 +2,8 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NewsFeed } from './NewsFeed';
 import { getNewsFeed, openArticle } from '../../services/news';
+import { useNewsFeed } from './useNewsFeed';
+import type { ComponentProps } from 'react';
 import type { NewsFeedResponse } from './contracts';
 
 vi.mock('../../services/news', () => ({ getNewsFeed: vi.fn(), openArticle: vi.fn() }));
@@ -44,6 +46,11 @@ const sample: NewsFeedResponse = {
   ],
 };
 
+function FeedHarness({ desktopStatus, ...props }: Omit<ComponentProps<typeof NewsFeed>, 'feed'>) {
+  const feed = useNewsFeed(desktopStatus.kind === 'ready' && props.view !== 'saved');
+  return <FeedHarness desktopStatus={desktopStatus} {...props} feed={feed} />;
+}
+
 describe('news desk', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -52,7 +59,7 @@ describe('news desk', () => {
   });
 
   it('fetches, filters by publisher and removes identical source headlines', async () => {
-    render(<NewsFeed desktopStatus={{ kind: 'ready', schemaVersion: 1 }} />);
+    render(<FeedHarness desktopStatus={{ kind: 'ready', schemaVersion: 1 }} />);
     expect(await screen.findByText('Regional energy talks')).toBeInTheDocument();
     expect(screen.getAllByText('Regional energy talks')).toHaveLength(1);
     fireEvent.change(screen.getByRole('combobox', { name: 'Publisher' }), {
@@ -63,7 +70,7 @@ describe('news desk', () => {
   });
 
   it('opens a story reader and original report', async () => {
-    render(<NewsFeed desktopStatus={{ kind: 'ready', schemaVersion: 1 }} />);
+    render(<FeedHarness desktopStatus={{ kind: 'ready', schemaVersion: 1 }} />);
     expect(await screen.findByText('Regional energy talks')).toBeInTheDocument();
     fireEvent.click(screen.getByText('Regional energy talks'));
     expect(screen.getByRole('heading', { name: 'Regional energy talks' })).toBeInTheDocument();
@@ -75,7 +82,7 @@ describe('news desk', () => {
   });
 
   it('searches from the shortcut and filters headlines', async () => {
-    render(<NewsFeed desktopStatus={{ kind: 'ready', schemaVersion: 1 }} />);
+    render(<FeedHarness desktopStatus={{ kind: 'ready', schemaVersion: 1 }} />);
     expect(await screen.findByText('Regional energy talks')).toBeInTheDocument();
     fireEvent.keyDown(window, { key: '/' });
     fireEvent.change(screen.getByRole('searchbox', { name: 'Search headlines' }), {
@@ -89,7 +96,7 @@ describe('news desk', () => {
 
   it('shows saved stories without fetching native RSS', () => {
     const story = sample.articles[0]!;
-    render(<NewsFeed desktopStatus={{ kind: 'preview' }} view="saved" bookmarks={[story]} />);
+    render(<FeedHarness desktopStatus={{ kind: 'preview' }} view="saved" bookmarks={[story]} />);
     expect(getNewsFeed).not.toHaveBeenCalled();
     expect(screen.getByText('Regional energy talks')).toBeInTheDocument();
   });

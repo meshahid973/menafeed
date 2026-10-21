@@ -130,7 +130,7 @@ export function MenaGlobe({
     (event: PointerEvent<SVGSVGElement>) => {
       if (event.button !== 0) return;
       const target = event.target as Element;
-      if (target.closest('[data-country-code], [data-marker-id]')) return;
+      if (target.closest('[data-marker-id]')) return;
       const point = pointInMap(event);
       if (!point) return;
       dragStartRef.current = {
@@ -202,7 +202,7 @@ export function MenaGlobe({
       dragStartRef.current = null;
       setView(next);
       const target = event.target as Element;
-      if (!target.closest('[data-country-code], [data-marker-id]')) didDragRef.current = false;
+      // Retain the drag guard until a click is consumed or the next pointer-down.
       if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
         event.currentTarget.releasePointerCapture(event.pointerId);
       }
