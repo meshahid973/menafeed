@@ -1,5 +1,5 @@
 import { geoGraticule, geoPath } from 'd3-geo';
-import { RotateCcw, ZoomIn, ZoomOut } from 'lucide-react';
+import { House, ZoomIn, ZoomOut } from 'lucide-react';
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent, PointerEvent, WheelEvent } from 'react';
 import rawCountryData from '../data/mena-countries.geojson?raw';
@@ -22,7 +22,6 @@ interface ViewTransform {
   translateX: number;
   translateY: number;
   zoom: number;
-  rotation: number;
 }
 
 interface DragStart extends ViewTransform {
@@ -31,21 +30,17 @@ interface DragStart extends ViewTransform {
   clientY: number;
 }
 
-const INITIAL_VIEW: ViewTransform = { translateX: 0, translateY: 0, zoom: 1, rotation: 0 };
+const INITIAL_VIEW: ViewTransform = { translateX: 0, translateY: 0, zoom: 1 };
 const MIN_ZOOM = 1;
-const MAX_ZOOM = 4.2;
-const CAMERA_DURATION_MS = 560;
+const MAX_ZOOM = 3.5;
+const CAMERA_DURATION_MS = 480;
 const REGION_FEATURES = JSON.parse(rawCountryData) as CountryCollection;
 const MAP_PROJECTION = createMenaProjection();
 const MAP_PATH = geoPath(MAP_PROJECTION);
 const GRATICULE_PATH = MAP_PATH(geoGraticule().step([10, 10])()) ?? '';
 
 function transformString(view: ViewTransform): string {
-  return `translate(${view.translateX} ${view.translateY}) scale(${view.zoom}) rotate(${view.rotation})`;
-}
-
-function shortestRotation(from: number, to: number): number {
-  return ((to - from + 180 + 360) % 360) - 180;
+  return `translate(${view.translateX} ${view.translateY}) scale(${view.zoom})`;
 }
 
 function cameraForCountry(feature?: CountryFeature): ViewTransform {
@@ -53,19 +48,16 @@ function cameraForCountry(feature?: CountryFeature): ViewTransform {
   const focus = getCountryFocus(feature);
   if (!focus) return INITIAL_VIEW;
 
+  // Let the country become easy to inspect without an aggressive close-up.
   const zoom = Math.min(
     MAX_ZOOM,
-    Math.max(1.35, Math.min((MAP_WIDTH * 0.78) / focus.width, (MAP_HEIGHT * 0.72) / focus.height)),
+    Math.max(1.15, Math.min((MAP_WIDTH * 0.72) / focus.width, (MAP_HEIGHT * 0.68) / focus.height)),
   );
-  const radians = (focus.rotation * Math.PI) / 180;
-  const rotatedX = Math.cos(radians) * focus.x - Math.sin(radians) * focus.y;
-  const rotatedY = Math.sin(radians) * focus.x + Math.cos(radians) * focus.y;
 
   return {
-    translateX: MAP_WIDTH / 2 - zoom * rotatedX,
-    translateY: MAP_HEIGHT / 2 - zoom * rotatedY,
+    translateX: MAP_WIDTH / 2 - zoom * focus.x,
+    translateY: MAP_HEIGHT / 2 - zoom * focus.y,
     zoom,
-    rotation: focus.rotation,
   };
 }
 
@@ -128,15 +120,13 @@ export function MenaGlobe({
     (target: ViewTransform) => {
       cancelCameraAnimation();
       const start = cameraRef.current;
-      const rotationDelta = shortestRotation(start.rotation, target.rotation);
       const reducedMotion =
         typeof window.matchMedia === 'function' &&
         window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       const unchanged =
         Math.abs(target.translateX - start.translateX) < 0.01 &&
         Math.abs(target.translateY - start.translateY) < 0.01 &&
-        Math.abs(target.zoom - start.zoom) < 0.001 &&
-        Math.abs(rotationDelta) < 0.01;
+        Math.abs(target.zoom - start.zoom) < 0.001;
 
       if (reducedMotion || unchanged || typeof requestAnimationFrame !== 'function') {
         applyCamera(target);
@@ -147,15 +137,12 @@ export function MenaGlobe({
       const tick = (timestamp: number) => {
         if (startedAt === null) startedAt = timestamp;
         const progress = Math.min(1, (timestamp - startedAt) / CAMERA_DURATION_MS);
-        const eased =
-          progress < 0.5
-            ? 4 * progress * progress * progress
-            : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+        // A single ease-out transition keeps the zoom calm and direct.
+        const eased = 1 - Math.pow(1 - progress, 3);
         const next: ViewTransform = {
           translateX: start.translateX + (target.translateX - start.translateX) * eased,
           translateY: start.translateY + (target.translateY - start.translateY) * eased,
           zoom: start.zoom + (target.zoom - start.zoom) * eased,
-          rotation: start.rotation + rotationDelta * eased,
         };
         cameraRef.current = next;
         mapLayerRef.current?.setAttribute('transform', transformString(next));
@@ -562,7 +549,7 @@ export function MenaGlobe({
             onClick={() => animateCamera(INITIAL_VIEW)}
             aria-label="Reset map view"
           >
-            <RotateCcw size={17} aria-hidden="true" />
+            <House size={17} aria-hidden="true" />
           </button>
         </div>
         <div className="signal-map__stage-hint" aria-hidden="true">
