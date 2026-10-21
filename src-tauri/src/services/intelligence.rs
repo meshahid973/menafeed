@@ -162,7 +162,7 @@ pub fn enrich(value: &mut Value) {
     }
     // Preserve recency within each publisher, but prevent a single prolific source
     // from occupying the entire opening wire.
-    items.sort_by(|a, b| published(b).cmp(&published(a)));
+    items.sort_by_key(|item| std::cmp::Reverse(published(item)));
     let mut leading = Vec::new();
     let mut trailing = Vec::new();
     let mut count = HashMap::<String, usize>::new();
