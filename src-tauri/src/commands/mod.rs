@@ -19,6 +19,7 @@ pub async fn get_news_feed(
 ) -> Result<serde_json::Value, String> {
     let mut response = serde_json::to_value(news::load(app.clone(), force).await?)
         .map_err(|_| "Could not encode news response")?;
+    intelligence::restore_offline(&app, &mut response);
     intelligence::process(&app, &mut response);
     Ok(response)
 }
