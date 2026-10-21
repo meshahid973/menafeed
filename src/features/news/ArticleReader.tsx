@@ -1,3 +1,4 @@
+import { ArrowLeft, ArrowUpRight, Bookmark } from 'lucide-react';
 import type { FeedArticle } from './contracts';
 import { storyDate } from './StoryCard';
 
@@ -13,7 +14,7 @@ export function ArticleReader({ article, saved, onBack, onOpen, onToggleSave }: 
   return (
     <article className="signal-reader">
       <button className="signal-reader__back" type="button" onClick={onBack}>
-        <span aria-hidden="true">←</span> Back to stories
+        <ArrowLeft size={16} aria-hidden="true" /> Back to stories
       </button>
       <div className="signal-reader__body">
         <div className="signal-reader__meta">
@@ -24,9 +25,10 @@ export function ArticleReader({ article, saved, onBack, onOpen, onToggleSave }: 
         <p>{article.summary || 'Open the publisher’s website for the complete report.'}</p>
         <div className="signal-reader__actions">
           <button className="signal-reader__open" type="button" onClick={() => onOpen(article.url)}>
-            Read original <span aria-hidden="true">↗</span>
+            Read original <ArrowUpRight size={16} aria-hidden="true" />
           </button>
           <button className="signal-reader__save" type="button" onClick={onToggleSave}>
+            <Bookmark size={16} aria-hidden="true" fill={saved ? 'currentColor' : 'none'} />
             {saved ? 'Remove saved' : 'Save story'}
           </button>
         </div>

@@ -1,9 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { Search } from 'lucide-react';
 import { NewsFeed } from '../../features/news/NewsFeed';
 import { useBookmarks } from '../../features/news/useBookmarks';
+import { useNewsFeed } from '../../features/news/useNewsFeed';
+import { getMenaCountryName } from '../../features/map';
+import type { MenaCountryCode, MenaMarker } from '../../features/map';
 import type { DesktopStatus } from '../../services/desktop';
 import { MapSlot } from './MapSlot';
 import { Sidebar, SidebarIcon } from './Sidebar';
+import { WorkspaceSplit } from './WorkspaceSplit';
 import type { WorkspaceView } from './workspaceTypes';
 import './AppShell.css';
 
@@ -24,13 +29,39 @@ export function AppShell({ desktopStatus }: AppShellProps) {
   const [expanded, setExpanded] = useState(readExpanded);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [searchRequest, setSearchRequest] = useState(0);
+  const [country, setCountry] = useState<MenaCountryCode | null>(null);
+  const [selectedStory, setSelectedStory] = useState<string | null>(null);
   const bookmarks = useBookmarks();
+  const feed = useNewsFeed(desktopStatus.kind === 'ready');
+
+  const markers = useMemo(
+    () =>
+      (feed.data?.articles ?? []).flatMap((article): MenaMarker[] => {
+        const location = article.location;
+        if (
+          location.precision !== 'city' ||
+          !Number.isFinite(location.latitude) ||
+          !Number.isFinite(location.longitude)
+        )
+          return [];
+        return [
+          {
+            id: article.id,
+            label: article.title,
+            longitude: location.longitude,
+            latitude: location.latitude,
+            detail: article.sourceName,
+          },
+        ];
+      }),
+    [feed.data?.articles],
+  );
 
   useEffect(() => {
     try {
       window.localStorage.setItem('signal:sidebar-expanded', String(expanded));
     } catch {
-      // Private browsing / blocked storage: layout still works.
+      /* optional */
     }
   }, [expanded]);
 
@@ -48,6 +79,7 @@ export function AppShell({ desktopStatus }: AppShellProps) {
       } else if (event.key === 'Escape') {
         setSettingsOpen(false);
         setExpanded(false);
+        setCountry(null);
       }
     };
     window.addEventListener('keydown', onKeyDown);
@@ -60,7 +92,28 @@ export function AppShell({ desktopStatus }: AppShellProps) {
     if (window.innerWidth <= 720) setExpanded(false);
   }
 
-  const title = view === 'explore' ? 'Explore' : view === 'news' ? 'News' : 'Saved';
+  const headline =
+    country && view === 'explore'
+      ? getMenaCountryName(country)
+      : view === 'explore'
+        ? 'Explore'
+        : view === 'news'
+          ? 'News'
+          : 'Saved';
+  const news = (
+    <NewsFeed
+      desktopStatus={desktopStatus}
+      view={view}
+      bookmarks={bookmarks.items}
+      onToggleBookmark={bookmarks.toggle}
+      searchRequest={searchRequest}
+      feed={feed}
+      selectedCountry={view === 'explore' ? country : null}
+      onClearCountry={() => setCountry(null)}
+      selectedArticleId={selectedStory}
+      onStoryHandled={() => setSelectedStory(null)}
+    />
+  );
 
   return (
     <div className="signal-shell">
@@ -84,22 +137,52 @@ export function AppShell({ desktopStatus }: AppShellProps) {
       />
       <div className="signal-shell__content">
         <header className="signal-shell__header">
-          <h1>{title}</h1>
-          <span>Middle East &amp; North Africa</span>
+          <h1>{headline}</h1>
+          <div className="signal-shell__header-actions">
+            {country && view === 'explore' && (
+              <button
+                className="signal-shell__clear"
+                type="button"
+                onClick={() => setCountry(null)}
+              >
+                All countries ×
+              </button>
+            )}
+            <span>Middle East &amp; North Africa</span>
+            <button
+              className="signal-shell__search"
+              type="button"
+              aria-label="Search news"
+              title="Search (Ctrl+K)"
+              onClick={() => {
+                setView('news');
+                setSearchRequest((v) => v + 1);
+              }}
+            >
+              <Search size={18} />
+            </button>
+          </div>
         </header>
         <div className={`signal-shell__workspace signal-shell__workspace--${view}`}>
-          <main className="signal-shell__map" aria-hidden={view !== 'explore' ? true : undefined}>
-            <MapSlot />
-          </main>
-          <section className="signal-shell__feed" aria-label="Regional news">
-            <NewsFeed
-              desktopStatus={desktopStatus}
-              view={view}
-              bookmarks={bookmarks.items}
-              onToggleBookmark={bookmarks.toggle}
-              searchRequest={searchRequest}
+          {view === 'explore' ? (
+            <WorkspaceSplit
+              map={
+                <MapSlot
+                  selectedCountry={country}
+                  onCountrySelect={setCountry}
+                  markers={markers}
+                  onMarkerSelect={(marker) => {
+                    setSelectedStory(marker.id);
+                  }}
+                />
+              }
+              feed={news}
             />
-          </section>
+          ) : (
+            <section className="signal-shell__feed" aria-label="Regional news">
+              {news}
+            </section>
+          )}
         </div>
       </div>
       {settingsOpen && (
@@ -137,7 +220,7 @@ export function AppShell({ desktopStatus }: AppShellProps) {
               <span>Search shortcut</span>
               <kbd>Ctrl+K</kbd>
             </div>
-            <p>News from publisher RSS feeds. Links open the original source.</p>
+            <p>RSS news links open the original publisher.</p>
           </section>
         </div>
       )}

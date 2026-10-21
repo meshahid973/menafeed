@@ -5,7 +5,10 @@ import { openArticle } from '../../services/news';
 import { ArticleReader } from './ArticleReader';
 import type { FeedArticle } from './contracts';
 import { StoryCard } from './StoryCard';
-import { useNewsFeed } from './useNewsFeed';
+import type { useNewsFeed } from './useNewsFeed';
+import { getMenaCountryName } from '../map';
+import type { MenaCountryCode } from '../map';
+import { RefreshCw, Search } from 'lucide-react';
 import './NewsFeed.css';
 
 interface Props {
@@ -14,6 +17,11 @@ interface Props {
   bookmarks?: FeedArticle[];
   onToggleBookmark?: (article: FeedArticle) => void;
   searchRequest?: number;
+  feed: ReturnType<typeof useNewsFeed>;
+  selectedCountry?: MenaCountryCode | null;
+  onClearCountry?: () => void;
+  selectedArticleId?: string | null;
+  onStoryHandled?: () => void;
 }
 
 function deduplicate(articles: FeedArticle[]): FeedArticle[] {
@@ -35,9 +43,14 @@ export function NewsFeed({
   bookmarks = [],
   onToggleBookmark = () => undefined,
   searchRequest = 0,
+  feed,
+  selectedCountry = null,
+  onClearCountry,
+  selectedArticleId = null,
+  onStoryHandled,
 }: Props) {
   const enabled = desktopStatus.kind === 'ready' && view !== 'saved';
-  const { data, error, loading, refreshing, refresh } = useNewsFeed(enabled);
+  const { data, error, loading, refreshing, refresh } = feed;
   const [source, setSource] = useState('all');
   const [query, setQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
@@ -81,10 +94,24 @@ export function NewsFeed({
     setOpenError(false);
   }, [view]);
 
+  useEffect(() => {
+    if (!selectedArticleId || !data) return;
+    const article = data.articles.find((item) => item.id === selectedArticleId);
+    if (article) {
+      setSelected(article);
+      onStoryHandled?.();
+    }
+  }, [selectedArticleId, data, onStoryHandled]);
+
   const articles = useMemo(() => {
     const base = view === 'saved' ? bookmarks : (data?.articles ?? []);
     return deduplicate(base).filter((article) => {
       if (view !== 'saved' && source !== 'all' && article.sourceId !== source) return false;
+      if (view === 'explore' && selectedCountry) {
+        const location = article.location;
+        if (location.precision === 'unknown' || location.countryCode !== selectedCountry)
+          return false;
+      }
       return (
         !deferredQuery ||
         `${article.title} ${article.summary ?? ''} ${article.sourceName}`
@@ -92,7 +119,7 @@ export function NewsFeed({
           .includes(deferredQuery)
       );
     });
-  }, [data, view, bookmarks, source, deferredQuery]);
+  }, [data, view, bookmarks, source, deferredQuery, selectedCountry]);
 
   async function handleOpen(url: string) {
     try {
@@ -122,7 +149,13 @@ export function NewsFeed({
       <div className="signal-feed__intro">
         <div className="signal-feed__heading">
           <h2>
-            {view === 'saved' ? 'Saved stories' : view === 'news' ? 'The briefing' : 'Latest'}
+            {view === 'saved'
+              ? 'Saved stories'
+              : view === 'news'
+                ? 'The briefing'
+                : selectedCountry
+                  ? getMenaCountryName(selectedCountry)
+                  : 'Latest'}
           </h2>
           {view !== 'saved' && (
             <div className="signal-feed__actions">
@@ -133,16 +166,7 @@ export function NewsFeed({
                 title="Search"
                 onClick={() => setSearchOpen(!searchOpen)}
               >
-                <svg
-                  aria-hidden="true"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                >
-                  <circle cx="10.5" cy="10.5" r="6.5" />
-                  <path d="m16 16 5 5" />
-                </svg>
+                <Search size={18} aria-hidden="true" />
               </button>
               <button
                 type="button"
@@ -151,19 +175,11 @@ export function NewsFeed({
                 disabled={!enabled || refreshing || loading}
                 onClick={() => void refresh(true)}
               >
-                <svg
+                <RefreshCw
+                  size={18}
                   aria-hidden="true"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                >
-                  <path
-                    d="M20 11a8 8 0 1 0-2 6M20 4v7h-7"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
+                  className={refreshing ? 'signal-feed__spinning' : undefined}
+                />
               </button>
             </div>
           )}
@@ -232,9 +248,16 @@ export function NewsFeed({
             <div className="signal-feed__empty">
               {view === 'saved'
                 ? 'No saved stories yet. Bookmark a report to see it here.'
-                : query || source !== 'all'
-                  ? 'No matching stories.'
-                  : 'No reports available.'}
+                : selectedCountry
+                  ? 'No location-verified reports for this country yet. RSS stories are not automatically geotagged.'
+                  : query || source !== 'all'
+                    ? 'No matching stories.'
+                    : 'No reports available.'}
+              {selectedCountry && (
+                <button className="signal-feed__clear" type="button" onClick={onClearCountry}>
+                  All regional stories
+                </button>
+              )}
             </div>
           )}
           {articles.map((article, index) => (
