@@ -41,6 +41,7 @@ export interface FeedSourceState {
   name: string;
   mode: 'fresh' | 'cached' | 'stale' | 'unavailable';
   count: number;
+  checkedAt?: string;
 }
 
 export interface NewsFeedResponse {

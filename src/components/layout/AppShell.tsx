@@ -7,7 +7,8 @@ import { getMenaCountryName } from '../../features/map';
 import type { MenaCountryCode, MenaMarker } from '../../features/map';
 import type { DesktopStatus } from '../../services/desktop';
 import { MapSlot } from './MapSlot';
-import { Sidebar, SidebarIcon } from './Sidebar';
+import { Sidebar } from './Sidebar';
+import { SettingsDialog } from './SettingsDialog';
 import { WorkspaceSplit } from './WorkspaceSplit';
 import type { WorkspaceView } from './workspaceTypes';
 import './AppShell.css';
@@ -186,45 +187,7 @@ export function AppShell({ desktopStatus }: AppShellProps) {
           )}
         </div>
       </div>
-      {settingsOpen && (
-        <div
-          className="signal-settings-backdrop"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) setSettingsOpen(false);
-          }}
-        >
-          <section
-            className="signal-settings"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="signal-settings-title"
-          >
-            <div className="signal-settings__header">
-              <h2 id="signal-settings-title">Settings</h2>
-              <button
-                type="button"
-                onClick={() => setSettingsOpen(false)}
-                aria-label="Close settings"
-              >
-                <SidebarIcon name="close" />
-              </button>
-            </div>
-            <div className="signal-settings__row">
-              <span>Appearance</span>
-              <strong>OLED dark</strong>
-            </div>
-            <div className="signal-settings__row">
-              <span>Sidebar shortcut</span>
-              <kbd>Ctrl+B</kbd>
-            </div>
-            <div className="signal-settings__row">
-              <span>Search shortcut</span>
-              <kbd>Ctrl+K</kbd>
-            </div>
-            <p>RSS news links open the original publisher.</p>
-          </section>
-        </div>
-      )}
+      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
     </div>
   );
 }

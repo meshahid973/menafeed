@@ -1,3 +1,4 @@
+import { AnimatePresence } from 'motion/react';
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 import type { WorkspaceView } from '../../components/layout/workspaceTypes';
@@ -327,15 +328,18 @@ export function NewsFeed({
             />
           ))}
         </div>
-        {selected && (
-          <ArticleReader
-            article={selected}
-            saved={savedUrls.has(selected.url)}
-            onBack={back}
-            onOpen={(url) => void handleOpen(url)}
-            onToggleSave={() => onToggleBookmark(selected)}
-          />
-        )}
+        <AnimatePresence mode="wait" initial={false}>
+          {selected && (
+            <ArticleReader
+              key={selected.id}
+              article={selected}
+              saved={savedUrls.has(selected.url)}
+              onBack={back}
+              onOpen={(url) => void handleOpen(url)}
+              onToggleSave={() => onToggleBookmark(selected)}
+            />
+          )}
+        </AnimatePresence>
       </div>
     </section>
   );

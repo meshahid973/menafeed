@@ -1,10 +1,7 @@
-import { Bookmark, Globe2, Menu, Newspaper, Settings2, X } from 'lucide-react';
+import { Bookmark, Globe2, Menu, Newspaper, Settings2 } from 'lucide-react';
+import { motion } from 'motion/react';
 import type { WorkspaceView } from './workspaceTypes';
 import './Sidebar.css';
-
-export function SidebarIcon({ name }: { name: 'close' }) {
-  return name === 'close' ? <X aria-hidden="true" size={20} strokeWidth={1.8} /> : null;
-}
 
 interface SidebarProps {
   view: WorkspaceView;
@@ -54,7 +51,9 @@ export function Sidebar({ view, expanded, onToggle, onSelect, onSettings }: Side
             title={expanded ? undefined : label}
             onClick={() => onSelect(id)}
           >
-            <Icon size={20} strokeWidth={1.8} aria-hidden="true" />
+            <motion.span aria-hidden="true" whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.96 }}>
+              <Icon size={20} strokeWidth={1.8} />
+            </motion.span>
             {expanded && <span>{label}</span>}
           </button>
         ))}
@@ -66,7 +65,9 @@ export function Sidebar({ view, expanded, onToggle, onSelect, onSettings }: Side
         aria-label="Settings"
         title={expanded ? undefined : 'Settings'}
       >
-        <Settings2 size={20} strokeWidth={1.8} aria-hidden="true" />
+        <motion.span aria-hidden="true" whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.96 }}>
+          <Settings2 size={20} strokeWidth={1.8} />
+        </motion.span>
         {expanded && <span>Settings</span>}
       </button>
     </nav>

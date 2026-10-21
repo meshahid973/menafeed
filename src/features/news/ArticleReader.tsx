@@ -1,4 +1,5 @@
 import { ArrowLeft, ArrowUpRight, Bookmark } from 'lucide-react';
+import { motion, useReducedMotion } from 'motion/react';
 import type { FeedArticle } from './contracts';
 import { storyDate } from './StoryCard';
 
@@ -11,8 +12,15 @@ interface Props {
 }
 
 export function ArticleReader({ article, saved, onBack, onOpen, onToggleSave }: Props) {
+  const reduce = useReducedMotion();
   return (
-    <article className="signal-reader">
+    <motion.article
+      className="signal-reader"
+      initial={{ opacity: 0, y: reduce ? 0 : 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 0 }}
+      transition={{ duration: reduce ? 0 : 0.19, ease: 'easeOut' }}
+    >
       <button className="signal-reader__back" type="button" onClick={onBack}>
         <ArrowLeft size={16} aria-hidden="true" /> Back to stories
       </button>
@@ -36,6 +44,6 @@ export function ArticleReader({ article, saved, onBack, onOpen, onToggleSave }: 
           Source content belongs to its publisher. Story location has not been verified.
         </p>
       </div>
-    </article>
+    </motion.article>
   );
 }
