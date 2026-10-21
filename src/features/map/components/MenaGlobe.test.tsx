@@ -11,6 +11,22 @@ function ControlledMap() {
   return <MenaGlobe selectedCountry={selectedCountry} onCountrySelect={setSelectedCountry} />;
 }
 
+function preferReducedMotionForTest() {
+  const previousMatchMedia = Object.getOwnPropertyDescriptor(window, 'matchMedia');
+  Object.defineProperty(window, 'matchMedia', {
+    configurable: true,
+    value: () => ({ matches: true }),
+  });
+
+  return () => {
+    if (previousMatchMedia) {
+      Object.defineProperty(window, 'matchMedia', previousMatchMedia);
+    } else {
+      delete (window as Partial<Window>).matchMedia;
+    }
+  };
+}
+
 describe('MenaGlobe', () => {
   it('selects a country through its geographic shape and reports it to the parent', () => {
     const onCountrySelect = vi.fn();
@@ -36,6 +52,70 @@ describe('MenaGlobe', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /Clear selection/ }));
     expect(within(selection!).getByText('No country selected')).toBeInTheDocument();
+  });
+
+  it('returns to the default map view when the selected country is clicked again', () => {
+    const restoreMatchMedia = preferReducedMotionForTest();
+
+    try {
+      render(<MenaGlobe />);
+      const egypt = screen.getByRole('button', { name: 'Select Egypt' });
+      const layer = screen.getByTestId('map-layer');
+      const selection = screen.getByText('ACTIVE TERRITORY').parentElement;
+
+      fireEvent.click(egypt);
+      expect(within(selection!).getByText('Egypt')).toBeInTheDocument();
+      expect(layer).not.toHaveAttribute('transform', 'translate(0 0) scale(1)');
+
+      fireEvent.click(egypt);
+      expect(within(selection!).getByText('No country selected')).toBeInTheDocument();
+      expect(layer).toHaveAttribute('transform', 'translate(0 0) scale(1)');
+    } finally {
+      restoreMatchMedia();
+    }
+  });
+
+  it('also toggles the selected country off with keyboard activation', () => {
+    const restoreMatchMedia = preferReducedMotionForTest();
+
+    try {
+      render(<ControlledMap />);
+      const qatar = screen.getByRole('button', { name: 'Select Qatar' });
+      const layer = screen.getByTestId('map-layer');
+      const selection = screen.getByText('ACTIVE TERRITORY').parentElement;
+
+      fireEvent.keyDown(qatar, { key: 'Enter' });
+      expect(within(selection!).getByText('Qatar')).toBeInTheDocument();
+      expect(layer).not.toHaveAttribute('transform', 'translate(0 0) scale(1)');
+
+      fireEvent.keyDown(screen.getByRole('button', { name: 'Select Qatar' }), { key: 'Enter' });
+      expect(within(selection!).getByText('No country selected')).toBeInTheDocument();
+      expect(layer).toHaveAttribute('transform', 'translate(0 0) scale(1)');
+    } finally {
+      restoreMatchMedia();
+    }
+  });
+
+  it('toggles a selected country off from the country list too', () => {
+    const restoreMatchMedia = preferReducedMotionForTest();
+
+    try {
+      render(<ControlledMap />);
+      const countryList = screen.getByLabelText('Choose a MENA country');
+      const morocco = within(countryList).getByRole('button', { name: /Morocco/ });
+      const layer = screen.getByTestId('map-layer');
+      const selection = screen.getByText('ACTIVE TERRITORY').parentElement;
+
+      fireEvent.click(morocco);
+      expect(within(selection!).getByText('Morocco')).toBeInTheDocument();
+      expect(layer).not.toHaveAttribute('transform', 'translate(0 0) scale(1)');
+
+      fireEvent.click(within(countryList).getByRole('button', { name: /Morocco/ }));
+      expect(within(selection!).getByText('No country selected')).toBeInTheDocument();
+      expect(layer).toHaveAttribute('transform', 'translate(0 0) scale(1)');
+    } finally {
+      restoreMatchMedia();
+    }
   });
 
   it.each([
