@@ -9,29 +9,39 @@ export function useNewsFeed(enabled: boolean) {
   const [error, setError] = useState<string | null>(null);
   const requestId = useRef(0);
   const hasLoaded = useRef(false);
+  const pending = useRef<Promise<void> | null>(null);
 
-  const refresh = useCallback(async (force: boolean) => {
-    const current = ++requestId.current;
-    setError(null);
-    if (force) setRefreshing(true);
-    else if (!hasLoaded.current) setLoading(true);
+  const refresh = useCallback((force: boolean): Promise<void> => {
+    // A poll must never overlap a manual refresh or another poll.
+    if (pending.current) return pending.current;
+    const job = (async () => {
+      const current = ++requestId.current;
+      setError(null);
+      if (force) setRefreshing(true);
+      else if (!hasLoaded.current) setLoading(true);
 
-    try {
-      const result = await getNewsFeed(force);
-      if (current !== requestId.current) return;
-      hasLoaded.current = true;
-      setData(result);
-      if (result.sources.length && result.sources.every((s) => s.mode === 'unavailable')) {
-        setError('Sources are currently unavailable. Try again later.');
+      try {
+        const result = await getNewsFeed(force);
+        if (current !== requestId.current) return;
+        hasLoaded.current = true;
+        setData(result);
+        if (result.sources.length && result.sources.every((source) => source.mode === 'unavailable')) {
+          setError('Sources are currently unavailable. Try again later.');
+        }
+      } catch {
+        if (current === requestId.current) setError('Could not reach the news service.');
+      } finally {
+        if (current === requestId.current) {
+          setLoading(false);
+          setRefreshing(false);
+        }
       }
-    } catch {
-      if (current === requestId.current) setError('Could not reach the news service.');
-    } finally {
-      if (current === requestId.current) {
-        setLoading(false);
-        setRefreshing(false);
-      }
-    }
+    })();
+    pending.current = job;
+    void job.finally(() => {
+      if (pending.current === job) pending.current = null;
+    });
+    return job;
   }, []);
 
   useEffect(() => {
