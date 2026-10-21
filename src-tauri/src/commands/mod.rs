@@ -33,6 +33,11 @@ pub fn search_cached_news(
 }
 
 #[tauri::command]
+pub fn get_geo_snapshot(app: tauri::AppHandle) -> Result<geoevents::GeoSnapshot, String> {
+    geoevents::snapshot(&app)
+}
+
+#[tauri::command]
 pub fn open_article(app: tauri::AppHandle, url: String) -> Result<(), String> {
     let safe = news::safe_article_url(&url)?;
     app.opener()
