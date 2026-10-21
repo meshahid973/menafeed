@@ -1,4 +1,4 @@
-name: Format MENA map feature
+name: Format MENA map feature # temporary one-time formatter
 
 on:
   push:
