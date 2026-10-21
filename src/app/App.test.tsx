@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from './App';
 
@@ -19,7 +19,7 @@ describe('workspace', () => {
     render(<App />);
     expect(screen.getByRole('button', { name: 'Expand sidebar' })).toBeInTheDocument();
     expect(
-      screen.getByRole('region', { name: 'Interactive map of the Middle East and North Africa' }),
+      screen.getAllByRole('region', { name: 'Interactive map of the Middle East and North Africa' })[0],
     ).toBeInTheDocument();
     expect(await screen.findByText('Open the desktop app to read live RSS.')).toBeInTheDocument();
   });
@@ -76,7 +76,7 @@ describe('workspace', () => {
     });
     render(<App />);
     await waitFor(() =>
-      expect(screen.getByRole('button', { name: /Manama event report/ })).toBeInTheDocument(),
+      expect(within(screen.getByTestId('mena-map')).getByRole('button', { name: /Manama event report/ })).toBeInTheDocument(),
     );
     fireEvent.click(screen.getByRole('button', { name: /Manama event report/ }));
     await waitFor(() =>
