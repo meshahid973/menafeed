@@ -22,27 +22,50 @@ const links = [
 
 export function Sidebar({ view, expanded, onToggle, onSelect, onSettings }: SidebarProps) {
   return (
-    <nav className={`signal-sidebar${expanded ? ' signal-sidebar--expanded' : ''}`} aria-label="Main navigation">
+    <nav
+      className={`signal-sidebar${expanded ? ' signal-sidebar--expanded' : ''}`}
+      aria-label="Main navigation"
+    >
       <div className="signal-sidebar__top">
-        <button className="signal-sidebar__control" type="button" onClick={onToggle}
-          aria-label={expanded ? 'Collapse sidebar' : 'Expand sidebar'} aria-expanded={expanded}
-          title={expanded ? 'Collapse sidebar (Ctrl+B)' : 'Expand sidebar (Ctrl+B)'}>
+        <button
+          className="signal-sidebar__control"
+          type="button"
+          onClick={onToggle}
+          aria-label={expanded ? 'Collapse sidebar' : 'Expand sidebar'}
+          aria-expanded={expanded}
+          title={expanded ? 'Collapse sidebar (Ctrl+B)' : 'Expand sidebar (Ctrl+B)'}
+        >
           <Menu size={20} strokeWidth={1.8} aria-hidden="true" />
         </button>
-        {expanded && <span className="signal-sidebar__wordmark">signal<span>.</span></span>}
+        {expanded && (
+          <span className="signal-sidebar__wordmark">
+            signal<span>.</span>
+          </span>
+        )}
       </div>
       <div className="signal-sidebar__links">
         {links.map(({ id, Icon, label }) => (
-          <button className={`signal-sidebar__link${view === id ? ' signal-sidebar__link--active' : ''}`}
-            type="button" key={id} aria-label={label} aria-current={view === id ? 'page' : undefined}
-            title={expanded ? undefined : label} onClick={() => onSelect(id)}>
+          <button
+            className={`signal-sidebar__link${view === id ? ' signal-sidebar__link--active' : ''}`}
+            type="button"
+            key={id}
+            aria-label={label}
+            aria-current={view === id ? 'page' : undefined}
+            title={expanded ? undefined : label}
+            onClick={() => onSelect(id)}
+          >
             <Icon size={20} strokeWidth={1.8} aria-hidden="true" />
             {expanded && <span>{label}</span>}
           </button>
         ))}
       </div>
-      <button className="signal-sidebar__link signal-sidebar__settings" type="button"
-        onClick={onSettings} aria-label="Settings" title={expanded ? undefined : 'Settings'}>
+      <button
+        className="signal-sidebar__link signal-sidebar__settings"
+        type="button"
+        onClick={onSettings}
+        aria-label="Settings"
+        title={expanded ? undefined : 'Settings'}
+      >
         <Settings2 size={20} strokeWidth={1.8} aria-hidden="true" />
         {expanded && <span>Settings</span>}
       </button>

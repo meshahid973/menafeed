@@ -29,7 +29,11 @@ export function WorkspaceSplit({ map, feed }: { map: ReactNode; feed: ReactNode 
   const dragging = useRef<number | null>(null);
 
   useEffect(() => {
-    try { window.localStorage.setItem(KEY, String(feedWidth)); } catch { /* storage optional */ }
+    try {
+      window.localStorage.setItem(KEY, String(feedWidth));
+    } catch {
+      /* storage optional */
+    }
   }, [feedWidth]);
 
   function widthFromPointer(clientX: number): number {
@@ -54,18 +58,30 @@ export function WorkspaceSplit({ map, feed }: { map: ReactNode; feed: ReactNode 
   function handleKey(event: KeyboardEvent<HTMLDivElement>) {
     const width = container.current?.getBoundingClientRect().width ?? 0;
     const delta = event.shiftKey ? 10 : 2;
-    const next = event.key === 'ArrowLeft' ? feedWidth + delta
-      : event.key === 'ArrowRight' ? feedWidth - delta
-      : event.key === 'Home' ? 75
-      : event.key === 'End' ? 25 : null;
+    const next =
+      event.key === 'ArrowLeft'
+        ? feedWidth + delta
+        : event.key === 'ArrowRight'
+          ? feedWidth - delta
+          : event.key === 'Home'
+            ? 75
+            : event.key === 'End'
+              ? 25
+              : null;
     if (next === null) return;
     event.preventDefault();
     setFeedWidth(clamp(next, width));
   }
 
   return (
-    <div ref={container} className="signal-split" style={{ '--signal-feed-width': `${feedWidth}%` } as CSSProperties}>
-      <main className="signal-split__map" aria-label="Map workspace">{map}</main>
+    <div
+      ref={container}
+      className="signal-split"
+      style={{ '--signal-feed-width': `${feedWidth}%` } as CSSProperties}
+    >
+      <main className="signal-split__map" aria-label="Map workspace">
+        {map}
+      </main>
       <div
         className="signal-split__handle"
         role="separator"
@@ -85,12 +101,16 @@ export function WorkspaceSplit({ map, feed }: { map: ReactNode; feed: ReactNode 
         onPointerMove={move}
         onPointerUp={finish}
         onPointerCancel={finish}
-        onLostPointerCapture={() => { dragging.current = null; }}
+        onLostPointerCapture={() => {
+          dragging.current = null;
+        }}
         onKeyDown={handleKey}
       >
         <GripVertical size={16} aria-hidden="true" />
       </div>
-      <section className="signal-split__feed" aria-label="Regional news">{feed}</section>
+      <section className="signal-split__feed" aria-label="Regional news">
+        {feed}
+      </section>
     </div>
   );
 }

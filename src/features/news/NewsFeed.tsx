@@ -109,7 +109,8 @@ export function NewsFeed({
       if (view !== 'saved' && source !== 'all' && article.sourceId !== source) return false;
       if (view === 'explore' && selectedCountry) {
         const location = article.location;
-        if (location.precision === 'unknown' || location.countryCode !== selectedCountry) return false;
+        if (location.precision === 'unknown' || location.countryCode !== selectedCountry)
+          return false;
       }
       return (
         !deferredQuery ||
@@ -148,8 +149,13 @@ export function NewsFeed({
       <div className="signal-feed__intro">
         <div className="signal-feed__heading">
           <h2>
-            {view === 'saved' ? 'Saved stories' : view === 'news' ? 'The briefing' :
-              selectedCountry ? getMenaCountryName(selectedCountry) : 'Latest'}
+            {view === 'saved'
+              ? 'Saved stories'
+              : view === 'news'
+                ? 'The briefing'
+                : selectedCountry
+                  ? getMenaCountryName(selectedCountry)
+                  : 'Latest'}
           </h2>
           {view !== 'saved' && (
             <div className="signal-feed__actions">
@@ -169,7 +175,11 @@ export function NewsFeed({
                 disabled={!enabled || refreshing || loading}
                 onClick={() => void refresh(true)}
               >
-                <RefreshCw size={18} aria-hidden="true" className={refreshing ? 'signal-feed__spinning' : undefined} />
+                <RefreshCw
+                  size={18}
+                  aria-hidden="true"
+                  className={refreshing ? 'signal-feed__spinning' : undefined}
+                />
               </button>
             </div>
           )}
@@ -243,7 +253,11 @@ export function NewsFeed({
                   : query || source !== 'all'
                     ? 'No matching stories.'
                     : 'No reports available.'}
-              {selectedCountry && <button className="signal-feed__clear" type="button" onClick={onClearCountry}>All regional stories</button>}
+              {selectedCountry && (
+                <button className="signal-feed__clear" type="button" onClick={onClearCountry}>
+                  All regional stories
+                </button>
+              )}
             </div>
           )}
           {articles.map((article, index) => (

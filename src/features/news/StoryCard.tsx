@@ -40,7 +40,12 @@ export function StoryCard({ article, featured = false, saved, onSelect, onToggle
         aria-pressed={saved}
         title={saved ? 'Remove from Saved' : 'Save story'}
       >
-        <Bookmark size={18} aria-hidden="true" fill={saved ? 'currentColor' : 'none'} strokeWidth={1.8} />
+        <Bookmark
+          size={18}
+          aria-hidden="true"
+          fill={saved ? 'currentColor' : 'none'}
+          strokeWidth={1.8}
+        />
       </button>
     </article>
   );

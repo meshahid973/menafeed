@@ -18,7 +18,9 @@ describe('workspace', () => {
   it('renders the offline geographic map with collapsed navigation', async () => {
     render(<App />);
     expect(screen.getByRole('button', { name: 'Expand sidebar' })).toBeInTheDocument();
-    expect(screen.getByRole('region', { name: 'Interactive map of the Middle East and North Africa' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('region', { name: 'Interactive map of the Middle East and North Africa' }),
+    ).toBeInTheDocument();
     expect(await screen.findByText('Open the desktop app to read live RSS.')).toBeInTheDocument();
   });
 
@@ -51,17 +53,34 @@ describe('workspace', () => {
   it('opens the corresponding story from a verified coordinate marker', async () => {
     vi.mocked(readDesktopStatus).mockResolvedValue({ kind: 'ready', schemaVersion: 1 });
     vi.mocked(getNewsFeed).mockResolvedValue({
-      receivedAt: '', sources: [],
-      articles: [{
-        id: 'bh-event', sourceId: 'src', sourceName: 'Publisher',
-        title: 'Manama event report', publishedAt: null, url: 'https://example.org/event',
-        location: { precision: 'city', countryCode: 'BH', cityName: 'Manama',
-          longitude: 50.5876, latitude: 26.2235, evidence: 'publisher' },
-      }],
+      receivedAt: '',
+      sources: [],
+      articles: [
+        {
+          id: 'bh-event',
+          sourceId: 'src',
+          sourceName: 'Publisher',
+          title: 'Manama event report',
+          publishedAt: null,
+          url: 'https://example.org/event',
+          location: {
+            precision: 'city',
+            countryCode: 'BH',
+            cityName: 'Manama',
+            longitude: 50.5876,
+            latitude: 26.2235,
+            evidence: 'publisher',
+          },
+        },
+      ],
     });
     render(<App />);
-    await waitFor(() => expect(screen.getByRole('button', { name: /Manama event report/ })).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /Manama event report/ })).toBeInTheDocument(),
+    );
     fireEvent.click(screen.getByRole('button', { name: /Manama event report/ }));
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Manama event report' })).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByRole('heading', { name: 'Manama event report' })).toBeInTheDocument(),
+    );
   });
 });

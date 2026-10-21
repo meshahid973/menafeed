@@ -17,7 +17,9 @@
 .signal-map--embedded .signal-map__stage-meta,
 .signal-map--embedded .signal-map__stage-hint,
 .signal-map--embedded .signal-map__corner-label,
-.signal-map--embedded .signal-map__coordinate-label { display: none; }
+.signal-map--embedded .signal-map__coordinate-label {
+  display: none;
+}
 .signal-map--embedded .signal-map__stage {
   position: relative;
   flex: 1;
@@ -35,15 +37,32 @@
   aspect-ratio: auto;
   object-fit: contain;
 }
-.signal-map--embedded .signal-map__background { fill: #020302; }
-.signal-map--embedded .signal-map__grid-pattern { opacity: 0.12; }
-.signal-map--embedded .signal-map__graticule { opacity: 0.32; }
-.signal-map--embedded .signal-map__country--context { fill: #0e1211; stroke: #26302a; }
-.signal-map--embedded .signal-map__country--selectable { fill: #18211d; stroke: #46574c; }
-.signal-map--embedded .signal-map__country--selected { fill: #94b76a; stroke: var(--signal-accent); }
+.signal-map--embedded .signal-map__background {
+  fill: #020302;
+}
+.signal-map--embedded .signal-map__grid-pattern {
+  opacity: 0.12;
+}
+.signal-map--embedded .signal-map__graticule {
+  opacity: 0.32;
+}
+.signal-map--embedded .signal-map__country--context {
+  fill: #0e1211;
+  stroke: #26302a;
+}
+.signal-map--embedded .signal-map__country--selectable {
+  fill: #18211d;
+  stroke: #46574c;
+}
+.signal-map--embedded .signal-map__country--selected {
+  fill: #94b76a;
+  stroke: var(--signal-accent);
+}
 .signal-map--embedded .signal-map__zoom-controls {
   bottom: 18px;
   left: 18px;
   z-index: 2;
 }
-.signal-map--embedded .signal-map__zoom-controls button { background: #0b0c0b; }
+.signal-map--embedded .signal-map__zoom-controls button {
+  background: #0b0c0b;
+}

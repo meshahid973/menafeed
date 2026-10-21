@@ -342,17 +342,42 @@
   }
 }
 
-.signal-feed__actions button svg { transition: transform var(--signal-duration-fast) var(--signal-ease-standard); }
-.signal-feed__actions button:hover:not(:disabled) svg { transform: scale(1.08); }
-.signal-feed__spinning { animation: signal-refresh 850ms linear infinite; }
-.signal-feed__clear {
-  display: block; margin-top: 18px; padding: 9px 12px;
-  border: 1px solid var(--signal-border); border-radius: 6px;
-  background: transparent; color: var(--signal-text); cursor: pointer; font-size: 12px;
+.signal-feed__actions button svg {
+  transition: transform var(--signal-duration-fast) var(--signal-ease-standard);
 }
-.signal-reader__back, .signal-reader__actions button { display: inline-flex; align-items: center; gap: 9px; }
-@keyframes signal-refresh { to { transform: rotate(360deg); } }
+.signal-feed__actions button:hover:not(:disabled) svg {
+  transform: scale(1.08);
+}
+.signal-feed__spinning {
+  animation: signal-refresh 850ms linear infinite;
+}
+.signal-feed__clear {
+  display: block;
+  margin-top: 18px;
+  padding: 9px 12px;
+  border: 1px solid var(--signal-border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--signal-text);
+  cursor: pointer;
+  font-size: 12px;
+}
+.signal-reader__back,
+.signal-reader__actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+}
+@keyframes signal-refresh {
+  to {
+    transform: rotate(360deg);
+  }
+}
 @media (prefers-reduced-motion: reduce) {
-  .signal-feed__spinning { animation: none; }
-  .signal-feed__actions button svg { transition: none; }
+  .signal-feed__spinning {
+    animation: none;
+  }
+  .signal-feed__actions button svg {
+    transition: none;
+  }
 }
