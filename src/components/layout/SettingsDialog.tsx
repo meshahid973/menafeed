@@ -20,9 +20,18 @@ export function SettingsDialog({ open, onOpenChange }: Props) {
               <X aria-hidden="true" size={20} />
             </Dialog.Close>
           </div>
-          <div className="signal-settings__row"><span>Appearance</span><strong>OLED dark</strong></div>
-          <div className="signal-settings__row"><span>Sidebar shortcut</span><kbd>Ctrl+B</kbd></div>
-          <div className="signal-settings__row"><span>Search shortcut</span><kbd>Ctrl+K</kbd></div>
+          <div className="signal-settings__row">
+            <span>Appearance</span>
+            <strong>OLED dark</strong>
+          </div>
+          <div className="signal-settings__row">
+            <span>Sidebar shortcut</span>
+            <kbd>Ctrl+B</kbd>
+          </div>
+          <div className="signal-settings__row">
+            <span>Search shortcut</span>
+            <kbd>Ctrl+K</kbd>
+          </div>
           <Dialog.Description>Original publisher links open externally.</Dialog.Description>
         </Dialog.Popup>
       </Dialog.Portal>

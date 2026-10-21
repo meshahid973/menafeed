@@ -49,5 +49,13 @@
   font-size: 13px;
 }
 .signal-settings__row strong,
-.signal-settings__row kbd { color: var(--signal-text); font-weight: 500; }
-.signal-settings p { margin: 20px 0 0; color: var(--signal-text-muted); font-size: 12px; line-height: 1.6; }
+.signal-settings__row kbd {
+  color: var(--signal-text);
+  font-weight: 500;
+}
+.signal-settings p {
+  margin: 20px 0 0;
+  color: var(--signal-text-muted);
+  font-size: 12px;
+  line-height: 1.6;
+}

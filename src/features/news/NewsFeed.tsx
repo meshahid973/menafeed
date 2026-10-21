@@ -324,15 +324,16 @@ export function NewsFeed({
           ))}
         </div>
         <AnimatePresence mode="wait" initial={false}>
-        {selected && (
-          <ArticleReader key={selected.id}
-            article={selected}
-            saved={savedUrls.has(selected.url)}
-            onBack={back}
-            onOpen={(url) => void handleOpen(url)}
-            onToggleSave={() => onToggleBookmark(selected)}
-          />
-        )}
+          {selected && (
+            <ArticleReader
+              key={selected.id}
+              article={selected}
+              saved={savedUrls.has(selected.url)}
+              onBack={back}
+              onOpen={(url) => void handleOpen(url)}
+              onToggleSave={() => onToggleBookmark(selected)}
+            />
+          )}
         </AnimatePresence>
       </div>
     </section>
