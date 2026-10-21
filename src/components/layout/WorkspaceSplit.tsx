@@ -4,8 +4,8 @@ import { GripVertical } from 'lucide-react';
 import './WorkspaceSplit.css';
 
 const KEY = 'signal:feed-width';
-const DEFAULT = 43;
-const MIN_PANEL = 300;
+const DEFAULT = 36;
+const MIN_PANEL = 280;
 
 function initialWidth() {
   try {

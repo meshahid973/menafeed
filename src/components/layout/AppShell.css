@@ -22,7 +22,7 @@
   align-items: center;
   justify-content: space-between;
   flex: none;
-  height: 58px;
+  height: 52px;
   padding: 0 clamp(20px, 2vw, 32px);
   border-bottom: 1px solid var(--signal-border);
 }
