@@ -1,4 +1,5 @@
 import { geoGraticule, geoPath } from 'd3-geo';
+import { RotateCcw, ZoomIn, ZoomOut } from 'lucide-react';
 import { useCallback, useId, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent, PointerEvent, WheelEvent } from 'react';
 import rawCountryData from '../data/mena-countries.geojson?raw';
@@ -442,14 +443,14 @@ export function MenaGlobe({
 
         <div className="signal-map__zoom-controls" aria-label="Map navigation controls">
           <button type="button" onClick={() => zoomAt(1.25)} aria-label="Zoom in">
-            +
+            <ZoomIn size={18} aria-hidden="true" />
           </button>
           <button type="button" onClick={() => zoomAt(1 / 1.25)} aria-label="Zoom out">
-            −
+            <ZoomOut size={18} aria-hidden="true" />
           </button>
           <span aria-hidden="true" />
           <button type="button" onClick={() => setView(INITIAL_VIEW)} aria-label="Reset map view">
-            ↺
+            <RotateCcw size={17} aria-hidden="true" />
           </button>
         </div>
         <div className="signal-map__stage-hint" aria-hidden="true">
