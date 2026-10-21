@@ -8,16 +8,18 @@ export function useNewsFeed(enabled: boolean) {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const requestId = useRef(0);
+  const hasLoaded = useRef(false);
 
   const refresh = useCallback(async (force: boolean) => {
     const current = ++requestId.current;
     setError(null);
     if (force) setRefreshing(true);
-    else setLoading(true);
+    else if (!hasLoaded.current) setLoading(true);
 
     try {
       const result = await getNewsFeed(force);
       if (current !== requestId.current) return;
+      hasLoaded.current = true;
       setData(result);
       if (result.sources.length && result.sources.every((s) => s.mode === 'unavailable')) {
         setError('Sources are currently unavailable. Try again later.');
@@ -33,8 +35,15 @@ export function useNewsFeed(enabled: boolean) {
   }, []);
 
   useEffect(() => {
-    if (enabled) void refresh(false);
-    else {
+    if (enabled) {
+      void refresh(false);
+      // Re-check each minute; Rust enforces each provider's cache interval.
+      const timer = window.setInterval(() => void refresh(false), 60_000);
+      return () => {
+        window.clearInterval(timer);
+        requestId.current += 1;
+      };
+    } else {
       setLoading(false);
       setRefreshing(false);
     }
