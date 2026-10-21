@@ -104,21 +104,20 @@ pub async fn load(app: AppHandle, force: bool) -> Result<NewsFeedResponse, Strin
         .build()
         .map_err(|_| "Could not initialize the news service")?;
 
-    let (a, b, c, d, e, f) = tokio::join!(
+    // API requests remain opt-in; all enabled sources load concurrently.
+    let reliefweb_task = async {
+        let app_name = std::env::var("SIGNAL_RELIEFWEB_APPNAME").ok()?;
+        Some(load_reliefweb(&app, &client, &app_name, force).await)
+    };
+    let (a, b, c, d, e, f, reliefweb) = tokio::join!(
         load_source(&app, &client, SOURCES[0], force),
         load_source(&app, &client, SOURCES[1], force),
         load_source(&app, &client, SOURCES[2], force),
         load_source(&app, &client, SOURCES[3], force),
         load_source(&app, &client, SOURCES[4], force),
-        load_source(&app, &client, SOURCES[5], force)
+        load_source(&app, &client, SOURCES[5], force),
+        reliefweb_task
     );
-
-    let reliefweb_result = async {
-        let app_name = std::env::var("SIGNAL_RELIEFWEB_APPNAME").ok()?;
-        Some(load_reliefweb(&app, &client, &app_name, force).await)
-    };
-    // API requests are optional. No identifier means no ReliefWeb traffic.
-    let reliefweb = reliefweb_result.await;
 
     let mut articles = Vec::new();
     let mut sources = Vec::new();
