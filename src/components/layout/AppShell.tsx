@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Search } from 'lucide-react';
 import { NewsFeed } from '../../features/news/NewsFeed';
 import { useBookmarks } from '../../features/news/useBookmarks';
@@ -33,6 +33,7 @@ export function AppShell({ desktopStatus }: AppShellProps) {
   const [selectedStory, setSelectedStory] = useState<string | null>(null);
   const bookmarks = useBookmarks();
   const feed = useNewsFeed(desktopStatus.kind === 'ready');
+  const onMarkerSelect = useCallback((marker: MenaMarker) => setSelectedStory(marker.id), []);
 
   const markers = useMemo(
     () =>
@@ -55,6 +56,12 @@ export function AppShell({ desktopStatus }: AppShellProps) {
         ];
       }),
     [feed.data?.articles],
+  );
+
+  const mapView = useMemo(
+    () => <MapSlot selectedCountry={country} onCountrySelect={setCountry}
+        markers={markers} onMarkerSelect={onMarkerSelect} />,
+    [country, markers, onMarkerSelect],
   );
 
   useEffect(() => {
@@ -166,16 +173,7 @@ export function AppShell({ desktopStatus }: AppShellProps) {
         <div className={`signal-shell__workspace signal-shell__workspace--${view}`}>
           {view === 'explore' ? (
             <WorkspaceSplit
-              map={
-                <MapSlot
-                  selectedCountry={country}
-                  onCountrySelect={setCountry}
-                  markers={markers}
-                  onMarkerSelect={(marker) => {
-                    setSelectedStory(marker.id);
-                  }}
-                />
-              }
+              map={mapView}
               feed={news}
             />
           ) : (

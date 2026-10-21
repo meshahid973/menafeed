@@ -1,4 +1,5 @@
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
+import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 import type { WorkspaceView } from '../../components/layout/workspaceTypes';
 import type { DesktopStatus } from '../../services/desktop';
 import { openArticle } from '../../services/news';
@@ -92,7 +93,20 @@ export function NewsFeed({
   useEffect(() => {
     setSelected(null);
     setOpenError(false);
-  }, [view]);
+  }, [view, selectedCountry]);
+
+  useEffect(() => {
+    if (!selected) return;
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      event.stopPropagation();
+      setSelected(null);
+      requestAnimationFrame(() => listRef.current?.focus({ preventScroll: true }));
+    };
+    window.addEventListener('keydown', handleEscape, true);
+    return () => window.removeEventListener('keydown', handleEscape, true);
+  }, [selected]);
 
   useEffect(() => {
     if (!selectedArticleId || !data) return;
@@ -135,10 +149,25 @@ export function NewsFeed({
     requestAnimationFrame(() => listRef.current?.focus({ preventScroll: true }));
   }
 
+  function handleListKeyDown(event: ReactKeyboardEvent<HTMLDivElement>) {
+    if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
+    const current = (event.target as HTMLElement).closest<HTMLButtonElement>('.signal-story__headline');
+    if (!current || !listRef.current) return;
+    const items = Array.from(listRef.current.querySelectorAll<HTMLButtonElement>('.signal-story__headline'));
+    const index = items.indexOf(current);
+    if (index < 0) return;
+    const nextIndex = event.key === 'ArrowDown' ? index + 1 : index - 1;
+    const next = items[nextIndex];
+    if (!next) return;
+    event.preventDefault();
+    next.focus();
+  }
+
   const isFull = view !== 'explore';
   const showFeed = view === 'saved' || desktopStatus.kind === 'ready';
   const sourceStates = data?.sources ?? [];
   const stale = sourceStates.some((item) => item.mode === 'stale');
+  const unavailable = sourceStates.some((item) => item.mode === 'unavailable');
   const available = sourceStates.filter((item) => item.mode !== 'unavailable').length;
 
   return (
@@ -213,9 +242,11 @@ export function NewsFeed({
             <span>
               {stale
                 ? 'Cached reporting'
-                : available === 0
-                  ? 'Sources unavailable'
-                  : `${articles.length} stories`}
+                : unavailable
+                  ? 'Partial coverage'
+                  : available === 0
+                    ? 'Sources unavailable'
+                    : `${articles.length} stories`}
             </span>
           </div>
         )}
@@ -223,7 +254,10 @@ export function NewsFeed({
 
       {error && view !== 'saved' && (
         <div role="status" className="signal-feed__message">
-          {error}
+          <span>{error}</span>
+          <button type="button" disabled={refreshing || loading} onClick={() => void refresh(true)}>
+            Retry
+          </button>
         </div>
       )}
       {openError && (
@@ -233,9 +267,16 @@ export function NewsFeed({
       )}
 
       <div className="signal-feed__body">
-        <div className="signal-feed__list" ref={listRef} tabIndex={-1} hidden={selected !== null}>
+        <div className="signal-feed__list" ref={listRef} tabIndex={-1} hidden={selected !== null} onKeyDown={handleListKeyDown}>
           {loading && view !== 'saved' && (
-            <div className="signal-feed__empty">Loading reports…</div>
+            <div className="signal-feed__skeletons" role="status" aria-label="Loading news">
+              {[0, 1, 2, 3].map((item) => (
+                <div key={item} className="signal-feed__skeleton">
+                  <span />
+                  <span />
+                </div>
+              ))}
+            </div>
           )}
           {!showFeed && (
             <div className="signal-feed__empty">
