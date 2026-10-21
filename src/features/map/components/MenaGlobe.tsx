@@ -202,7 +202,6 @@ export function MenaGlobe({
           : view;
       dragStartRef.current = null;
       setView(next);
-      const target = event.target as Element;
       // Retain the drag guard until a click is consumed or the next pointer-down.
       if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
         event.currentTarget.releasePointerCapture(event.pointerId);

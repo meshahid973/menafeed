@@ -48,7 +48,7 @@ const sample: NewsFeedResponse = {
 
 function FeedHarness({ desktopStatus, ...props }: Omit<ComponentProps<typeof NewsFeed>, 'feed'>) {
   const feed = useNewsFeed(desktopStatus.kind === 'ready' && props.view !== 'saved');
-  return <FeedHarness desktopStatus={desktopStatus} {...props} feed={feed} />;
+  return <NewsFeed desktopStatus={desktopStatus} {...props} feed={feed} />;
 }
 
 describe('news desk', () => {
