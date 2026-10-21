@@ -1,4 +1,4 @@
-import { useDeferredValue, useMemo, useState } from 'react';
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import type { DesktopStatus } from '../../services/desktop';
 import { openArticle } from '../../services/news';
 import { StoryCard } from './StoryCard';
@@ -17,6 +17,19 @@ export function NewsFeed({ desktopStatus }: Props) {
   const [selected, setSelected] = useState<string | null>(null);
   const [openError, setOpenError] = useState(false);
   const deferredQuery = useDeferredValue(query.trim().toLocaleLowerCase());
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== '/' || event.altKey || event.ctrlKey || event.metaKey) return;
+      const target = event.target;
+      if (target instanceof HTMLElement && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))) return;
+      event.preventDefault();
+      searchRef.current?.focus();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
 
   const articles = useMemo(() => {
     return (data?.articles ?? []).filter((article) => {
@@ -109,6 +122,7 @@ export function NewsFeed({ desktopStatus }: Props) {
         <label className="signal-feed__search">
           <span aria-hidden="true">⌕</span>
           <input
+            ref={searchRef}
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}

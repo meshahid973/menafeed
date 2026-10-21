@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NewsFeed } from './NewsFeed';
 import { getNewsFeed, openArticle } from '../../services/news';
@@ -60,7 +60,7 @@ describe('editorial feed', () => {
     fireEvent.change(screen.getByRole('searchbox', { name: 'Search headlines' }), {
       target: { value: 'energy' },
     });
-    expect(screen.queryByText('Cultural event announced')).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByText('Cultural event announced')).not.toBeInTheDocument());
     fireEvent.click(screen.getByRole('button', { name: /Regional energy talks/ }));
     expect(screen.getByText('A brief summary about energy.')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /READ ORIGINAL/ }));
