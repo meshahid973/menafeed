@@ -426,7 +426,7 @@ mod tests {
         </channel></rss>"#;
         let articles = parse_source(feed, SOURCES[0]).unwrap();
         assert_eq!(articles.len(), 1);
-        assert!(matches!(articles[0].location, ArticleLocation::Unknown));
+        assert!(matches!(&articles[0].location, ArticleLocation::Unknown));
         assert_eq!(articles[0].source_id, "bbc");
         assert!(articles[0].published_at.is_some());
     }
