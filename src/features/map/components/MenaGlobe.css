@@ -211,6 +211,21 @@
   stroke-opacity: 1;
 }
 
+.signal-map__country--point {
+  fill: #b6e5ad;
+  fill-opacity: 1;
+  stroke: #06130d;
+  stroke-opacity: 1;
+  stroke-width: 1.1;
+  cursor: help;
+}
+
+.signal-map__country--point.signal-map__country--hovered {
+  fill: #e2ffa1;
+  stroke: #f3ffe7;
+  stroke-width: 1.7;
+}
+
 .signal-map__country--selected {
   fill: var(--signal-accent);
   fill-opacity: 1;
