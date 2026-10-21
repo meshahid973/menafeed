@@ -21,9 +21,9 @@ describe('resizable workspace', () => {
       toJSON: () => ({}),
     });
     const handle = screen.getByRole('separator', { name: 'Resize map and news panels' });
-    expect(handle).toHaveAttribute('aria-valuenow', '43');
+    expect(handle).toHaveAttribute('aria-valuenow', '36');
     fireEvent.keyDown(handle, { key: 'ArrowLeft' });
-    expect(handle).toHaveAttribute('aria-valuenow', '45');
-    expect(window.localStorage.getItem('signal:feed-width')).toBe('45');
+    expect(handle).toHaveAttribute('aria-valuenow', '38');
+    expect(window.localStorage.getItem('signal:feed-width')).toBe('38');
   });
 });
