@@ -159,16 +159,6 @@ export function MenaGlobe({
     [applyCamera, cancelCameraAnimation],
   );
 
-  const focusCountry = useCallback(
-    (code: MenaCountryCode) => {
-      const feature = REGION_FEATURES.features.find(
-        (item) => item.properties.code === code && item.properties.selectable,
-      ) as CountryFeature | undefined;
-      animateCamera(cameraForCountry(feature));
-    },
-    [animateCamera],
-  );
-
   const isControlled = selectedCountry !== undefined;
   const activeCountry = isControlled ? selectedCountry : internalSelection;
 
@@ -450,7 +440,7 @@ export function MenaGlobe({
                               didDragRef.current = false;
                               return;
                             }
-                            if (activeCountry === countryCode) focusCountry(countryCode);
+                            if (activeCountry === countryCode) selectCountry(null);
                             else selectCountry(countryCode);
                           }
                         : undefined
@@ -460,7 +450,7 @@ export function MenaGlobe({
                         ? (event) => {
                             if (event.key === 'Enter' || event.key === ' ') {
                               event.preventDefault();
-                              if (activeCountry === countryCode) focusCountry(countryCode);
+                              if (activeCountry === countryCode) selectCountry(null);
                               else selectCountry(countryCode);
                             }
                           }
@@ -585,7 +575,7 @@ export function MenaGlobe({
                 .join(' ')}
               aria-pressed={activeCountry === code}
               onClick={() => {
-                if (activeCountry === code) focusCountry(code);
+                if (activeCountry === code) selectCountry(null);
                 else selectCountry(code);
               }}
             >
