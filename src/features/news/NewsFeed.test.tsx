@@ -88,7 +88,7 @@ describe('news desk', () => {
   });
 
   it('shows saved stories without fetching native RSS', () => {
-    const story = sample.articles[0];
+    const story = sample.articles[0]!;
     render(<NewsFeed desktopStatus={{ kind: 'preview' }} view="saved" bookmarks={[story]} />);
     expect(getNewsFeed).not.toHaveBeenCalled();
     expect(screen.getByText('Regional energy talks')).toBeInTheDocument();

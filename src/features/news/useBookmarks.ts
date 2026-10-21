@@ -64,8 +64,7 @@ export function useBookmarks() {
       if (current.some((saved) => saved.url === article.url)) {
         return current.filter((saved) => saved.url !== article.url);
       }
-      return [
-        {
+      const next: FeedArticle = {
           id: article.id,
           sourceId: article.sourceId,
           sourceName: article.sourceName,
@@ -74,9 +73,8 @@ export function useBookmarks() {
           publishedAt: article.publishedAt,
           summary: article.summary,
           location: { precision: 'unknown' },
-        },
-        ...current,
-      ].slice(0, MAX_SAVED);
+      };
+      return [next, ...current].slice(0, MAX_SAVED);
     });
   }
 
