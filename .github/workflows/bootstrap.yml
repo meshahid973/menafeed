@@ -1,0 +1,45 @@
+name: Bootstrap Phase 1 lockfiles
+
+# Temporary, branch-scoped workflow. Remove after formatting and lockfiles are committed.
+on:
+  push:
+    branches: [feat/phase-1-foundation]
+    paths:
+      - .github/workflows/bootstrap.yml
+
+permissions:
+  contents: write
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/phase-1-foundation
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Use working npm dependency resolver
+        run: npm install -g npm@11.6.3
+      - name: Create frontend lockfile and format sources
+        run: |
+          npm install --no-audit
+          npm run format
+      - name: Create Rust lockfile and format Rust
+        run: |
+          cargo generate-lockfile --manifest-path src-tauri/Cargo.toml
+          cargo fmt --manifest-path src-tauri/Cargo.toml --all
+      - name: Commit deterministic lockfiles and formatting
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -u
+          git add package-lock.json src-tauri/Cargo.lock
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: lock dependencies and normalize formatting"
+            git push origin HEAD:feat/phase-1-foundation
+          fi
