@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import rawCountryData from './data/mena-countries.geojson?raw';
+import rawCountryData from './data/world-countries.geojson?raw';
 import { MENA_COUNTRIES } from './data/coverage';
 import {
   getCountryPath,
@@ -12,8 +12,32 @@ import {
 
 const dataset = JSON.parse(rawCountryData) as CountryCollection;
 
-describe('MENA coverage data', () => {
-  it('provides the full editorial selection list with unique ISO alpha-2 codes', () => {
+describe('world coverage data', () => {
+  it('includes global country-boundary features with unique feature codes', () => {
+    const codes = dataset.features.map((feature) => feature.properties.code);
+
+    expect(dataset.features.length).toBeGreaterThan(200);
+    expect(new Set(codes).size).toBe(codes.length);
+  });
+
+  it('includes point markers for microstates omitted at world-map scale', () => {
+    const byCode = new Map(dataset.features.map((feature) => [feature.properties.code, feature]));
+
+    for (const [code, name] of [
+      ['MC', 'Monaco'],
+      ['VA', 'Vatican City'],
+      ['LI', 'Liechtenstein'],
+      ['AD', 'Andorra'],
+      ['SM', 'San Marino'],
+    ] as const) {
+      const feature = byCode.get(code);
+      expect(feature?.properties.name).toBe(name);
+      expect(feature?.properties.sourceResolution).toBe('50m-point');
+      expect(feature?.geometry.type).toBe('Point');
+    }
+  });
+
+  it('keeps the full editorial MENA selection list with unique ISO alpha-2 codes', () => {
     const codes = MENA_COUNTRIES.map(({ code }) => code);
 
     expect(codes).toHaveLength(27);
@@ -23,7 +47,7 @@ describe('MENA coverage data', () => {
     expect(codes).toContain('EH');
   });
 
-  it('contains selectable country geometry for every entry in the coverage manifest', () => {
+  it('contains selectable country geometry for every entry in the MENA coverage manifest', () => {
     const available = new Set(
       dataset.features
         .filter((feature) => feature.properties.selectable)
@@ -33,11 +57,12 @@ describe('MENA coverage data', () => {
     expect([...available].sort()).toEqual(MENA_COUNTRIES.map(({ code }) => code).sort());
   });
 
-  it('retains Bahrain island geometry for the Gulf microstate', () => {
+  it('retains higher-resolution Bahrain island geometry for the Gulf microstate', () => {
     const bahrain = dataset.features.find((feature) => feature.properties.code === 'BH');
 
     expect(bahrain).toBeDefined();
     expect(bahrain?.geometry.type).toBe('Polygon');
+    expect(bahrain?.properties.sourceResolution).toBe('10m');
     expect(getCountryPath(bahrain!)).toContain('M');
   });
 });

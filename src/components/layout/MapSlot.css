@@ -1,4 +1,4 @@
-/* Compact host presentation; independent map feature retains its standalone view. */
+/* Compact host presentation; the globe owns its projection and interaction. */
 .signal-map--embedded {
   display: flex;
   flex: 1;
@@ -8,7 +8,7 @@
   min-height: 0;
   overflow: hidden;
   border: 0;
-  background: #020302;
+  background: #020303;
 }
 .signal-map--embedded .signal-map__header,
 .signal-map--embedded .signal-map__selection,
@@ -27,7 +27,7 @@
   align-items: center;
   min-height: 0;
   border: 0;
-  background: #020302;
+  background: radial-gradient(ellipse at 50% 48%, #0b1516 0%, #050909 54%, #020303 100%);
 }
 .signal-map--embedded .signal-map__svg {
   width: 100%;
@@ -38,21 +38,19 @@
   object-fit: contain;
 }
 .signal-map--embedded .signal-map__background {
-  fill: #020302;
-}
-.signal-map--embedded .signal-map__grid-pattern {
-  opacity: 0.12;
+  fill: #020303;
 }
 .signal-map--embedded .signal-map__graticule {
-  opacity: 0.32;
+  stroke-opacity: 0.38;
 }
 .signal-map--embedded .signal-map__country--context {
-  fill: #0e1211;
-  stroke: #26302a;
+  fill: #10191b;
+  stroke: #293b3e;
+  pointer-events: visiblePainted;
 }
 .signal-map--embedded .signal-map__country--selectable {
-  fill: #18211d;
-  stroke: #46574c;
+  fill: #1c2d25;
+  stroke: #526b5d;
 }
 .signal-map--embedded .signal-map__country--selected {
   fill: #94b76a;
@@ -64,14 +62,13 @@
   z-index: 2;
 }
 .signal-map--embedded .signal-map__zoom-controls button {
-  background: #0b0c0b;
+  background: rgb(7 11 11 / 88%);
 }
-
-.signal-map--embedded .signal-map__zoom-controls button svg {
-  transition: transform var(--signal-duration-fast) var(--signal-ease-standard);
-}
-.signal-map--embedded .signal-map__zoom-controls button:hover svg {
-  transform: scale(1.12);
+@media (max-width: 600px) {
+  .signal-map--embedded .signal-map__zoom-controls {
+    bottom: 10px;
+    left: 10px;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   .signal-map--embedded .signal-map__zoom-controls button svg {
