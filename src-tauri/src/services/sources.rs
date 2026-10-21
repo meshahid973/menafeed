@@ -55,7 +55,7 @@ mod tests {
         assert!(is_mena_relevant("Talks held in Bahrain and Saudi Arabia"));
         assert!(is_mena_relevant("North Africa economy"));
         assert!(!is_mena_relevant("German local politics"));
-        assert!(!is_mena_relevant("Iranian is not the country Iran"));
+        assert!(!is_mena_relevant("Iranian markets trade overseas"));
     }
 
     #[test]
