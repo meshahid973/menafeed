@@ -132,7 +132,7 @@ export function MenaGlobe({
     (event: PointerEvent<SVGSVGElement>) => {
       if (event.button !== 0) return;
       const target = event.target as Element;
-      if (target.closest('[data-country-code], [data-marker-id]')) return;
+      const startedOnControl = Boolean(target.closest('[data-country-code], [data-marker-id]'));
       const point = pointInMap(event);
       if (!point) return;
       dragStartRef.current = {
@@ -144,7 +144,7 @@ export function MenaGlobe({
         zoom: view.zoom,
       };
       didDragRef.current = false;
-      if (event.currentTarget.setPointerCapture) {
+      if (!startedOnControl && event.currentTarget.setPointerCapture) {
         event.currentTarget.setPointerCapture(event.pointerId);
       }
     },
@@ -164,7 +164,13 @@ export function MenaGlobe({
 
       const deltaX = ((event.clientX - start.clientX) / rect.width) * MAP_WIDTH;
       const deltaY = ((event.clientY - start.clientY) / rect.height) * MAP_HEIGHT;
-      if (Math.hypot(deltaX, deltaY) > 3) didDragRef.current = true;
+      if (Math.hypot(deltaX, deltaY) > 3 && !didDragRef.current) {
+        didDragRef.current = true;
+        if (event.currentTarget.setPointerCapture) {
+          event.currentTarget.setPointerCapture(event.pointerId);
+        }
+      }
+      if (!didDragRef.current) return;
       const next = {
         zoom: start.zoom,
         panX: Math.max(-MAP_WIDTH * 0.8, Math.min(MAP_WIDTH * 0.8, start.panX + deltaX)),
