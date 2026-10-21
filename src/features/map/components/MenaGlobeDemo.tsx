@@ -22,8 +22,8 @@ export function MenaGlobeDemo() {
         <p className="signal-map-demo__eyebrow">SIGNAL / MENA · FEATURE PREVIEW</p>
         <h1 className="signal-map-demo__title">The region, in context.</h1>
         <p className="signal-map-demo__description">
-          A geographic foundation for future location-aware reporting. Select a country,
-          pan the region, or zoom to inspect the boundaries.
+          A geographic foundation for future location-aware reporting. Select a country, pan the
+          region, or zoom to inspect the boundaries.
         </p>
         <p className="signal-map-demo__notice">
           <strong>DEMO DATA ONLY</strong> · The Manama marker uses example geographic coordinates.

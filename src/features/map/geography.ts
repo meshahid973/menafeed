@@ -35,20 +35,14 @@ export function getCountryPath(feature: CountryFeature): string | null {
   return COUNTRY_PATH(feature);
 }
 
-export function projectCoordinate(
-  longitude: number,
-  latitude: number,
-): [number, number] | null {
+export function projectCoordinate(longitude: number, latitude: number): [number, number] | null {
   if (!isValidGeoCoordinate(longitude, latitude)) return null;
   const point = MENA_PROJECTION([longitude, latitude]);
   if (!point || !point.every(Number.isFinite)) return null;
   return [point[0], point[1]];
 }
 
-export function isValidGeoCoordinate(
-  longitude: number,
-  latitude: number,
-): boolean {
+export function isValidGeoCoordinate(longitude: number, latitude: number): boolean {
   return (
     Number.isFinite(longitude) &&
     Number.isFinite(latitude) &&

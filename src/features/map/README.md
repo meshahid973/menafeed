@@ -72,3 +72,4 @@ npm run check
 ``
 
 The Tauri/Rust checks in the root README are unaffected by this frontend-only change.
+```

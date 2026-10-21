@@ -44,9 +44,7 @@ function transformString(view: ViewTransform): string {
 }
 
 function formatCoordinate(value: number, axis: 'latitude' | 'longitude'): string {
-  const hemisphere = axis === 'latitude'
-    ? value < 0 ? 'S' : 'N'
-    : value < 0 ? 'W' : 'E';
+  const hemisphere = axis === 'latitude' ? (value < 0 ? 'S' : 'N') : value < 0 ? 'W' : 'E';
   return `${Math.abs(value).toFixed(2)}° ${hemisphere}`;
 }
 
@@ -151,62 +149,56 @@ export function MenaGlobe({
     [pointInMap, view.panX, view.panY, view.zoom],
   );
 
-  const movePan = useCallback(
-    (event: PointerEvent<SVGSVGElement>) => {
-      const start = dragStartRef.current;
-      const rect = event.currentTarget.getBoundingClientRect();
-      if (
-        !start ||
-        start.pointerId !== event.pointerId ||
-        rect.width <= 0 ||
-        rect.height <= 0
-      ) return;
+  const movePan = useCallback((event: PointerEvent<SVGSVGElement>) => {
+    const start = dragStartRef.current;
+    const rect = event.currentTarget.getBoundingClientRect();
+    if (!start || start.pointerId !== event.pointerId || rect.width <= 0 || rect.height <= 0)
+      return;
 
-      const deltaX = ((event.clientX - start.clientX) / rect.width) * MAP_WIDTH;
-      const deltaY = ((event.clientY - start.clientY) / rect.height) * MAP_HEIGHT;
-      if (Math.hypot(deltaX, deltaY) > 3 && !didDragRef.current) {
-        didDragRef.current = true;
-        if (event.currentTarget.setPointerCapture) {
-          event.currentTarget.setPointerCapture(event.pointerId);
-        }
+    const deltaX = ((event.clientX - start.clientX) / rect.width) * MAP_WIDTH;
+    const deltaY = ((event.clientY - start.clientY) / rect.height) * MAP_HEIGHT;
+    if (Math.hypot(deltaX, deltaY) > 3 && !didDragRef.current) {
+      didDragRef.current = true;
+      if (event.currentTarget.setPointerCapture) {
+        event.currentTarget.setPointerCapture(event.pointerId);
       }
-      if (!didDragRef.current) return;
-      const next = {
-        zoom: start.zoom,
-        panX: Math.max(-MAP_WIDTH * 0.8, Math.min(MAP_WIDTH * 0.8, start.panX + deltaX)),
-        panY: Math.max(-MAP_HEIGHT * 0.8, Math.min(MAP_HEIGHT * 0.8, start.panY + deltaY)),
-      };
-      if (mapLayerRef.current) {
-        mapLayerRef.current.setAttribute('transform', transformString(next));
-      }
-    },
-    [],
-  );
+    }
+    if (!didDragRef.current) return;
+    const next = {
+      zoom: start.zoom,
+      panX: Math.max(-MAP_WIDTH * 0.8, Math.min(MAP_WIDTH * 0.8, start.panX + deltaX)),
+      panY: Math.max(-MAP_HEIGHT * 0.8, Math.min(MAP_HEIGHT * 0.8, start.panY + deltaY)),
+    };
+    if (mapLayerRef.current) {
+      mapLayerRef.current.setAttribute('transform', transformString(next));
+    }
+  }, []);
 
   const endPan = useCallback(
     (event: PointerEvent<SVGSVGElement>) => {
       const start = dragStartRef.current;
       if (!start || start.pointerId !== event.pointerId) return;
       const rect = event.currentTarget.getBoundingClientRect();
-      const next = rect.width > 0 && rect.height > 0
-        ? {
-            ...view,
-            panX: Math.max(
-              -MAP_WIDTH * 0.8,
-              Math.min(
-                MAP_WIDTH * 0.8,
-                start.panX + ((event.clientX - start.clientX) / rect.width) * MAP_WIDTH,
+      const next =
+        rect.width > 0 && rect.height > 0
+          ? {
+              ...view,
+              panX: Math.max(
+                -MAP_WIDTH * 0.8,
+                Math.min(
+                  MAP_WIDTH * 0.8,
+                  start.panX + ((event.clientX - start.clientX) / rect.width) * MAP_WIDTH,
+                ),
               ),
-            ),
-            panY: Math.max(
-              -MAP_HEIGHT * 0.8,
-              Math.min(
-                MAP_HEIGHT * 0.8,
-                start.panY + ((event.clientY - start.clientY) / rect.height) * MAP_HEIGHT,
+              panY: Math.max(
+                -MAP_HEIGHT * 0.8,
+                Math.min(
+                  MAP_HEIGHT * 0.8,
+                  start.panY + ((event.clientY - start.clientY) / rect.height) * MAP_HEIGHT,
+                ),
               ),
-            ),
-          }
-        : view;
+            }
+          : view;
       dragStartRef.current = null;
       setView(next);
       const target = event.target as Element;
@@ -237,12 +229,10 @@ export function MenaGlobe({
     (event: WheelEvent<SVGSVGElement>) => {
       event.preventDefault();
       const rect = event.currentTarget.getBoundingClientRect();
-      const anchorX = rect.width > 0
-        ? ((event.clientX - rect.left) / rect.width) * MAP_WIDTH
-        : MAP_WIDTH / 2;
-      const anchorY = rect.height > 0
-        ? ((event.clientY - rect.top) / rect.height) * MAP_HEIGHT
-        : MAP_HEIGHT / 2;
+      const anchorX =
+        rect.width > 0 ? ((event.clientX - rect.left) / rect.width) * MAP_WIDTH : MAP_WIDTH / 2;
+      const anchorY =
+        rect.height > 0 ? ((event.clientY - rect.top) / rect.height) * MAP_HEIGHT : MAP_HEIGHT / 2;
       zoomAt(Math.exp(-event.deltaY * 0.0015), anchorX, anchorY);
     },
     [zoomAt],
@@ -332,11 +322,7 @@ export function MenaGlobe({
             fill={`url(#${gridPatternId})`}
           />
           <g clipPath={`url(#${clipId})`}>
-            <g
-              ref={mapLayerRef}
-              transform={transformString(view)}
-              data-testid="map-layer"
-            >
+            <g ref={mapLayerRef} transform={transformString(view)} data-testid="map-layer">
               <path className="signal-map__graticule" d={GRATICULE_PATH} aria-hidden="true" />
               {paths.map(({ feature, path }) => {
                 if (!path) return null;
@@ -350,31 +336,47 @@ export function MenaGlobe({
                     d={path}
                     className={[
                       'signal-map__country',
-                      selectable ? 'signal-map__country--selectable' : 'signal-map__country--context',
+                      selectable
+                        ? 'signal-map__country--selectable'
+                        : 'signal-map__country--context',
                       selected ? 'signal-map__country--selected' : '',
                       hovered ? 'signal-map__country--hovered' : '',
-                    ].filter(Boolean).join(' ')}
+                    ]
+                      .filter(Boolean)
+                      .join(' ')}
                     data-country-code={selectable ? code : undefined}
                     role={selectable ? 'button' : undefined}
                     tabIndex={selectable ? 0 : undefined}
                     aria-label={selectable ? `Select ${name}` : undefined}
                     aria-pressed={selectable ? selected : undefined}
-                    onClick={selectable && countryCode ? () => {
-                      if (didDragRef.current) {
-                        didDragRef.current = false;
-                        return;
-                      }
-                      selectCountry(countryCode);
-                    } : undefined}
-                    onKeyDown={selectable && countryCode ? (event) => {
-                      if (event.key === 'Enter' || event.key === ' ') {
-                        event.preventDefault();
-                        selectCountry(countryCode);
-                      }
-                    } : undefined}
-                    onMouseEnter={selectable && countryCode ? () => setHoveredCountry(countryCode) : undefined}
+                    onClick={
+                      selectable && countryCode
+                        ? () => {
+                            if (didDragRef.current) {
+                              didDragRef.current = false;
+                              return;
+                            }
+                            selectCountry(countryCode);
+                          }
+                        : undefined
+                    }
+                    onKeyDown={
+                      selectable && countryCode
+                        ? (event) => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              event.preventDefault();
+                              selectCountry(countryCode);
+                            }
+                          }
+                        : undefined
+                    }
+                    onMouseEnter={
+                      selectable && countryCode ? () => setHoveredCountry(countryCode) : undefined
+                    }
                     onMouseLeave={selectable ? () => setHoveredCountry(null) : undefined}
-                    onFocus={selectable && countryCode ? () => setHoveredCountry(countryCode) : undefined}
+                    onFocus={
+                      selectable && countryCode ? () => setHoveredCountry(countryCode) : undefined
+                    }
                     onBlur={selectable ? () => setHoveredCountry(null) : undefined}
                   >
                     <title>{selectable ? `${name} · select country` : name}</title>
@@ -403,8 +405,18 @@ export function MenaGlobe({
                     }
                   }}
                 >
-                  <circle cx={position[0]} cy={position[1]} r="9" className="signal-map__marker-halo" />
-                  <circle cx={position[0]} cy={position[1]} r="3.5" className="signal-map__marker-dot" />
+                  <circle
+                    cx={position[0]}
+                    cy={position[1]}
+                    r="9"
+                    className="signal-map__marker-halo"
+                  />
+                  <circle
+                    cx={position[0]}
+                    cy={position[1]}
+                    r="3.5"
+                    className="signal-map__marker-dot"
+                  />
                   <title>
                     {marker.label} · {formatCoordinate(marker.latitude, 'latitude')},{' '}
                     {formatCoordinate(marker.longitude, 'longitude')}
@@ -414,17 +426,31 @@ export function MenaGlobe({
               ))}
             </g>
           </g>
-          <text x="18" y="30" className="signal-map__corner-label">NORTH AFRICA</text>
-          <text x="982" y="30" textAnchor="end" className="signal-map__corner-label">WEST ASIA</text>
-          <text x="18" y="620" className="signal-map__coordinate-label">18°W — 67°E</text>
-          <text x="982" y="620" textAnchor="end" className="signal-map__coordinate-label">04°S — 54°N</text>
+          <text x="18" y="30" className="signal-map__corner-label">
+            NORTH AFRICA
+          </text>
+          <text x="982" y="30" textAnchor="end" className="signal-map__corner-label">
+            WEST ASIA
+          </text>
+          <text x="18" y="620" className="signal-map__coordinate-label">
+            18°W — 67°E
+          </text>
+          <text x="982" y="620" textAnchor="end" className="signal-map__coordinate-label">
+            04°S — 54°N
+          </text>
         </svg>
 
         <div className="signal-map__zoom-controls" aria-label="Map navigation controls">
-          <button type="button" onClick={() => zoomAt(1.25)} aria-label="Zoom in">+</button>
-          <button type="button" onClick={() => zoomAt(1 / 1.25)} aria-label="Zoom out">−</button>
+          <button type="button" onClick={() => zoomAt(1.25)} aria-label="Zoom in">
+            +
+          </button>
+          <button type="button" onClick={() => zoomAt(1 / 1.25)} aria-label="Zoom out">
+            −
+          </button>
           <span aria-hidden="true" />
-          <button type="button" onClick={() => setView(INITIAL_VIEW)} aria-label="Reset map view">↺</button>
+          <button type="button" onClick={() => setView(INITIAL_VIEW)} aria-label="Reset map view">
+            ↺
+          </button>
         </div>
         <div className="signal-map__stage-hint" aria-hidden="true">
           Drag to pan <span>·</span> Scroll to zoom <span>·</span> Select a country
@@ -438,9 +464,7 @@ export function MenaGlobe({
             {currentCountry ? currentCountry.name : 'No country selected'}
           </span>
         </div>
-        {activeCountry && (
-          <span className="signal-map__country-code">{activeCountry}</span>
-        )}
+        {activeCountry && <span className="signal-map__country-code">{activeCountry}</span>}
       </div>
 
       <div className="signal-map__country-panel">
@@ -456,7 +480,9 @@ export function MenaGlobe({
               className={[
                 'signal-map__country-option',
                 activeCountry === code ? 'signal-map__country-option--selected' : '',
-              ].filter(Boolean).join(' ')}
+              ]
+                .filter(Boolean)
+                .join(' ')}
               aria-pressed={activeCountry === code}
               onClick={() => selectCountry(code)}
             >
@@ -468,7 +494,9 @@ export function MenaGlobe({
       </div>
 
       <footer className="signal-map__footer">
-        <span><i aria-hidden="true" /> COUNTRY BOUNDARIES / CARTOGRAPHIC REFERENCE</span>
+        <span>
+          <i aria-hidden="true" /> COUNTRY BOUNDARIES / CARTOGRAPHIC REFERENCE
+        </span>
         <span>NO LIVE NEWS DATA CONNECTED</span>
       </footer>
     </section>

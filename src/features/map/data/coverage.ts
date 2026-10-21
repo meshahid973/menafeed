@@ -28,9 +28,7 @@ export const MENA_COUNTRIES = [
   { code: 'CY', name: 'Cyprus' },
 ] as const;
 
-export const MENA_COUNTRY_CODES = new Set<string>(
-  MENA_COUNTRIES.map(({ code }) => code),
-);
+export const MENA_COUNTRY_CODES = new Set<string>(MENA_COUNTRIES.map(({ code }) => code));
 
 export function getMenaCountryName(code: string): string | undefined {
   return MENA_COUNTRIES.find((country) => country.code === code)?.name;

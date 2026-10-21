@@ -30,9 +30,7 @@ describe('MENA coverage data', () => {
         .map((feature) => feature.properties.code),
     );
 
-    expect([...available].sort()).toEqual(
-      MENA_COUNTRIES.map(({ code }) => code).sort(),
-    );
+    expect([...available].sort()).toEqual(MENA_COUNTRIES.map(({ code }) => code).sort());
   });
 
   it('retains Bahrain island geometry for the Gulf microstate', () => {

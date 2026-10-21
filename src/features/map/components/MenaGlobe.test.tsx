@@ -6,12 +6,7 @@ import type { MenaCountryCode, MenaMarker } from '../types';
 
 function ControlledMap() {
   const [selectedCountry, setSelectedCountry] = useState<MenaCountryCode | null>(null);
-  return (
-    <MenaGlobe
-      selectedCountry={selectedCountry}
-      onCountrySelect={setSelectedCountry}
-    />
-  );
+  return <MenaGlobe selectedCountry={selectedCountry} onCountrySelect={setSelectedCountry} />;
 }
 
 describe('MenaGlobe', () => {
@@ -67,9 +62,7 @@ describe('MenaGlobe', () => {
 
   it('honors externally controlled selection rather than mutating it locally', () => {
     const onCountrySelect = vi.fn();
-    render(
-      <MenaGlobe selectedCountry="SA" onCountrySelect={onCountrySelect} />,
-    );
+    render(<MenaGlobe selectedCountry="SA" onCountrySelect={onCountrySelect} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Select Bahrain' }));
 
