@@ -110,6 +110,58 @@ describe('news desk', () => {
     expect(screen.queryByText('Regional energy talks')).not.toBeInTheDocument();
   });
 
+  it('keeps the selected-country label and articles synchronized across rapid country changes', async () => {
+    const countryArticles: NewsFeedResponse['articles'] = [
+      {
+        ...sample.articles[0]!,
+        id: 'egypt-story',
+        title: 'Egypt tagged report',
+        url: 'https://www.bbc.com/news/egypt-story',
+        location: { precision: 'country', countryCode: 'EG' },
+      },
+      {
+        ...sample.articles[0]!,
+        id: 'saudi-story',
+        title: 'Saudi Arabia tagged report',
+        url: 'https://www.bbc.com/news/saudi-story',
+        location: { precision: 'country', countryCode: 'SA' },
+      },
+      {
+        ...sample.articles[0]!,
+        id: 'morocco-story',
+        title: 'Morocco tagged report',
+        url: 'https://www.bbc.com/news/morocco-story',
+        location: { precision: 'country', countryCode: 'MA' },
+      },
+      ...sample.articles,
+    ];
+    vi.mocked(getNewsFeed).mockResolvedValueOnce({ ...sample, articles: countryArticles });
+
+    const { rerender } = render(
+      <FeedHarness desktopStatus={{ kind: 'ready', schemaVersion: 1 }} selectedCountry="EG" />,
+    );
+
+    expect(await screen.findByText('Egypt tagged report')).toBeInTheDocument();
+    expect(screen.getByText('Now showing news for Egypt')).toBeInTheDocument();
+    expect(screen.queryByText('Saudi Arabia tagged report')).not.toBeInTheDocument();
+    expect(screen.queryByText('Morocco tagged report')).not.toBeInTheDocument();
+    expect(screen.queryByText('Regional energy talks')).not.toBeInTheDocument();
+
+    rerender(
+      <FeedHarness desktopStatus={{ kind: 'ready', schemaVersion: 1 }} selectedCountry="SA" />,
+    );
+    expect(await screen.findByText('Saudi Arabia tagged report')).toBeInTheDocument();
+    expect(screen.getByText('Now showing news for Saudi Arabia')).toBeInTheDocument();
+    expect(screen.queryByText('Egypt tagged report')).not.toBeInTheDocument();
+
+    rerender(
+      <FeedHarness desktopStatus={{ kind: 'ready', schemaVersion: 1 }} selectedCountry="MA" />,
+    );
+    expect(await screen.findByText('Morocco tagged report')).toBeInTheDocument();
+    expect(screen.getByText('Now showing news for Morocco')).toBeInTheDocument();
+    expect(screen.queryByText('Saudi Arabia tagged report')).not.toBeInTheDocument();
+  });
+
   it('offers a retry after a failed source request', async () => {
     vi.mocked(getNewsFeed).mockRejectedValueOnce(new Error('network'));
     render(<FeedHarness desktopStatus={{ kind: 'ready', schemaVersion: 1 }} />);
