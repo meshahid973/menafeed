@@ -6,6 +6,7 @@ import rawCountryData from '../data/mena-countries.geojson?raw';
 import { MENA_COUNTRIES, MENA_COUNTRY_CODES } from '../data/coverage';
 import {
   createMenaProjection,
+  getCountryFocus,
   isInsideMap,
   isValidGeoCoordinate,
   MAP_HEIGHT,
@@ -18,30 +19,54 @@ import type { MenaGlobeProps, MenaMarker, MenaCountryCode } from '../types';
 import './MenaGlobe.css';
 
 interface ViewTransform {
-  panX: number;
-  panY: number;
+  translateX: number;
+  translateY: number;
   zoom: number;
+  rotation: number;
 }
 
-interface DragStart {
+interface DragStart extends ViewTransform {
   pointerId: number;
   clientX: number;
   clientY: number;
-  panX: number;
-  panY: number;
-  zoom: number;
 }
 
-const INITIAL_VIEW: ViewTransform = { panX: 0, panY: 0, zoom: 1 };
+const INITIAL_VIEW: ViewTransform = { translateX: 0, translateY: 0, zoom: 1, rotation: 0 };
 const MIN_ZOOM = 1;
-const MAX_ZOOM = 3.25;
+const MAX_ZOOM = 4.2;
+const CAMERA_DURATION_MS = 560;
 const REGION_FEATURES = JSON.parse(rawCountryData) as CountryCollection;
 const MAP_PROJECTION = createMenaProjection();
 const MAP_PATH = geoPath(MAP_PROJECTION);
 const GRATICULE_PATH = MAP_PATH(geoGraticule().step([10, 10])()) ?? '';
 
 function transformString(view: ViewTransform): string {
-  return `translate(${view.panX} ${view.panY}) scale(${view.zoom})`;
+  return `translate(${view.translateX} ${view.translateY}) scale(${view.zoom}) rotate(${view.rotation})`;
+}
+
+function shortestRotation(from: number, to: number): number {
+  return ((to - from + 180 + 360) % 360) - 180;
+}
+
+function cameraForCountry(feature?: CountryFeature): ViewTransform {
+  if (!feature) return INITIAL_VIEW;
+  const focus = getCountryFocus(feature);
+  if (!focus) return INITIAL_VIEW;
+
+  const zoom = Math.min(
+    MAX_ZOOM,
+    Math.max(1.35, Math.min((MAP_WIDTH * 0.78) / focus.width, (MAP_HEIGHT * 0.72) / focus.height)),
+  );
+  const radians = (focus.rotation * Math.PI) / 180;
+  const rotatedX = Math.cos(radians) * focus.x - Math.sin(radians) * focus.y;
+  const rotatedY = Math.sin(radians) * focus.x + Math.cos(radians) * focus.y;
+
+  return {
+    translateX: MAP_WIDTH / 2 - zoom * rotatedX,
+    translateY: MAP_HEIGHT / 2 - zoom * rotatedY,
+    zoom,
+    rotation: focus.rotation,
+  };
 }
 
 function formatCoordinate(value: number, axis: 'latitude' | 'longitude'): string {
@@ -83,6 +108,79 @@ export function MenaGlobe({
   const mapLayerRef = useRef<SVGGElement | null>(null);
   const dragStartRef = useRef<DragStart | null>(null);
   const didDragRef = useRef(false);
+  const cameraRef = useRef<ViewTransform>(INITIAL_VIEW);
+  const animationFrameRef = useRef<number | null>(null);
+
+  const cancelCameraAnimation = useCallback(() => {
+    if (animationFrameRef.current !== null) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+  }, []);
+
+  const applyCamera = useCallback((next: ViewTransform) => {
+    cameraRef.current = next;
+    setView(next);
+    mapLayerRef.current?.setAttribute('transform', transformString(next));
+  }, []);
+
+  const animateCamera = useCallback(
+    (target: ViewTransform) => {
+      cancelCameraAnimation();
+      const start = cameraRef.current;
+      const rotationDelta = shortestRotation(start.rotation, target.rotation);
+      const reducedMotion =
+        typeof window.matchMedia === 'function' &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const unchanged =
+        Math.abs(target.translateX - start.translateX) < 0.01 &&
+        Math.abs(target.translateY - start.translateY) < 0.01 &&
+        Math.abs(target.zoom - start.zoom) < 0.001 &&
+        Math.abs(rotationDelta) < 0.01;
+
+      if (reducedMotion || unchanged) {
+        applyCamera(target);
+        return;
+      }
+
+      let startedAt: number | null = null;
+      const tick = (timestamp: number) => {
+        if (startedAt === null) startedAt = timestamp;
+        const progress = Math.min(1, (timestamp - startedAt) / CAMERA_DURATION_MS);
+        const eased =
+          progress < 0.5
+            ? 4 * progress * progress * progress
+            : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+        const next: ViewTransform = {
+          translateX: start.translateX + (target.translateX - start.translateX) * eased,
+          translateY: start.translateY + (target.translateY - start.translateY) * eased,
+          zoom: start.zoom + (target.zoom - start.zoom) * eased,
+          rotation: start.rotation + rotationDelta * eased,
+        };
+        cameraRef.current = next;
+        mapLayerRef.current?.setAttribute('transform', transformString(next));
+
+        if (progress < 1) {
+          animationFrameRef.current = requestAnimationFrame(tick);
+        } else {
+          animationFrameRef.current = null;
+          applyCamera(target);
+        }
+      };
+      animationFrameRef.current = requestAnimationFrame(tick);
+    },
+    [applyCamera, cancelCameraAnimation],
+  );
+
+  const focusCountry = useCallback(
+    (code: MenaCountryCode) => {
+      const feature = REGION_FEATURES.features.find(
+        (item) => item.properties.code === code && item.properties.selectable,
+      ) as CountryFeature | undefined;
+      animateCamera(cameraForCountry(feature));
+    },
+    [animateCamera],
+  );
 
   const isControlled = selectedCountry !== undefined;
   const activeCountry = isControlled ? selectedCountry : internalSelection;
@@ -131,23 +229,22 @@ export function MenaGlobe({
     (event: PointerEvent<SVGSVGElement>) => {
       if (event.button !== 0) return;
       const target = event.target as Element;
-      if (target.closest('[data-marker-id]')) return;
+      if (target.closest('[data-country-code], [data-marker-id]')) return;
       const point = pointInMap(event);
       if (!point) return;
+      cancelCameraAnimation();
       dragStartRef.current = {
+        ...cameraRef.current,
         pointerId: event.pointerId,
         clientX: event.clientX,
         clientY: event.clientY,
-        panX: view.panX,
-        panY: view.panY,
-        zoom: view.zoom,
       };
       didDragRef.current = false;
       if (event.currentTarget.setPointerCapture) {
         event.currentTarget.setPointerCapture(event.pointerId);
       }
     },
-    [pointInMap, view.panX, view.panY, view.zoom],
+    [cancelCameraAnimation, pointInMap],
   );
 
   const movePan = useCallback((event: PointerEvent<SVGSVGElement>) => {
@@ -165,11 +262,12 @@ export function MenaGlobe({
       }
     }
     if (!didDragRef.current) return;
-    const next = {
-      zoom: start.zoom,
-      panX: Math.max(-MAP_WIDTH * 0.8, Math.min(MAP_WIDTH * 0.8, start.panX + deltaX)),
-      panY: Math.max(-MAP_HEIGHT * 0.8, Math.min(MAP_HEIGHT * 0.8, start.panY + deltaY)),
+    const next: ViewTransform = {
+      ...start,
+      translateX: start.translateX + deltaX,
+      translateY: start.translateY + deltaY,
     };
+    cameraRef.current = next;
     if (mapLayerRef.current) {
       mapLayerRef.current.setAttribute('transform', transformString(next));
     }
@@ -183,46 +281,36 @@ export function MenaGlobe({
       const next =
         rect.width > 0 && rect.height > 0
           ? {
-              ...view,
-              panX: Math.max(
-                -MAP_WIDTH * 0.8,
-                Math.min(
-                  MAP_WIDTH * 0.8,
-                  start.panX + ((event.clientX - start.clientX) / rect.width) * MAP_WIDTH,
-                ),
-              ),
-              panY: Math.max(
-                -MAP_HEIGHT * 0.8,
-                Math.min(
-                  MAP_HEIGHT * 0.8,
-                  start.panY + ((event.clientY - start.clientY) / rect.height) * MAP_HEIGHT,
-                ),
-              ),
+              ...start,
+              translateX:
+                start.translateX + ((event.clientX - start.clientX) / rect.width) * MAP_WIDTH,
+              translateY:
+                start.translateY + ((event.clientY - start.clientY) / rect.height) * MAP_HEIGHT,
             }
-          : view;
+          : cameraRef.current;
       dragStartRef.current = null;
-      setView(next);
-      // Retain the drag guard until a click is consumed or the next pointer-down.
+      applyCamera(next);
       if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
         event.currentTarget.releasePointerCapture(event.pointerId);
       }
     },
-    [view],
+    [applyCamera],
   );
 
   const zoomAt = useCallback(
     (factor: number, anchorX = MAP_WIDTH / 2, anchorY = MAP_HEIGHT / 2) => {
-      setView((current) => {
-        const zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, current.zoom * factor));
-        const relativeZoom = zoom / current.zoom;
-        return {
-          zoom,
-          panX: anchorX - (anchorX - current.panX) * relativeZoom,
-          panY: anchorY - (anchorY - current.panY) * relativeZoom,
-        };
+      cancelCameraAnimation();
+      const current = cameraRef.current;
+      const zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, current.zoom * factor));
+      const relativeZoom = zoom / current.zoom;
+      applyCamera({
+        ...current,
+        zoom,
+        translateX: anchorX - relativeZoom * (anchorX - current.translateX),
+        translateY: anchorY - relativeZoom * (anchorY - current.translateY),
       });
     },
-    [],
+    [applyCamera, cancelCameraAnimation],
   );
 
   const handleWheel = useCallback(
@@ -250,19 +338,37 @@ export function MenaGlobe({
         zoomAt(1 / 1.2);
       } else if (event.key === 'ArrowLeft') {
         event.preventDefault();
-        setView((current) => ({ ...current, panX: current.panX + 24 }));
+        applyCamera({ ...cameraRef.current, translateX: cameraRef.current.translateX + 24 });
       } else if (event.key === 'ArrowRight') {
         event.preventDefault();
-        setView((current) => ({ ...current, panX: current.panX - 24 }));
+        applyCamera({ ...cameraRef.current, translateX: cameraRef.current.translateX - 24 });
       } else if (event.key === 'ArrowUp') {
         event.preventDefault();
-        setView((current) => ({ ...current, panY: current.panY + 24 }));
+        applyCamera({ ...cameraRef.current, translateY: cameraRef.current.translateY + 24 });
       } else if (event.key === 'ArrowDown') {
         event.preventDefault();
-        setView((current) => ({ ...current, panY: current.panY - 24 }));
+        applyCamera({ ...cameraRef.current, translateY: cameraRef.current.translateY - 24 });
       }
     },
-    [selectCountry, zoomAt],
+    [applyCamera, selectCountry, zoomAt],
+  );
+
+  useEffect(() => {
+    const feature = activeCountry
+      ? (REGION_FEATURES.features.find(
+          (item) => item.properties.code === activeCountry && item.properties.selectable,
+        ) as CountryFeature | undefined)
+      : undefined;
+    animateCamera(cameraForCountry(feature));
+  }, [activeCountry, animateCamera]);
+
+  useEffect(
+    () => () => {
+      if (animationFrameRef.current !== null) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    },
+    [],
   );
 
   return (
@@ -356,7 +462,8 @@ export function MenaGlobe({
                               didDragRef.current = false;
                               return;
                             }
-                            selectCountry(countryCode);
+                            if (activeCountry === countryCode) focusCountry(countryCode);
+                            else selectCountry(countryCode);
                           }
                         : undefined
                     }
@@ -365,7 +472,8 @@ export function MenaGlobe({
                         ? (event) => {
                             if (event.key === 'Enter' || event.key === ' ') {
                               event.preventDefault();
-                              selectCountry(countryCode);
+                              if (activeCountry === countryCode) focusCountry(countryCode);
+                              else selectCountry(countryCode);
                             }
                           }
                         : undefined
@@ -448,7 +556,7 @@ export function MenaGlobe({
             <ZoomOut size={18} aria-hidden="true" />
           </button>
           <span aria-hidden="true" />
-          <button type="button" onClick={() => setView(INITIAL_VIEW)} aria-label="Reset map view">
+          <button type="button" onClick={() => animateCamera(INITIAL_VIEW)} aria-label="Reset map view">
             <RotateCcw size={17} aria-hidden="true" />
           </button>
         </div>
@@ -484,7 +592,10 @@ export function MenaGlobe({
                 .filter(Boolean)
                 .join(' ')}
               aria-pressed={activeCountry === code}
-              onClick={() => selectCountry(code)}
+              onClick={() => {
+                if (activeCountry === code) focusCountry(code);
+                else selectCountry(code);
+              }}
             >
               <span>{name}</span>
               <span className="signal-map__country-option-code">{code}</span>
