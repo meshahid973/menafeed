@@ -174,7 +174,7 @@ export function MenaGlobe({
         mapLayerRef.current.setAttribute('transform', transformString(next));
       }
     },
-    [view.zoom],
+    [],
   );
 
   const endPan = useCallback(
