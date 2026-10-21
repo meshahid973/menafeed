@@ -17,8 +17,7 @@ pub fn initialize(app: &tauri::AppHandle) -> Result<(), Box<dyn Error>> {
 }
 
 fn migrate(connection: &mut Connection) -> rusqlite::Result<()> {
-    let version: i64 =
-        connection.pragma_query_value(None, "user_version", |row| row.get(0))?;
+    let version: i64 = connection.pragma_query_value(None, "user_version", |row| row.get(0))?;
 
     if version > SCHEMA_VERSION {
         return Err(rusqlite::Error::InvalidQuery);

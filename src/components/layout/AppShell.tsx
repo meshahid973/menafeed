@@ -40,8 +40,8 @@ export function AppShell({ desktopStatus }: AppShellProps) {
           In context<span className="signal-shell__period">.</span>
         </h1>
         <p className="signal-shell__description">
-          A geographic news atlas for the Middle East and North Africa.
-          The map, reporting, and timeline arrive in future releases.
+          A geographic news atlas for the Middle East and North Africa. The map, reporting, and
+          timeline arrive in future releases.
         </p>
         <div aria-live="polite" className="signal-shell__status">
           <span

@@ -30,6 +30,7 @@ The current `get_app_status` command reports the initialized database schema ver
 `src/features/news/contracts.ts` defines articles, sources, and discriminated geographic location precision: unknown, country, and city. City-level events require coordinates plus resolution evidence. These definitions are not validation, and do not prove that geographic claims are true.
 
 Future flow:
+
 ```text
 Provider adapters (GDELT, RSS)
   -> runtime input validation / safe URL rules

@@ -8,28 +8,28 @@ Global CSS is restricted to `src/app/styles/tokens.css` and `global.css`. Compon
 
 ### Tokens
 
-| Category | Values |
-| --- | --- |
-| Background | `--signal-bg: #090b0c` |
-| Surface | `--signal-surface: #14191b` |
-| Text | `--signal-text: #e6e6df` |
+| Category   | Values                         |
+| ---------- | ------------------------------ |
+| Background | `--signal-bg: #090b0c`         |
+| Surface    | `--signal-surface: #14191b`    |
+| Text       | `--signal-text: #e6e6df`       |
 | Muted text | `--signal-text-muted: #95a39e` |
-| Accent | `--signal-accent: #d4fd73` |
-| Borders | `--signal-border: #303a38` |
-| Metadata | `--signal-font-mono` |
-| Headlines | `--signal-font-editorial` |
-| Spacing | 4, 8, 12, 16, 24, 32, 48px |
-| Motion | 120/220/420ms, standard ease |
+| Accent     | `--signal-accent: #d4fd73`     |
+| Borders    | `--signal-border: #303a38`     |
+| Metadata   | `--signal-font-mono`           |
+| Headlines  | `--signal-font-editorial`      |
+| Spacing    | 4, 8, 12, 16, 24, 32, 48px     |
+| Motion     | 120/220/420ms, standard ease   |
 
 System fallback fonts ship without an external network request. Before bundling font binaries in a future release, verify their licenses and keep notice files; do not rely on CDN availability during the competition demonstration.
 
 ### Motion conventions
 
-CSS handles tiny transitions. If complex gesture / layout choreography is needed later, adopt a *single* Motion for React dependency, with CSS tokens and `prefers-reduced-motion` behavior kept consistent. Animating map geometry should avoid expensive React state updates each frame. No motion library is installed in Phase 1 because it has no consumer.
+CSS handles tiny transitions. If complex gesture / layout choreography is needed later, adopt a _single_ Motion for React dependency, with CSS tokens and `prefers-reduced-motion` behavior kept consistent. Animating map geometry should avoid expensive React state updates each frame. No motion library is installed in Phase 1 because it has no consumer.
 
 ### Component sourcing
 
-These are candidate *sources*, not installed dependencies:
+These are candidate _sources_, not installed dependencies:
 
 - **Bencho.dev:** MIT-licensed library according to the public license, but still verify the specific component's dependencies and attribution.
 - **21st.dev:** a registry of independent contributors; verify each component's actual license rather than assuming one blanket license.
