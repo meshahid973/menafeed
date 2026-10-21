@@ -1,7 +1,7 @@
 import { geoGraticule, geoPath } from 'd3-geo';
 import { useCallback, useId, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent, PointerEvent, WheelEvent } from 'react';
-import rawCountryData from '../data/mena-countries.geojson';
+import rawCountryData from '../data/mena-countries.geojson?raw';
 import { MENA_COUNTRIES } from '../data/coverage';
 import {
   createMenaProjection,
@@ -34,7 +34,7 @@ interface DragStart {
 const INITIAL_VIEW: ViewTransform = { panX: 0, panY: 0, zoom: 1 };
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 3.25;
-const REGION_FEATURES = rawCountryData as CountryCollection;
+const REGION_FEATURES = JSON.parse(rawCountryData) as CountryCollection;
 const MAP_PROJECTION = createMenaProjection();
 const MAP_PATH = geoPath(MAP_PROJECTION);
 const GRATICULE_PATH = MAP_PATH(geoGraticule().step([10, 10])()) ?? '';
