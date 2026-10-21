@@ -1,18 +1,22 @@
 use rusqlite::Connection;
-use std::{error::Error, fs};
+use std::{error::Error, fs, time::Duration};
 
 use tauri::Manager;
 
 const SCHEMA_VERSION: i64 = 1;
 
-pub fn initialize(app: &tauri::AppHandle) -> Result<(), Box<dyn Error>> {
+pub fn open(app: &tauri::AppHandle) -> Result<Connection, Box<dyn Error>> {
     let directory = app.path().app_local_data_dir()?;
     fs::create_dir_all(&directory)?;
-
-    let mut connection = Connection::open(directory.join("signal.sqlite3"))?;
+    let connection = Connection::open(directory.join("signal.sqlite3"))?;
+    connection.busy_timeout(Duration::from_secs(3))?;
     connection.execute_batch("PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL;")?;
-    migrate(&mut connection)?;
+    Ok(connection)
+}
 
+pub fn initialize(app: &tauri::AppHandle) -> Result<(), Box<dyn Error>> {
+    let mut connection = open(app)?;
+    migrate(&mut connection)?;
     Ok(())
 }
 
