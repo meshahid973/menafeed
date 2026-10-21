@@ -81,7 +81,9 @@ describe('workspace', () => {
         }),
       ).toBeInTheDocument(),
     );
-    fireEvent.click(screen.getByRole('button', { name: /Manama event report/ }));
+    fireEvent.click(
+      within(screen.getByTestId('mena-map')).getByRole('button', { name: /Manama event report/ }),
+    );
     await waitFor(() =>
       expect(screen.getByRole('heading', { name: 'Manama event report' })).toBeInTheDocument(),
     );
