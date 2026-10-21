@@ -1,8 +1,11 @@
 .signal-shell {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
-  padding: 0 clamp(20px, 5.5vw, 90px);
+  min-width: 320px;
+  height: 100dvh;
+  min-height: 540px;
+  overflow: hidden;
+  background: var(--signal-bg);
 }
 
 .signal-shell__header,
@@ -10,133 +13,111 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--signal-space-6);
-  font-family: var(--signal-font-mono);
-  letter-spacing: 0.06em;
+  gap: var(--signal-space-4);
+  flex: none;
+  font: 500 10px/1 var(--signal-font-mono);
+  letter-spacing: 0.09em;
 }
 
 .signal-shell__header {
-  min-height: 76px;
+  height: 69px;
+  padding: 0 clamp(18px, 2.5vw, 38px);
   border-bottom: 1px solid var(--signal-border);
 }
 
 .signal-shell__brand {
   display: flex;
   align-items: center;
-  gap: var(--signal-space-2);
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
+  gap: 8px;
+  white-space: nowrap;
+  color: var(--signal-text);
+  font: 750 19px/1 var(--signal-font-editorial);
+  letter-spacing: -0.045em;
 }
 
 .signal-shell__beacon {
-  width: 9px;
-  height: 9px;
-  margin-right: var(--signal-space-2);
+  display: block;
+  width: 10px;
+  height: 10px;
+  margin-right: 7px;
+  background: var(--signal-accent);
   border-radius: 2px;
-  background: var(--signal-accent);
 }
 
-.signal-shell__slash,
-.signal-shell__region,
-.signal-shell__header-note,
-.signal-shell__phase,
+.signal-shell__brand-divider,
+.signal-shell__brand-region,
+.signal-shell__header-title,
+.signal-shell__edition,
 .signal-shell__footer {
   color: var(--signal-text-muted);
 }
 
-.signal-shell__header-note,
-.signal-shell__phase,
-.signal-shell__footer {
-  font-size: 10px;
+.signal-shell__edition span {
+  color: var(--signal-accent);
 }
 
-.signal-shell__main {
-  display: flex;
+.signal-shell__workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(400px, 39%);
   flex: 1;
-  flex-direction: column;
-  justify-content: center;
-  align-items: flex-start;
-  padding: 64px 0;
+  min-height: 0;
 }
 
-.signal-shell__eyebrow,
-.signal-shell__status {
-  font-family: var(--signal-font-mono);
-  font-size: 11px;
-  letter-spacing: 0.09em;
-}
-
-.signal-shell__eyebrow {
-  margin-bottom: 30px;
-  color: var(--signal-accent);
-}
-
-.signal-shell__title {
-  margin: 0;
-  font-size: clamp(54px, 8.7vw, 130px);
-  font-weight: 550;
-  line-height: 0.97;
-  letter-spacing: -0.08em;
-}
-
-.signal-shell__period {
-  color: var(--signal-accent);
-}
-
-.signal-shell__description {
-  max-width: 470px;
-  margin: 36px 0 44px;
-  color: var(--signal-text-muted);
-  font-size: clamp(14px, 1.5vw, 17px);
-  line-height: 1.65;
-}
-
-.signal-shell__status {
+.signal-shell__map {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-  padding-top: 16px;
-  border-top: 1px solid var(--signal-border);
-  color: var(--signal-text);
+  min-width: 0;
+  min-height: 0;
+  background: #0b0e0f;
 }
 
-.signal-shell__status-light {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--signal-accent);
-}
-
-.signal-shell__status-light--error {
-  background: var(--signal-danger);
-}
-
-.signal-shell__status-detail {
-  color: var(--signal-text-muted);
+.signal-shell__feed {
+  min-width: 0;
+  min-height: 0;
+  border-left: 1px solid var(--signal-border);
 }
 
 .signal-shell__footer {
-  min-height: 65px;
+  height: 35px;
+  padding: 0 clamp(18px, 2.5vw, 38px);
   border-top: 1px solid var(--signal-border);
+  font-size: 9px;
 }
 
-@media (max-width: 700px) {
-  .signal-shell__header {
-    min-height: 64px;
+@media (max-width: 1020px) {
+  .signal-shell__workspace {
+    grid-template-columns: minmax(0, 1fr) minmax(360px, 46%);
   }
-
-  .signal-shell__header-note,
-  .signal-shell__footer span:last-child {
+  .signal-shell__header-title,
+  .signal-shell__footer-center {
     display: none;
   }
+}
 
-  .signal-shell__title {
-    letter-spacing: -0.065em;
+@media (max-width: 720px) {
+  .signal-shell {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
   }
-
-  .signal-shell__description {
-    margin: 28px 0 36px;
+  .signal-shell__header {
+    height: 59px;
+  }
+  .signal-shell__workspace {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .signal-shell__map {
+    height: min(44vh, 330px);
+    min-height: 245px;
+    flex: none;
+  }
+  .signal-shell__feed {
+    min-height: 500px;
+    border-left: 0;
+    border-top: 1px solid var(--signal-border);
+  }
+  .signal-shell__footer {
+    height: 36px;
   }
 }
