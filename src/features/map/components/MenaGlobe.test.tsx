@@ -56,7 +56,7 @@ describe('MenaGlobe', () => {
       const transform = screen.getByTestId('map-layer').getAttribute('transform');
       expect(transform).not.toBeNull();
       const values = transform!.match(
-        /^translate\\(([-\\d.eE]+) ([-\\d.eE]+)\\) scale\\(([-\\d.eE]+)\\)$/,
+        /^translate\(([-\d.eE]+) ([-\d.eE]+)\) scale\(([-\d.eE]+)\)$/,
       );
       expect(values).not.toBeNull();
       expect(transform).not.toContain('rotate');
