@@ -1,6 +1,6 @@
 use crate::{
     models::AppStatus,
-    services::{intelligence, news},
+    services::{geoevents, intelligence, news},
 };
 use tauri_plugin_opener::OpenerExt;
 
