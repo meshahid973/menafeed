@@ -381,3 +381,42 @@
     transition: none;
   }
 }
+
+.signal-feed__message {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.signal-feed__message button {
+  padding: 8px 12px;
+  border: 1px solid var(--signal-border);
+  border-radius: 5px;
+  color: var(--signal-text);
+  background: var(--signal-surface);
+  cursor: pointer;
+}
+.signal-feed__message button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.signal-feed__skeleton {
+  padding: 25px clamp(22px, 2.6vw, 36px);
+  border-top: 1px solid var(--signal-border);
+}
+.signal-feed__skeleton span {
+  display: block;
+  height: 11px;
+  width: 36%;
+  border-radius: 3px;
+  background: #191919;
+}
+.signal-feed__skeleton span + span {
+  height: 19px;
+  width: 79%;
+  margin-top: 14px;
+  background: #202020;
+}
+.signal-feed__skeleton:nth-child(even) span + span {
+  width: 66%;
+}

@@ -66,3 +66,15 @@
 .signal-map--embedded .signal-map__zoom-controls button {
   background: #0b0c0b;
 }
+
+.signal-map--embedded .signal-map__zoom-controls button svg {
+  transition: transform var(--signal-duration-fast) var(--signal-ease-standard);
+}
+.signal-map--embedded .signal-map__zoom-controls button:hover svg {
+  transform: scale(1.12);
+}
+@media (prefers-reduced-motion: reduce) {
+  .signal-map--embedded .signal-map__zoom-controls button svg {
+    transition: none;
+  }
+}
