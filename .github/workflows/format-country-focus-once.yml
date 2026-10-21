@@ -1,0 +1,41 @@
+name: Format country focus feature (temporary)
+
+on:
+  push:
+    branches:
+      - feat/country-focus-news
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/country-focus-news
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Install pinned Prettier
+        run: npm install --global prettier@3.6.2
+      - name: Format changed frontend and Rust files
+        run: |
+          prettier --write \
+            src/features/map/components/MenaGlobe.test.tsx \
+            src/features/map/components/MenaGlobe.tsx \
+            src/features/map/geography.ts
+          cargo fmt --manifest-path src-tauri/Cargo.toml --all
+      - name: Commit formatter output
+        run: |
+          if ! git diff --quiet; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add src/features/map/components/MenaGlobe.test.tsx src/features/map/components/MenaGlobe.tsx src/features/map/geography.ts src-tauri/src/services/news.rs
+            git commit -m "style: format country focus implementation"
+            git push origin HEAD:feat/country-focus-news
+          fi
