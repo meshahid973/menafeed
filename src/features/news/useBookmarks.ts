@@ -65,14 +65,14 @@ export function useBookmarks() {
         return current.filter((saved) => saved.url !== article.url);
       }
       const next: FeedArticle = {
-          id: article.id,
-          sourceId: article.sourceId,
-          sourceName: article.sourceName,
-          title: article.title,
-          url: article.url,
-          publishedAt: article.publishedAt,
-          summary: article.summary,
-          location: { precision: 'unknown' },
+        id: article.id,
+        sourceId: article.sourceId,
+        sourceName: article.sourceName,
+        title: article.title,
+        url: article.url,
+        publishedAt: article.publishedAt,
+        summary: article.summary,
+        location: { precision: 'unknown' },
       };
       return [next, ...current].slice(0, MAX_SAVED);
     });
