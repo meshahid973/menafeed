@@ -228,6 +228,7 @@ export function MenaGlobe({
   const startPan = useCallback(
     (event: PointerEvent<SVGSVGElement>) => {
       if (event.button !== 0) return;
+      didDragRef.current = false;
       const target = event.target as Element;
       if (target.closest('[data-country-code], [data-marker-id]')) return;
       const point = pointInMap(event);
