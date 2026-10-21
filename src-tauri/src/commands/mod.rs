@@ -1,4 +1,4 @@
-use crate::{models::AppStatus, services::news};
+use crate::{models::AppStatus, services::{news, intelligence}};
 use tauri_plugin_opener::OpenerExt;
 
 #[tauri::command]
@@ -13,8 +13,16 @@ pub fn get_app_status() -> AppStatus {
 pub async fn get_news_feed(
     app: tauri::AppHandle,
     force: bool,
-) -> Result<news::NewsFeedResponse, String> {
-    news::load(app, force).await
+) -> Result<serde_json::Value, String> {
+    let mut response = serde_json::to_value(news::load(app.clone(), force).await?)
+        .map_err(|_| "Could not encode news response")?;
+    intelligence::process(&app, &mut response);
+    Ok(response)
+}
+
+#[tauri::command]
+pub fn search_cached_news(app: tauri::AppHandle, query: String, limit: usize) -> Result<Vec<serde_json::Value>, String> {
+    intelligence::search_cached(&app, &query, limit)
 }
 
 #[tauri::command]

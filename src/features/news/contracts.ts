@@ -34,6 +34,10 @@ export interface Article {
 /** Rust owns publisher feeds, caching, and source attribution. */
 export interface FeedArticle extends Article {
   sourceName: string;
+  canonicalUrl?: string;
+  category?: 'general' | 'politics' | 'economy' | 'humanitarian' | 'culture';
+  clusterId?: string;
+  clusterSize?: number;
 }
 
 export interface FeedSourceState {
