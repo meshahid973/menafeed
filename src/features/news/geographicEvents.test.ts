@@ -3,8 +3,24 @@ import { selectGeographicEvents, type GeoSnapshot } from './geographicEvents';
 
 const snapshot: GeoSnapshot = {
   markers: [
-    { id: 'bh', countryCode: 'BH', cityName: 'Manama', latitude: 26.2, longitude: 50.5, count: 1, articleIds: ['a'] },
-    { id: 'eg', countryCode: 'EG', cityName: 'Cairo', latitude: 30.0, longitude: 31.2, count: 1, articleIds: ['b'] },
+    {
+      id: 'bh',
+      countryCode: 'BH',
+      cityName: 'Manama',
+      latitude: 26.2,
+      longitude: 50.5,
+      count: 1,
+      articleIds: ['a'],
+    },
+    {
+      id: 'eg',
+      countryCode: 'EG',
+      cityName: 'Cairo',
+      latitude: 30.0,
+      longitude: 31.2,
+      count: 1,
+      articleIds: ['b'],
+    },
   ],
   countries: [
     { countryCode: 'BH', articleCount: 2, cityCount: 1 },
@@ -12,8 +28,13 @@ const snapshot: GeoSnapshot = {
   ],
 };
 const articles = ['a', 'b'].map((id) => ({
-  id, title: id, url: `https://example.org/${id}`, sourceId: 'pub', sourceName: 'Publisher',
-  publishedAt: null, location: { precision: 'unknown' as const },
+  id,
+  title: id,
+  url: `https://example.org/${id}`,
+  sourceId: 'pub',
+  sourceName: 'Publisher',
+  publishedAt: null,
+  location: { precision: 'unknown' as const },
 }));
 
 describe('geographic evidence adapter', () => {

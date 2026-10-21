@@ -32,7 +32,9 @@ export function selectGeographicEvents(
     : snapshot.markers;
   const ids = new Set(markers.flatMap((marker) => marker.articleIds));
   const byId = new Map(articles.map((article) => [article.id, article]));
-  const locatedStories = [...ids].map((id) => byId.get(id)).filter((item): item is FeedArticle => Boolean(item));
+  const locatedStories = [...ids]
+    .map((id) => byId.get(id))
+    .filter((item): item is FeedArticle => Boolean(item));
   return {
     markers,
     coverage: selectedCountry
