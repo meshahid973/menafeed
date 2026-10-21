@@ -22,7 +22,9 @@ describe('MenaGlobe', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Select Bahrain' }));
 
     expect(onCountrySelect).toHaveBeenCalledWith('BH');
-    expect(screen.getByText('Bahrain')).toBeInTheDocument();
+    const selection = screen.getByText('ACTIVE TERRITORY').parentElement;
+    expect(selection).not.toBeNull();
+    expect(within(selection!).getByText('Bahrain')).toBeInTheDocument();
   });
 
   it('supports keyboard country selection and a clear-selection action', () => {
@@ -72,6 +74,8 @@ describe('MenaGlobe', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Select Bahrain' }));
 
     expect(onCountrySelect).toHaveBeenCalledWith('BH');
-    expect(screen.getByText('Saudi Arabia')).toBeInTheDocument();
+    const selection = screen.getByText('ACTIVE TERRITORY').parentElement;
+    expect(selection).not.toBeNull();
+    expect(within(selection!).getByText('Saudi Arabia')).toBeInTheDocument();
   });
 });
