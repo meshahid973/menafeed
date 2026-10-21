@@ -113,9 +113,20 @@ pub async fn load(app: AppHandle, force: bool) -> Result<NewsFeedResponse, Strin
         load_source(&app, &client, SOURCES[5], force)
     );
 
+    let reliefweb_result = async {
+        let app_name = std::env::var("SIGNAL_RELIEFWEB_APPNAME").ok()?;
+        Some(load_reliefweb(&app, &client, &app_name, force).await)
+    };
+    // API requests are optional. No identifier means no ReliefWeb traffic.
+    let reliefweb = reliefweb_result.await;
+
     let mut articles = Vec::new();
     let mut sources = Vec::new();
     for result in [a, b, c, d, e, f] {
+        sources.push(result.state);
+        articles.extend(result.articles);
+    }
+    if let Some(result) = reliefweb {
         sources.push(result.state);
         articles.extend(result.articles);
     }
@@ -187,6 +198,64 @@ async fn load_source(
                 }
             }
         }
+    }
+}
+
+const RELIEFWEB_SOURCE: Source = Source {
+    id: "reliefweb",
+    name: "ReliefWeb",
+    feed: "https://api.reliefweb.int/v2/reports",
+    interval_seconds: 300,
+    max_articles: 24,
+    require_region_match: true,
+};
+
+async fn load_reliefweb(
+    app: &AppHandle,
+    client: &Client,
+    app_name: &str,
+    force: bool,
+) -> SourceResult {
+    let source = RELIEFWEB_SOURCE;
+    let cached = read_cache(app, source.id).ok().flatten();
+    if !force {
+        if let Some(ref cache) = cached {
+            if cache.expires_at > now() {
+                return SourceResult {
+                    state: source_state(source, "cached", cache.articles.len()),
+                    articles: cache.articles.clone(),
+                };
+            }
+        }
+    }
+    match super::reliefweb::fetch_reports(client, app_name).await {
+        Ok(reports) => {
+            let articles: Vec<FeedArticle> = reports.into_iter().filter_map(|item| {
+                let url = safe_article_url(&item.url).ok()?;
+                Some(FeedArticle {
+                    id: url.clone(),
+                    source_id: source.id.into(),
+                    source_name: source.name.into(),
+                    title: item.title,
+                    url,
+                    published_at: item.published_at,
+                    summary: None,
+                    location: UnknownLocation { precision: "unknown".into() },
+                })
+            }).take(source.max_articles).collect();
+            let _ = write_cache(app, source, &articles, &CacheHeaders::default());
+            SourceResult { state: source_state(source, "fresh", articles.len()), articles }
+        }
+        Err(_) => match cached {
+            Some(cache) => SourceResult {
+                state: source_state(source, "stale", cache.articles.len()),
+                articles: cache.articles,
+            },
+            None => SourceResult {
+                state: source_state(source, "unavailable", 0),
+                articles: Vec::new(),
+            },
+        },
     }
 }
 
