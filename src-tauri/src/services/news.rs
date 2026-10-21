@@ -220,7 +220,7 @@ fn parse_source(xml: &[u8], source: Source) -> Result<Vec<FeedArticle>, String> 
         let link = entry
             .links
             .iter()
-            .find(|link| link.rel == "alternate")
+            .find(|link| link.rel.as_deref() == Some("alternate"))
             .or_else(|| entry.links.first())
             .and_then(|link| safe_article_url(&link.href).ok());
         let Some(url) = link else { continue };
