@@ -121,7 +121,7 @@ export function NewsFeed({
     const base = view === 'saved' ? bookmarks : (data?.articles ?? []);
     return deduplicate(base).filter((article) => {
       if (view !== 'saved' && source !== 'all' && article.sourceId !== source) return false;
-      if (view === 'explore' && selectedCountry) {
+      if (view !== 'saved' && selectedCountry) {
         const location = article.location;
         if (location.precision === 'unknown' || location.countryCode !== selectedCountry)
           return false;
@@ -218,7 +218,7 @@ export function NewsFeed({
           )}
         </div>
         {view === 'saved' && <p>Your saved reports, available offline.</p>}
-        {view === 'explore' && selectedCountry && (
+        {view !== 'saved' && selectedCountry && (
           <p key={selectedCountry} className="signal-feed__country-context" aria-live="polite">
             Now showing news for {getMenaCountryName(selectedCountry)}
           </p>
