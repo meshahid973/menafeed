@@ -37,6 +37,8 @@ const CENTER_X = MAP_WIDTH / 2;
 const CENTER_Y = MAP_HEIGHT / 2;
 const WORLD_FEATURES = JSON.parse(rawCountryData) as CountryCollection;
 const COUNTRY_FEATURES = WORLD_FEATURES.features as CountryFeature[];
+const WORLD_POLYGON_COUNT = COUNTRY_FEATURES.filter(({ geometry }) => geometry.type !== 'Point').length;
+const SMALL_AREA_MARKER_COUNT = COUNTRY_FEATURES.length - WORLD_POLYGON_COUNT;
 const GRATICULE = geoGraticule().step([15, 15])();
 
 function createGlobeProjection(view: GlobeView) {
@@ -266,7 +268,7 @@ export function MenaGlobe({
         </div>
         <div className="signal-map__header-actions">
           <span className="signal-map__coverage-count">
-            {WORLD_FEATURES.features.length} COUNTRIES &amp; TERRITORIES
+            {WORLD_POLYGON_COUNT} POLYGON FEATURES / {SMALL_AREA_MARKER_COUNT} SMALL-AREA MARKERS
           </span>
           <button
             className="signal-map__clear"
@@ -368,13 +370,15 @@ export function MenaGlobe({
                         : 'signal-map__country--context',
                       selected ? 'signal-map__country--selected' : '',
                       hovered ? 'signal-map__country--hovered' : '',
+                      feature.geometry.type === 'Point' ? 'signal-map__country--point' : '',
                     ]
                       .filter(Boolean)
                       .join(' ')}
                     data-country-code={code}
-                    role={canSelect ? 'button' : undefined}
-                    tabIndex={canSelect ? 0 : undefined}
-                    aria-label={canSelect ? 'Select ' + name : undefined}
+                    data-geometry-type={feature.geometry.type}
+                    role={canSelect ? 'button' : feature.geometry.type === 'Point' ? 'img' : undefined}
+                    tabIndex={canSelect || feature.geometry.type === 'Point' ? 0 : undefined}
+                    aria-label={canSelect ? 'Select ' + name : feature.geometry.type === 'Point' ? name + ' · small-area marker' : undefined}
                     aria-pressed={canSelect ? selected : undefined}
                     onClick={
                       canSelect && countryCode
@@ -399,8 +403,8 @@ export function MenaGlobe({
                     }
                     onMouseEnter={() => setHoveredCountry(code)}
                     onMouseLeave={() => setHoveredCountry(null)}
-                    onFocus={canSelect ? () => setHoveredCountry(code) : undefined}
-                    onBlur={canSelect ? () => setHoveredCountry(null) : undefined}
+                    onFocus={() => setHoveredCountry(code)}
+                    onBlur={() => setHoveredCountry(null)}
                   >
                     <title>{canSelect ? name + ' · select country' : name}</title>
                   </path>
