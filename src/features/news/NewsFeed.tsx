@@ -218,6 +218,11 @@ export function NewsFeed({
           )}
         </div>
         {view === 'saved' && <p>Your saved reports, available offline.</p>}
+        {view === 'explore' && selectedCountry && (
+          <p key={selectedCountry} className="signal-feed__country-context" aria-live="polite">
+            Now showing news for {getMenaCountryName(selectedCountry)}
+          </p>
+        )}
         {searchOpen && view !== 'saved' && (
           <input
             ref={searchRef}
