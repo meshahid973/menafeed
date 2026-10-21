@@ -422,7 +422,10 @@
 }
 
 /* Full-width reading is intentionally roomier than the Explore wire. */
-.signal-feed--full .signal-feed__intro { padding-top: 26px; padding-bottom: 20px; }
+.signal-feed--full .signal-feed__intro {
+  padding-top: 26px;
+  padding-bottom: 20px;
+}
 .signal-feed--full .signal-story:not(.signal-story--featured) .signal-story__headline {
   padding-top: 20px;
   padding-bottom: 20px;
