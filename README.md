@@ -4,7 +4,7 @@ Desktop news atlas for the Middle East and North Africa.
 
 Tauri 2 · React · TypeScript · SQLite
 
-**Now:** editorial layout, BBC Middle East and France 24 RSS, source filters, search, offline cache. Map integration slot is reserved.
+**Now:** editorial layout, BBC, France 24 and Middle East Monitor RSS, source filters, search, offline cache. Map integration slot is reserved.
 
 **Run:**
 
