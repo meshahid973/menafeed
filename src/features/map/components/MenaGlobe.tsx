@@ -138,7 +138,7 @@ export function MenaGlobe({
         Math.abs(target.zoom - start.zoom) < 0.001 &&
         Math.abs(rotationDelta) < 0.01;
 
-      if (reducedMotion || unchanged) {
+      if (reducedMotion || unchanged || typeof requestAnimationFrame !== 'function') {
         applyCamera(target);
         return;
       }
