@@ -22,3 +22,12 @@ export async function openArticle(url: string): Promise<void> {
     window.open(parsed.toString(), '_blank', 'noopener,noreferrer');
   }
 }
+
+/** SQLite-backed full-text search, including articles from earlier sessions. */
+export async function searchCachedNews(query: string, limit = 30) {
+  if (!isTauri() || !query.trim()) return [];
+  return invoke<import('../features/news/contracts').FeedArticle[]>('search_cached_news', {
+    query: query.trim().slice(0, 160),
+    limit: Math.max(1, Math.min(50, limit)),
+  });
+}

@@ -13,6 +13,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::get_app_status,
             commands::get_news_feed,
+            commands::search_cached_news,
             commands::open_article
         ])
         .run(tauri::generate_context!())
