@@ -1,53 +1,87 @@
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
+import type { WorkspaceView } from '../../components/layout/workspaceTypes';
 import type { DesktopStatus } from '../../services/desktop';
 import { openArticle } from '../../services/news';
+import { ArticleReader } from './ArticleReader';
+import type { FeedArticle } from './contracts';
 import { StoryCard } from './StoryCard';
 import { useNewsFeed } from './useNewsFeed';
 import './NewsFeed.css';
 
 interface Props {
   desktopStatus: DesktopStatus;
+  view?: WorkspaceView;
+  bookmarks?: FeedArticle[];
+  onToggleBookmark?: (article: FeedArticle) => void;
+  searchRequest?: number;
 }
 
-export function NewsFeed({ desktopStatus }: Props) {
-  const enabled = desktopStatus.kind === 'ready';
+function deduplicate(articles: FeedArticle[]): FeedArticle[] {
+  const seen = new Set<string>();
+  return articles.filter((article) => {
+    const key = `${article.sourceId}:${article.title.toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim()}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+export function NewsFeed({
+  desktopStatus,
+  view = 'explore',
+  bookmarks = [],
+  onToggleBookmark = () => undefined,
+  searchRequest = 0,
+}: Props) {
+  const enabled = desktopStatus.kind === 'ready' && view !== 'saved';
   const { data, error, loading, refreshing, refresh } = useNewsFeed(enabled);
   const [source, setSource] = useState('all');
   const [query, setQuery] = useState('');
-  const [selected, setSelected] = useState<string | null>(null);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [selected, setSelected] = useState<FeedArticle | null>(null);
   const [openError, setOpenError] = useState(false);
-  const deferredQuery = useDeferredValue(query.trim().toLocaleLowerCase());
   const searchRef = useRef<HTMLInputElement>(null);
+  const deferredQuery = useDeferredValue(query.trim().toLocaleLowerCase());
+  const listRef = useRef<HTMLDivElement>(null);
+  const savedUrls = useMemo(() => new Set(bookmarks.map((item) => item.url)), [bookmarks]);
+
+  useEffect(() => {
+    if (!searchRequest) return;
+    setSearchOpen(true);
+    setSelected(null);
+  }, [searchRequest]);
+
+  useEffect(() => {
+    if (searchOpen && view !== 'saved') searchRef.current?.focus();
+  }, [searchOpen, view]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== '/' || event.altKey || event.ctrlKey || event.metaKey) return;
+      if (event.key !== '/' || event.ctrlKey || event.altKey || event.metaKey || view === 'saved') return;
       const target = event.target;
-      if (
-        target instanceof HTMLElement &&
-        (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))
-      ) {
-        return;
-      }
+      if (target instanceof HTMLElement &&
+        (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))) return;
       event.preventDefault();
-      searchRef.current?.focus();
+      setSearchOpen(true);
+      setSelected(null);
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, []);
+  }, [view]);
+
+  useEffect(() => {
+    setSelected(null);
+    setOpenError(false);
+  }, [view]);
 
   const articles = useMemo(() => {
-    return (data?.articles ?? []).filter((article) => {
-      if (source !== 'all' && article.sourceId !== source) return false;
-      if (!deferredQuery) return true;
-      return `${article.title} ${article.summary ?? ''} ${article.sourceName}`
-        .toLocaleLowerCase()
-        .includes(deferredQuery);
+    const base = view === 'saved' ? bookmarks : data?.articles ?? [];
+    return deduplicate(base).filter((article) => {
+      if (view !== 'saved' && source !== 'all' && article.sourceId !== source) return false;
+      return !deferredQuery || `${article.title} ${article.summary ?? ''} ${article.sourceName}`
+        .toLocaleLowerCase().includes(deferredQuery);
     });
-  }, [data, source, deferredQuery]);
-
-  const stale = data?.sources.some((s) => s.mode === 'stale');
-  const available = data?.sources.filter((s) => s.mode !== 'unavailable').length ?? 0;
+  }, [data, view, bookmarks, source, deferredQuery]);
 
   async function handleOpen(url: string) {
     try {
@@ -58,170 +92,81 @@ export function NewsFeed({ desktopStatus }: Props) {
     }
   }
 
+  function back() {
+    setSelected(null);
+    requestAnimationFrame(() => listRef.current?.focus({ preventScroll: true }));
+  }
+
+  const isFull = view !== 'explore';
+  const showFeed = view === 'saved' || desktopStatus.kind === 'ready';
+  const sourceStates = data?.sources ?? [];
+  const stale = sourceStates.some((item) => item.mode === 'stale');
+  const available = sourceStates.filter((item) => item.mode !== 'unavailable').length;
+
   return (
-    <section className="signal-feed" aria-labelledby="news-title">
+    <section className={`signal-feed${isFull ? ' signal-feed--full' : ''}`} aria-label="News stories">
       <div className="signal-feed__intro">
-        <div className="signal-feed__eyebrow">
-          <span>02 / EDITORIAL WIRE</span>
-          <span className="signal-feed__dot" aria-hidden="true" />
-        </div>
         <div className="signal-feed__heading">
-          <div>
-            <span className="signal-feed__section">FROM ACROSS THE REGION</span>
-            <h2 id="news-title">
-              The Briefing<span>.</span>
-            </h2>
-          </div>
-          <button
-            className="signal-feed__refresh"
-            type="button"
-            disabled={!enabled || refreshing || loading}
-            onClick={() => void refresh(true)}
-            aria-label="Refresh news"
-            title="Refresh news"
-          >
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.7"
-            >
-              <path
-                d="M20 11a8 8 0 1 0-2 6M20 4v7h-7"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </button>
+          <h2>{view === 'saved' ? 'Saved stories' : view === 'news' ? 'The briefing' : 'Latest'}</h2>
+          {view !== 'saved' && <div className="signal-feed__actions">
+            <button type="button" aria-label="Search news" aria-expanded={searchOpen} title="Search" onClick={() => setSearchOpen(!searchOpen)}>
+              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 5 5" /></svg>
+            </button>
+            <button type="button" aria-label="Refresh news" title="Refresh" disabled={!enabled || refreshing || loading} onClick={() => void refresh(true)}>
+              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M20 11a8 8 0 1 0-2 6M20 4v7h-7" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            </button>
+          </div>}
         </div>
-        <p className="signal-feed__description">
-          Reporting from trusted publishers. Read beyond the headline.
-        </p>
-        <div className="signal-feed__metrics">
-          <span>
-            <strong>{data?.articles.length ?? '—'}</strong> STORIES
-          </span>
-          <span>
-            <strong>{available || '—'}</strong> SOURCES
-          </span>
-          <span className="signal-feed__state">
-            {loading
-              ? 'CONNECTING'
-              : desktopStatus.kind === 'preview'
-                ? 'BROWSER PREVIEW'
-                : desktopStatus.kind === 'checking'
-                  ? 'STARTING'
-                  : desktopStatus.kind === 'error'
-                    ? 'DESKTOP OFFLINE'
-                    : stale
-                      ? 'CACHED NEWS'
-                      : available
-                        ? 'SOURCE SYNCED'
-                        : 'AWAITING SOURCES'}
-          </span>
-        </div>
+        {view === 'saved' && <p>Your saved reports, available offline.</p>}
+        {searchOpen && view !== 'saved' && <input
+          ref={searchRef}
+          className="signal-feed__search"
+          type="search"
+          value={query}
+          placeholder="Search headlines"
+          aria-label="Search headlines"
+          onChange={(event) => setQuery(event.target.value)}
+        />}
+        {view !== 'saved' && sourceStates.length > 0 && <div className="signal-feed__filters">
+          <select aria-label="Publisher" value={source} onChange={(event) => setSource(event.target.value)}>
+            <option value="all">All publishers</option>
+            {sourceStates.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}
+          </select>
+          <span>{stale ? 'Cached reporting' : available === 0 ? 'Sources unavailable' : `${articles.length} stories`}</span>
+        </div>}
       </div>
 
-      <div className="signal-feed__controls">
-        <label className="signal-feed__search">
-          <span aria-hidden="true">⌕</span>
-          <input
-            ref={searchRef}
-            type="search"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search headlines"
-            aria-label="Search headlines"
-          />
-          <kbd>/</kbd>
-        </label>
-        <div className="signal-feed__sources" role="group" aria-label="Filter news sources">
-          <button
-            type="button"
-            className={source === 'all' ? 'is-active' : ''}
-            onClick={() => {
-              setSource('all');
-              setSelected(null);
-            }}
-          >
-            All sources
-          </button>
-          {data?.sources.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              className={source === item.id ? 'is-active' : ''}
-              onClick={() => {
-                setSource(item.id);
-                setSelected(null);
-              }}
-            >
-              {item.name}
-            </button>
+      {error && view !== 'saved' && <div role="status" className="signal-feed__message">{error}</div>}
+      {openError && <div role="alert" className="signal-feed__message">Could not open the article.</div>}
+
+      <div className="signal-feed__body">
+        <div className="signal-feed__list" ref={listRef} tabIndex={-1} hidden={selected !== null}>
+          {loading && view !== 'saved' && <div className="signal-feed__empty">Loading reports…</div>}
+          {!showFeed && <div className="signal-feed__empty">
+            {desktopStatus.kind === 'preview' ? 'Open the desktop app to read live RSS.' : 'Desktop news service unavailable.'}
+          </div>}
+          {showFeed && !loading && articles.length === 0 && <div className="signal-feed__empty">
+            {view === 'saved' ? 'No saved stories yet. Bookmark a report to see it here.'
+              : query || source !== 'all' ? 'No matching stories.' : 'No reports available.'}
+          </div>}
+          {articles.map((article, index) => (
+            <StoryCard
+              key={article.url}
+              article={article}
+              featured={view === 'news' && index === 0}
+              saved={savedUrls.has(article.url)}
+              onSelect={() => setSelected(article)}
+              onToggleSave={() => onToggleBookmark(article)}
+            />
           ))}
         </div>
-      </div>
-
-      <div className="signal-feed__bar">
-        <span>LATEST REPORTS</span>
-        <span>
-          {articles.length} RESULTS <span aria-hidden="true">↙</span>
-        </span>
-      </div>
-
-      <div className="signal-feed__scroll">
-        {error && (
-          <div className="signal-feed__message" role="status">
-            {error}
-          </div>
-        )}
-        {openError && (
-          <div className="signal-feed__message" role="alert">
-            Could not open this article.
-          </div>
-        )}
-        {loading && <div className="signal-feed__message">Loading regional reporting…</div>}
-        {!enabled && (
-          <div className="signal-feed__empty">
-            <span>WIRE / STANDBY</span>
-            <p>
-              {desktopStatus.kind === 'preview'
-                ? 'Launch the Tauri desktop application to load publisher RSS feeds.'
-                : desktopStatus.kind === 'error'
-                  ? 'The desktop service could not start.'
-                  : 'Connecting to the desktop service…'}
-            </p>
-          </div>
-        )}
-        {enabled && !loading && articles.length === 0 && (
-          <div className="signal-feed__empty">
-            <span>NO REPORTS FOUND</span>
-            <p>
-              {query || source !== 'all'
-                ? 'Try another keyword or publisher.'
-                : 'No articles are available from configured sources.'}
-            </p>
-          </div>
-        )}
-        {articles.map((article, index) => (
-          <StoryCard
-            key={article.id}
-            article={article}
-            index={index}
-            expanded={selected === article.id}
-            onToggle={() => setSelected(selected === article.id ? null : article.id)}
-            onOpen={(url) => void handleOpen(url)}
-          />
-        ))}
-        <p className="signal-feed__attribution">
-          Headlines and short excerpts belong to their respective publishers. Source links open
-          original reporting.
-        </p>
-      </div>
-      <div className="signal-feed__foot">
-        <span>{desktopStatus.kind === 'ready' ? 'RSS / LOCAL CACHE' : 'SIGNAL / PREVIEW'}</span>
-        <span>NO GEOLOCATION CLAIMS</span>
+        {selected && <ArticleReader
+          article={selected}
+          saved={savedUrls.has(selected.url)}
+          onBack={back}
+          onOpen={(url) => void handleOpen(url)}
+          onToggleSave={() => onToggleBookmark(selected)}
+        />}
       </div>
     </section>
   );
