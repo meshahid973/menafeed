@@ -21,7 +21,6 @@ describe('world coverage data', () => {
     expect(new Set(codes).size).toBe(codes.length);
   });
 
-
   it('keeps the full editorial MENA selection list with unique ISO alpha-2 codes', () => {
     const codes = MENA_COUNTRIES.map(({ code }) => code);
 
