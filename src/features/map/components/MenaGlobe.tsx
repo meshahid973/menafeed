@@ -41,10 +41,20 @@ const WORLD_FEATURES = JSON.parse(rawCountryData) as CountryCollection;
 const COUNTRY_FEATURES = WORLD_FEATURES.features as CountryFeature[];
 interface CityFeature {
   type: 'Feature';
-  properties: { name: string; countryName: string; countryCode: string; population: number; capital: boolean };
+  properties: {
+    name: string;
+    countryName: string;
+    countryCode: string;
+    population: number;
+    capital: boolean;
+  };
   geometry: { type: 'Point'; coordinates: [number, number] };
 }
-interface CityCollection { type: 'FeatureCollection'; features: CityFeature[] }
+
+interface CityCollection {
+  type: 'FeatureCollection';
+  features: CityFeature[];
+}
 const CITY_FEATURES = (JSON.parse(rawCityData) as CityCollection).features;
 const GRATICULE = geoGraticule().step([15, 15])();
 
@@ -82,12 +92,15 @@ function validMarker(marker: MenaMarker): boolean {
 }
 
 function isFacingCamera(longitude: number, latitude: number, view: GlobeView): boolean {
-  return geoDistance([longitude, latitude], [view.longitude, view.latitude]) <= Math.PI / 2 + 0.000001;
+  return (
+    geoDistance([longitude, latitude], [view.longitude, view.latitude]) <=
+    Math.PI / 2 + 0.000001
+  );
 }
 
 /**
- * A bundled, offline-first orthographic globe. All world boundaries are rendered;
- * country selection remains limited to the app's editorial MENA coverage.
+ * An offline-first orthographic globe with world-wide country selection.
+ * City data is bundled locally, so the globe makes no map-tile requests.
  */
 export function MenaGlobe({
   selectedCountry,
@@ -95,7 +108,7 @@ export function MenaGlobe({
   markers = [],
   onMarkerSelect,
   className,
-  ariaLabel = 'Interactive world globe with selectable Middle East and North Africa countries',
+  ariaLabel = 'Interactive world globe with selectable countries and major cities',
 }: MenaGlobeProps) {
   const instanceId = useId().replace(/:/g, '');
   const sphereGradientId = 'signal-globe-sphere-' + instanceId;
@@ -394,7 +407,8 @@ export function MenaGlobe({
             <g data-testid="map-layer">
               {paths.map(({ feature, path }) => {
                 const { code, name } = feature.properties;
-                const countryCode = isCountryCode(code) && feature.geometry.type !== 'Point' ? code : null;
+                const countryCode =
+                  isCountryCode(code) && feature.geometry.type !== 'Point' ? code : null;
                 const canSelect = countryCode !== null;
                 const selected = canSelect && activeCountry === countryCode;
                 const hovered = hoveredCountry === code;
@@ -451,10 +465,16 @@ export function MenaGlobe({
               {visibleCities.map(({ feature, position }) => (
                 <g className="signal-map__city" key={feature.properties.name} aria-hidden="true">
                   <circle cx={position[0]} cy={position[1]} r="2.1" />
-                  {view.zoom >= CITY_LABEL_ZOOM && (feature.properties.capital || feature.properties.population >= 1_500_000) && (
-                    <text x={position[0] + 5} y={position[1] - 5}>{feature.properties.name}</text>
-                  )}
-                  <title>{feature.properties.name}{feature.properties.countryName ? ', ' + feature.properties.countryName : ''}</title>
+                  {view.zoom >= CITY_LABEL_ZOOM &&
+                    (feature.properties.capital || feature.properties.population >= 1_500_000) && (
+                      <text x={position[0] + 5} y={position[1] - 5}>
+                        {feature.properties.name}
+                      </text>
+                    )}
+                  <title>
+                    {feature.properties.name}
+                    {feature.properties.countryName ? ', ' + feature.properties.countryName : ''}
+                  </title>
                 </g>
               ))}
               {visibleMarkers.map(({ marker, position }) => (
