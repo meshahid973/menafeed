@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { MenaGlobe } from './MenaGlobe';
@@ -163,6 +163,30 @@ describe('MenaGlobe', () => {
       } else {
         delete (window as Partial<Window>).matchMedia;
       }
+    }
+  });
+
+  it('keeps the camera position stable when hover rerenders during animation', () => {
+    let frame: FrameRequestCallback | null = null;
+    vi.stubGlobal('matchMedia', () => ({ matches: false }));
+    vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+      frame = callback;
+      return 1;
+    });
+    vi.stubGlobal('cancelAnimationFrame', () => undefined);
+    try {
+      render(<MenaGlobe />);
+      const egypt = screen.getByRole('button', { name: 'Select Egypt' });
+      fireEvent.click(egypt);
+      act(() => { if (frame) frame(0); });
+      act(() => { if (frame) frame(200); });
+      const layer = screen.getByTestId('map-layer');
+      const duringMotion = layer.getAttribute('transform');
+      expect(duringMotion).not.toBe('translate(0 0) scale(1)');
+      fireEvent.mouseEnter(egypt);
+      expect(layer).toHaveAttribute('transform', duringMotion);
+    } finally {
+      vi.unstubAllGlobals();
     }
   });
 

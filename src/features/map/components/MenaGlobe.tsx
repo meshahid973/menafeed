@@ -95,7 +95,7 @@ export function MenaGlobe({
   const clipId = `signal-map-clip-${instanceId}`;
   const [internalSelection, setInternalSelection] = useState<MenaCountryCode | null>(null);
   const [hoveredCountry, setHoveredCountry] = useState<MenaCountryCode | null>(null);
-  const [view, setView] = useState<ViewTransform>(INITIAL_VIEW);
+  const [, setView] = useState<ViewTransform>(INITIAL_VIEW);
   const svgRef = useRef<SVGSVGElement | null>(null);
   const mapLayerRef = useRef<SVGGElement | null>(null);
   const dragStartRef = useRef<DragStart | null>(null);
@@ -406,7 +406,7 @@ export function MenaGlobe({
             fill={`url(#${gridPatternId})`}
           />
           <g clipPath={`url(#${clipId})`}>
-            <g ref={mapLayerRef} transform={transformString(view)} data-testid="map-layer">
+            <g ref={mapLayerRef} transform={transformString(cameraRef.current)} data-testid="map-layer">
               <path className="signal-map__graticule" d={GRATICULE_PATH} aria-hidden="true" />
               {paths.map(({ feature, path }) => {
                 if (!path) return null;

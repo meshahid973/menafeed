@@ -54,7 +54,7 @@ Selecting a country gently zooms and recentres the existing regional map over 48
 
 This feature remains a projected 2D regional map, not a perspective 3D globe. Country focus is a simple zoom-and-pan transition rather than spherical camera movement.
 
-Country-news filtering consumes the article location contract already used by `NewsFeed`. The Rust RSS parser assigns country precision **only** when publisher-provided RSS category metadata exactly identifies one MENA country. It never infers country from title or summary text. Items with no explicit country category or multiple different country categories remain `precision: "unknown"` and are omitted from country-filtered views. Many regional RSS items have no country taxonomy, so country views can legitimately be empty; the UI states that limitation instead of mixing in unrelated stories. No new news API or fabricated location data is introduced.
+Country-news filtering uses separate `countryCodes` **relevance tags**, populated from explicit publisher categories and recognized country/place mentions in headlines and summaries. A mention is not evidence of an event location: precise `location` remains unknown unless publisher metadata explicitly supports a single country. Multi-country reporting can appear under each relevant country. This is rule-based matching and can be incomplete; no city coordinates or event dots are inferred from mentions.
 
 ## Interaction and accessibility
 
