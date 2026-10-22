@@ -392,7 +392,7 @@ export function NewsFeed({
             )}
             {category !== 'all' && (
               <button type="button" onClick={() => setCategory('all')} aria-label="Clear category filter">
-                {categoryFields[0]?.options?.find((item) => item.value === category)?.label ?? category}
+                {category.charAt(0).toUpperCase() + category.slice(1)}
                 <X size={12} aria-hidden="true" />
               </button>
             )}
