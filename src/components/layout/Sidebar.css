@@ -7,9 +7,10 @@
   width: 50px;
   height: 100%;
   padding: 10px 4px 12px;
+  overflow: hidden;
   border-right: 1px solid var(--signal-border);
   background: #050505;
-  transition: width var(--signal-duration-normal) var(--signal-ease-standard);
+  transition: width var(--signal-duration-nav) var(--signal-ease-standard);
 }
 
 .signal-sidebar--expanded {
@@ -18,6 +19,7 @@
 
 .signal-sidebar__top {
   display: flex;
+  flex: none;
   align-items: center;
   gap: 13px;
   min-height: 45px;
@@ -30,6 +32,7 @@
   font-weight: 720;
   letter-spacing: -0.07em;
   color: var(--signal-text);
+  pointer-events: none;
 }
 
 .signal-sidebar__wordmark span {
@@ -38,6 +41,7 @@
 
 .signal-sidebar__control,
 .signal-sidebar__link {
+  position: relative;
   display: flex;
   flex: none;
   align-items: center;
@@ -53,9 +57,7 @@
   text-align: left;
   cursor: pointer;
   font-size: 13px;
-  transition:
-    color var(--signal-duration-fast),
-    background var(--signal-duration-fast);
+  transition: color var(--signal-duration-fast);
 }
 
 .signal-sidebar__control {
@@ -64,29 +66,50 @@
   justify-content: center;
 }
 
-.signal-sidebar__link svg,
-.signal-sidebar__control svg {
-  flex: none;
-}
-
 .signal-sidebar__links {
   display: grid;
   gap: 5px;
   margin-top: 22px;
 }
 
+.signal-sidebar__icon {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  flex: 0 0 20px;
+  place-items: center;
+}
+
+.signal-sidebar__label {
+  position: relative;
+  z-index: 1;
+  flex: none;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.signal-sidebar__indicator {
+  position: absolute;
+  z-index: 0;
+  inset: 2px 0;
+  border-radius: 6px;
+  background: #161916;
+  pointer-events: none;
+}
+
 .signal-sidebar__link:hover,
 .signal-sidebar__control:hover {
   color: var(--signal-text);
+}
+.signal-sidebar__link:hover:not(.signal-sidebar__link--active) {
   background: var(--signal-surface-raised);
 }
-
-.signal-sidebar__link--active,
-.signal-sidebar__link--active:hover {
-  color: var(--signal-text);
-  background: #161916;
+.signal-sidebar__control:hover {
+  background: var(--signal-surface-raised);
 }
-
+.signal-sidebar__link--active {
+  color: var(--signal-text);
+}
 .signal-sidebar__link--active svg {
   color: var(--signal-accent);
 }
@@ -100,7 +123,6 @@
     transition: none;
   }
 }
-
 @media (max-width: 720px) {
   .signal-sidebar--expanded {
     position: absolute;
