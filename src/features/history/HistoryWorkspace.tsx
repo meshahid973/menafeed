@@ -97,12 +97,13 @@ export function HistoryWorkspace({
 
   const markers = useMemo<MenaMarker[]>(() => (data?.geo.markers ?? []).flatMap((marker) => {
     const story = data?.articles.find((article) => marker.articleIds.includes(article.id));
+    if (country && marker.countryCode !== country) return [];
     return story ? [{
       id: story.id, label: `${marker.cityName} · ${marker.count} reports`,
       longitude: marker.longitude, latitude: marker.latitude,
       detail: 'Publisher-verified location',
     }] : [];
-  }), [data]);
+  }), [data, country]);
 
   const groups = useMemo(() => {
     const byDate = new Map<string, FeedArticle[]>();
@@ -138,7 +139,7 @@ export function HistoryWorkspace({
             <h2>{country ? getMenaCountryName(country) : 'Across the region'}</h2>
           </div>
           <div className="signal-history__actions">
-            {country && <button type="button" onClick={() => onCountrySelect(null)}>All countries</button>}
+            {country && <button type="button" onClick={() => { setReading(null); onCountrySelect(null); }}>All countries</button>}
             <button type="button" aria-label="Refresh history"
               onClick={() => setRevision((current) => current + 1)}>
               <RefreshCcw size={15} aria-hidden="true" />

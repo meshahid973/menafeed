@@ -7,6 +7,7 @@ vi.mock('../services/news', () => ({
   getNewsFeed: vi.fn(),
   openArticle: vi.fn(),
   searchCachedNews: vi.fn(),
+  getReportingHistory: vi.fn(),
 }));
 
 import { readDesktopStatus } from '../services/desktop';

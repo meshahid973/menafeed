@@ -38,7 +38,8 @@ fn validate(
     country: Option<&str>,
 ) -> Result<i64, String> {
     let length = end_epoch.checked_sub(start_epoch).ok_or("Invalid reporting window")?;
-    if !matches!((length, bucket_count), (DAY_SECONDS, 24) | (7 * DAY_SECONDS, 28))
+    if !((length == DAY_SECONDS && bucket_count == 24)
+        || (length == 7 * DAY_SECONDS && bucket_count == 28))
         || selected_index >= bucket_count
     {
         return Err("Invalid reporting window".into());
