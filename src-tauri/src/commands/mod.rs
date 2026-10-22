@@ -35,7 +35,7 @@ pub fn search_cached_news(
 }
 
 #[tauri::command]
-pub fn get_reporting_history(
+pub async fn get_reporting_history(
     app: tauri::AppHandle,
     start_epoch: i64,
     end_epoch: i64,
@@ -43,7 +43,18 @@ pub fn get_reporting_history(
     selected_index: usize,
     country_code: Option<String>,
 ) -> Result<history::HistorySnapshot, String> {
-    history::snapshot(&app, start_epoch, end_epoch, bucket_count, selected_index, country_code)
+    tauri::async_runtime::spawn_blocking(move || {
+        history::snapshot(
+            &app,
+            start_epoch,
+            end_epoch,
+            bucket_count,
+            selected_index,
+            country_code,
+        )
+    })
+    .await
+    .map_err(|_| "History task failed".to_string())?
 }
 
 #[tauri::command]

@@ -37,7 +37,9 @@ fn validate(
     selected_index: usize,
     country: Option<&str>,
 ) -> Result<i64, String> {
-    let length = end_epoch.checked_sub(start_epoch).ok_or("Invalid reporting window")?;
+    let length = end_epoch
+        .checked_sub(start_epoch)
+        .ok_or("Invalid reporting window")?;
     if !((length == DAY_SECONDS && bucket_count == 24)
         || (length == 7 * DAY_SECONDS && bucket_count == 28))
         || selected_index >= bucket_count
@@ -60,7 +62,13 @@ pub fn query(
     selected_index: usize,
     country: Option<&str>,
 ) -> Result<HistorySnapshot, String> {
-    let step = validate(start_epoch, end_epoch, bucket_count, selected_index, country)?;
+    let step = validate(
+        start_epoch,
+        end_epoch,
+        bucket_count,
+        selected_index,
+        country,
+    )?;
     const COUNTRY: &str = "(
         ?3 IS NULL OR
         EXISTS (SELECT 1 FROM json_each(news_articles.payload_json, '$.countryCodes') AS tag
@@ -73,10 +81,14 @@ pub fn query(
          GROUP BY slot"
     );
     let mut counts = vec![0_usize; bucket_count];
-    let mut stmt = conn.prepare(&sql).map_err(|_| "History index unavailable")?;
-    let rows = stmt.query_map(params![start_epoch, end_epoch, country, step], |row| {
-        Ok((row.get::<_, i64>(0)?, row.get::<_, usize>(1)?))
-    }).map_err(|_| "History query unavailable")?;
+    let mut stmt = conn
+        .prepare(&sql)
+        .map_err(|_| "History index unavailable")?;
+    let rows = stmt
+        .query_map(params![start_epoch, end_epoch, country, step], |row| {
+            Ok((row.get::<_, i64>(0)?, row.get::<_, usize>(1)?))
+        })
+        .map_err(|_| "History query unavailable")?;
     for row in rows {
         let (slot, count) = row.map_err(|_| "History query unavailable")?;
         if let Ok(index) = usize::try_from(slot) {
@@ -94,10 +106,15 @@ pub fn query(
          WHERE published_epoch >= ?1 AND published_epoch < ?2 AND {COUNTRY}
          ORDER BY published_epoch DESC, canonical_url ASC LIMIT ?4"
     );
-    let mut stmt = conn.prepare(&sql).map_err(|_| "History index unavailable")?;
-    let rows = stmt.query_map(params![slot_start, slot_end, country, MAX_SLOT_ARTICLES], |row| {
-        row.get::<_, String>(0)
-    }).map_err(|_| "History query unavailable")?;
+    let mut stmt = conn
+        .prepare(&sql)
+        .map_err(|_| "History index unavailable")?;
+    let rows = stmt
+        .query_map(
+            params![slot_start, slot_end, country, MAX_SLOT_ARTICLES],
+            |row| row.get::<_, String>(0),
+        )
+        .map_err(|_| "History query unavailable")?;
     let mut articles = Vec::new();
     for row in rows {
         let json = row.map_err(|_| "History query unavailable")?;
@@ -113,10 +130,14 @@ pub fn query(
         selected_index,
         total_count,
         selected_count,
-        buckets: counts.into_iter().enumerate().map(|(index, count)| HistoryBucket {
-            start_epoch: start_epoch + index as i64 * step,
-            count,
-        }).collect(),
+        buckets: counts
+            .into_iter()
+            .enumerate()
+            .map(|(index, count)| HistoryBucket {
+                start_epoch: start_epoch + index as i64 * step,
+                count,
+            })
+            .collect(),
         articles,
         geo,
     })
@@ -131,7 +152,14 @@ pub fn snapshot(
     country_code: Option<String>,
 ) -> Result<HistorySnapshot, String> {
     let conn = database::open(app).map_err(|_| "History index unavailable")?;
-    query(&conn, start_epoch, end_epoch, bucket_count, selected_index, country_code.as_deref())
+    query(
+        &conn,
+        start_epoch,
+        end_epoch,
+        bucket_count,
+        selected_index,
+        country_code.as_deref(),
+    )
 }
 
 #[cfg(test)]
@@ -141,8 +169,10 @@ mod tests {
 
     fn test_db() -> Connection {
         let conn = Connection::open_in_memory().unwrap();
-        conn.execute_batch(include_str!("../../migrations/0002_news_intelligence.sql")).unwrap();
-        conn.execute_batch(include_str!("../../migrations/0003_reporting_history.sql")).unwrap();
+        conn.execute_batch(include_str!("../../migrations/0002_news_intelligence.sql"))
+            .unwrap();
+        conn.execute_batch(include_str!("../../migrations/0003_reporting_history.sql"))
+            .unwrap();
         conn
     }
 
@@ -168,8 +198,9 @@ mod tests {
                 "INSERT INTO news_articles (canonical_url,payload_json,title,source_id,
                  category,cluster_id,published_epoch,first_seen,last_seen)
                  VALUES (?1,?2,?3,'test','general','',?4,?4,?4)",
-                params![url, payload.to_string(), url, when]
-            ).unwrap();
+                params![url, payload.to_string(), url, when],
+            )
+            .unwrap();
         }
         let all = query(&conn, start, start + DAY_SECONDS, 24, 0, None).unwrap();
         assert_eq!(all.total_count, 3);
