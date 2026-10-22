@@ -363,11 +363,8 @@ fn parse_source(xml: &[u8], source: Source) -> Result<Vec<FeedArticle>, String> 
             continue;
         }
 
-        let country_codes = country_codes_from_entry(
-            &entry.categories,
-            &title,
-            summary.as_deref().unwrap_or(""),
-        );
+        let country_codes =
+            country_codes_from_entry(&entry.categories, &title, summary.as_deref().unwrap_or(""));
         articles.push(FeedArticle {
             id: url.clone(),
             source_id: source.id.into(),
@@ -549,7 +546,11 @@ fn read_cache(app: &AppHandle, source: &str) -> Result<Option<Cached>, String> {
         // from their saved text so country filters work immediately after upgrade.
         for article in &mut articles {
             if article.country_codes.is_empty() {
-                let text = format!("{} {}", article.title, article.summary.as_deref().unwrap_or(""));
+                let text = format!(
+                    "{} {}",
+                    article.title,
+                    article.summary.as_deref().unwrap_or("")
+                );
                 let mut codes = country_codes_from_text(&text);
                 if let ArticleLocation::Country { country_code } = &article.location {
                     codes.push(country_code.clone());

@@ -178,8 +178,12 @@ describe('MenaGlobe', () => {
       render(<MenaGlobe />);
       const egypt = screen.getByRole('button', { name: 'Select Egypt' });
       fireEvent.click(egypt);
-      act(() => { animation.frame?.(0); });
-      act(() => { animation.frame?.(200); });
+      act(() => {
+        animation.frame?.(0);
+      });
+      act(() => {
+        animation.frame?.(200);
+      });
       const layer = screen.getByTestId('map-layer');
       const duringMotion = layer.getAttribute('transform');
       expect(duringMotion).not.toBe('translate(0 0) scale(1)');

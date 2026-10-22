@@ -184,7 +184,9 @@ export function NewsFeed({
     >
       <div className="signal-feed__intro">
         <div className="signal-feed__heading">
-          <h2>{view === 'saved' ? 'Saved stories' : view === 'news' ? 'The briefing' : 'Latest'}</h2>
+          <h2>
+            {view === 'saved' ? 'Saved stories' : view === 'news' ? 'The briefing' : 'Latest'}
+          </h2>
           {view !== 'saved' && (
             <div className="signal-feed__actions">
               <button

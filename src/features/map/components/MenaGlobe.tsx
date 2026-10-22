@@ -406,7 +406,11 @@ export function MenaGlobe({
             fill={`url(#${gridPatternId})`}
           />
           <g clipPath={`url(#${clipId})`}>
-            <g ref={mapLayerRef} transform={transformString(cameraRef.current)} data-testid="map-layer">
+            <g
+              ref={mapLayerRef}
+              transform={transformString(cameraRef.current)}
+              data-testid="map-layer"
+            >
               <path className="signal-map__graticule" d={GRATICULE_PATH} aria-hidden="true" />
               {paths.map(({ feature, path }) => {
                 if (!path) return null;
