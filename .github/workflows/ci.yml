@@ -21,10 +21,6 @@ jobs:
         run: npm install --global npm@11.6.3
       - name: Install dependencies
         run: npm ci --no-audit
-      - name: Diagnose formatting
-        run: |
-          npx prettier --write src/features/news/NewsFeed.tsx
-          git diff -- src/features/news/NewsFeed.tsx
       - name: Typecheck, lint, format, tests, build
         run: npm run check
 

@@ -222,8 +222,8 @@ export function NewsFeed({
         // Saved never inherits hidden filters from another workspace. FTS5
         // results are trusted even when their words are separated in the text.
         if (view === 'saved' || searchTerms.length === 0 || indexMatches.has(key)) return true;
-        const searchable = `${article.title} ${article.summary ?? ''} ${article.sourceName}`
-          .toLocaleLowerCase();
+        const searchable =
+          `${article.title} ${article.summary ?? ''} ${article.sourceName}`.toLocaleLowerCase();
         return searchTerms.every((term) => searchable.includes(term));
       })
       .sort((a, b) => {

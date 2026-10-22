@@ -92,14 +92,17 @@ describe('workspace', () => {
   it('stops native news refreshes in Saved and resumes after navigation', async () => {
     vi.mocked(readDesktopStatus).mockResolvedValue({ kind: 'ready', schemaVersion: 2 });
     render(<App />);
-    await waitFor(() => expect(getNewsFeed).toHaveBeenCalledTimes(1));
+    await screen.findByText('No reports');
+    const initialCalls = vi.mocked(getNewsFeed).mock.calls.length;
     fireEvent.click(screen.getByRole('button', { name: 'Saved' }));
     await waitFor(() =>
       expect(screen.getByRole('heading', { name: 'Saved', level: 1 })).toBeInTheDocument(),
     );
+    const pausedCalls = vi.mocked(getNewsFeed).mock.calls.length;
+    expect(pausedCalls).toBe(initialCalls);
     fireEvent(document, new Event('visibilitychange'));
-    expect(getNewsFeed).toHaveBeenCalledTimes(1);
+    expect(getNewsFeed).toHaveBeenCalledTimes(pausedCalls);
     fireEvent.click(screen.getByRole('button', { name: 'News' }));
-    await waitFor(() => expect(getNewsFeed).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(getNewsFeed).toHaveBeenCalledTimes(pausedCalls + 1));
   });
 });
