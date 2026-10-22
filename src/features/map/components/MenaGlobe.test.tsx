@@ -172,13 +172,23 @@ describe('MenaGlobe', () => {
     const svg = screen.getByTestId('mena-map');
     const egypt = screen.getByRole('button', { name: 'Select Egypt' });
     vi.spyOn(svg, 'getBoundingClientRect').mockReturnValue({
-      x: 0, y: 0, top: 0, left: 0, right: 1000, bottom: 640,
-      width: 1000, height: 640, toJSON: () => ({}),
+      x: 0,
+      y: 0,
+      top: 0,
+      left: 0,
+      right: 1000,
+      bottom: 640,
+      width: 1000,
+      height: 640,
+      toJSON: () => ({}),
     });
     fireEvent.pointerDown(egypt, { pointerId: 7, button: 0, clientX: 400, clientY: 200 });
     fireEvent.pointerMove(svg, { pointerId: 7, clientX: 450, clientY: 225 });
     fireEvent.pointerUp(svg, { pointerId: 7, clientX: 450, clientY: 225 });
-    expect(screen.getByTestId('map-layer')).not.toHaveAttribute('transform', 'translate(0 0) scale(1)');
+    expect(screen.getByTestId('map-layer')).not.toHaveAttribute(
+      'transform',
+      'translate(0 0) scale(1)',
+    );
     fireEvent.click(egypt);
     expect(onCountrySelect).not.toHaveBeenCalled();
   });
