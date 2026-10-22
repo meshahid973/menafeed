@@ -64,7 +64,9 @@ const COUNTRY_LABELS = COUNTRY_FEATURES.map((feature) => {
     longitude,
     latitude,
   };
-}).filter(({ longitude, latitude }) => Number.isFinite(longitude) && Number.isFinite(latitude));
+}).filter(
+  ({ longitude, latitude }) => Number.isFinite(longitude) && Number.isFinite(latitude),
+);
 const COUNTRY_LOCATIONS = new Map<string, { longitude: number; latitude: number }>(
   COUNTRY_LABELS.map(({ code, longitude, latitude }) => [
     code,
@@ -302,24 +304,34 @@ export function MenaGlobe({
     const start = view;
     const longitudeDelta = normalizeLongitude(target.longitude - start.longitude);
     const startTime = performance.now();
-    const motionDuration = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 1 : duration;
+    const motionDuration = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      ? 1
+      : duration;
     const animate = (now: number) => {
       const progress = Math.min(1, (now - startTime) / motionDuration);
-      const eased = progress < 0.5
-        ? 4 * progress * progress * progress
-        : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+      const eased =
+        progress < 0.5
+          ? 4 * progress * progress * progress
+          : 1 - Math.pow(-2 * progress + 2, 3) / 2;
       const zoomBase = start.zoom + (target.zoom - start.zoom) * eased;
       const zoom = zoomBase * (1 - 0.12 * Math.sin(Math.PI * progress));
       if (progress >= 1 || now - lastViewUpdateRef.current >= VIEW_UPDATE_INTERVAL) {
         lastViewUpdateRef.current = now;
-        setView(progress >= 1 ? target : {
-          longitude: normalizeLongitude(start.longitude + longitudeDelta * eased),
-          latitude: start.latitude + (target.latitude - start.latitude) * eased,
-          zoom: Math.max(MIN_ZOOM, zoom),
-        });
+        setView(
+          progress >= 1
+            ? target
+            : {
+                longitude: normalizeLongitude(start.longitude + longitudeDelta * eased),
+                latitude: start.latitude + (target.latitude - start.latitude) * eased,
+                zoom: Math.max(MIN_ZOOM, zoom),
+              },
+        );
       }
-      if (progress < 1) animationFrameRef.current = requestAnimationFrame(animate);
-      else animationFrameRef.current = null;
+      if (progress < 1) {
+        animationFrameRef.current = requestAnimationFrame(animate);
+      } else {
+        animationFrameRef.current = null;
+      }
     };
     animationFrameRef.current = requestAnimationFrame(animate);
   }, [view]);
@@ -350,14 +362,21 @@ export function MenaGlobe({
       const zoom = interpolatedZoom * (1 - 0.28 * Math.sin(Math.PI * progress));
       if (progress >= 1 || now - lastViewUpdateRef.current >= VIEW_UPDATE_INTERVAL) {
         lastViewUpdateRef.current = now;
-        setView(progress >= 1 ? INITIAL_VIEW : {
-          longitude: normalizeLongitude(start.longitude + longitudeTravel * eased),
-          latitude: start.latitude + (INITIAL_VIEW.latitude - start.latitude) * eased,
-          zoom: Math.max(MIN_ZOOM, zoom),
-        });
+        setView(
+          progress >= 1
+            ? INITIAL_VIEW
+            : {
+                longitude: normalizeLongitude(start.longitude + longitudeTravel * eased),
+                latitude: start.latitude + (INITIAL_VIEW.latitude - start.latitude) * eased,
+                zoom: Math.max(MIN_ZOOM, zoom),
+              },
+        );
       }
-      if (progress < 1) animationFrameRef.current = requestAnimationFrame(animate);
-      else animationFrameRef.current = null;
+      if (progress < 1) {
+        animationFrameRef.current = requestAnimationFrame(animate);
+      } else {
+        animationFrameRef.current = null;
+      }
     };
     animationFrameRef.current = requestAnimationFrame(animate);
   }, [view]);
@@ -584,7 +603,11 @@ export function MenaGlobe({
                 );
               })}
               {visibleCountryLabels.length > 0 && (
-                <g className="signal-map__country-labels" data-testid="country-label-layer" aria-hidden="true">
+                <g
+                  className="signal-map__country-labels"
+                  data-testid="country-label-layer"
+                  aria-hidden="true"
+                >
                   {visibleCountryLabels.map((country) => (
                     <text key={country.code} x={country.x} y={country.y} textAnchor="middle">
                       {country.name}
@@ -595,19 +618,24 @@ export function MenaGlobe({
               {visibleCities.length > 0 && (
                 <g data-testid="city-layer">
                   {visibleCities.map(({ feature, position }) => (
-                <g className="signal-map__city" key={feature.properties.name} aria-hidden="true">
-                  <circle cx={position[0]} cy={position[1]} r="2.1" />
-                  {view.zoom >= CITY_LABEL_ZOOM &&
-                    (feature.properties.capital || feature.properties.population >= 1_500_000) && (
-                      <text x={position[0] + 5} y={position[1] - 5}>
+                    <g
+                      className="signal-map__city"
+                      key={feature.properties.name}
+                      aria-hidden="true"
+                    >
+                      <circle cx={position[0]} cy={position[1]} r="2.1" />
+                      {view.zoom >= CITY_LABEL_ZOOM &&
+                        (feature.properties.capital ||
+                          feature.properties.population >= 1_500_000) && (
+                          <text x={position[0] + 5} y={position[1] - 5}>
+                            {feature.properties.name}
+                          </text>
+                        )}
+                      <title>
                         {feature.properties.name}
-                      </text>
-                    )}
-                  <title>
-                    {feature.properties.name}
-                    {feature.properties.countryName ? ', ' + feature.properties.countryName : ''}
-                  </title>
-                </g>
+                        {feature.properties.countryName ? ', ' + feature.properties.countryName : ''}
+                      </title>
+                    </g>
                   ))}
                 </g>
               )}
