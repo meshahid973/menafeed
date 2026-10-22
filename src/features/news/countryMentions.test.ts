@@ -9,8 +9,8 @@ describe('global country mention filters', () => {
     expect(articleMentionsCountry('UN meeting held in the West Bank', 'PS')).toBe(true);
   });
 
-  it('does not treat adjective-only country roots as verified coordinates', () => {
-    expect(articleMentionsCountry('Iranian markets react to global news', 'IR')).toBe(false);
+  it('matches configured demonyms without implying verified event coordinates', () => {
+    expect(articleMentionsCountry('Iranian markets react to global news', 'IR')).toBe(true);
     expect(articleMentionsCountry('A local German election concluded', 'DE')).toBe(false);
   });
 
