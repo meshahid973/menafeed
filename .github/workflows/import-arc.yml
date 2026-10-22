@@ -1,0 +1,33 @@
+name: Import Arc components
+on:
+  push:
+    branches: [feat/news-controls]
+permissions:
+  contents: write
+jobs:
+  import:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install -g npm@11.6.3
+      - run: npm ci --no-audit
+      - name: Install Arc UI source
+        run: |
+          npx --yes shadcn@latest add @uiarc/arc-foundation @uiarc/select @uiarc/expanding-search @uiarc/search-field @uiarc/filter-toolbar @uiarc/dropdown-menu @uiarc/tooltip @uiarc/empty-state --yes
+      - name: Format imported files
+        run: npx prettier --write "src/components/arc/**/*.{ts,tsx,css}" tsconfig.json vite.config.ts components.json package.json
+      - name: Commit source
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .
+          if ! git diff --cached --quiet; then
+            git commit -m "feat: import Arc controls"
+            git push origin HEAD:feat/news-controls
+          fi
