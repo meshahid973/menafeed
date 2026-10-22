@@ -207,7 +207,7 @@ export function MenaGlobe({
       if (event.button !== 0) return;
       didDragRef.current = false;
       const target = event.target as Element;
-      if (target.closest('[data-country-code], [data-marker-id]')) return;
+      if (target.closest('[data-marker-id]')) return;
       const point = pointInMap(event);
       if (!point) return;
       cancelCameraAnimation();
@@ -218,9 +218,7 @@ export function MenaGlobe({
         clientY: event.clientY,
       };
       didDragRef.current = false;
-      if (event.currentTarget.setPointerCapture) {
-        event.currentTarget.setPointerCapture(event.pointerId);
-      }
+      // Capture only after a drag is detected so country clicks remain clickable.
     },
     [cancelCameraAnimation, pointInMap],
   );
@@ -267,7 +265,7 @@ export function MenaGlobe({
             }
           : cameraRef.current;
       dragStartRef.current = null;
-      applyCamera(next);
+      if (didDragRef.current) applyCamera(next);
       if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
         event.currentTarget.releasePointerCapture(event.pointerId);
       }
