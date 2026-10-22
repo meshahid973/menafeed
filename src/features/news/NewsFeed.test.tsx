@@ -320,5 +320,4 @@ describe('news desk', () => {
     expect(screen.queryByRole('button', { name: 'Search news' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Filter news' })).toBeInTheDocument();
   });
-
 });

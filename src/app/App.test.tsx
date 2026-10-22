@@ -3,7 +3,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from './App';
 
 vi.mock('../services/desktop', () => ({ readDesktopStatus: vi.fn() }));
-vi.mock('../services/news', () => ({ getNewsFeed: vi.fn(), openArticle: vi.fn(), searchCachedNews: vi.fn() }));
+vi.mock('../services/news', () => ({
+  getNewsFeed: vi.fn(),
+  openArticle: vi.fn(),
+  searchCachedNews: vi.fn(),
+}));
 
 import { readDesktopStatus } from '../services/desktop';
 import { getNewsFeed, searchCachedNews } from '../services/news';
@@ -126,15 +130,16 @@ describe('workspace', () => {
     const input = await screen.findByRole('combobox', { name: 'Search news' });
     expect(input).toHaveFocus();
     fireEvent.change(input, { target: { value: 'Sudan humanitarian' } });
-    await waitFor(() =>
-      expect(searchCachedNews).toHaveBeenCalledWith('sudan humanitarian', 30),
-    );
-    const option = await screen.findByRole('option', { name: /Sudan announces new humanitarian aid/ });
+    await waitFor(() => expect(searchCachedNews).toHaveBeenCalledWith('sudan humanitarian', 30));
+    const option = await screen.findByRole('option', {
+      name: /Sudan announces new humanitarian aid/,
+    });
     fireEvent.click(option);
     await waitFor(() =>
-      expect(screen.getByRole('heading', { name: 'Sudan announces new humanitarian aid' })).toBeInTheDocument(),
+      expect(
+        screen.getByRole('heading', { name: 'Sudan announces new humanitarian aid' }),
+      ).toBeInTheDocument(),
     );
     expect(screen.getByRole('heading', { name: 'News', level: 1 })).toBeInTheDocument();
   });
-
 });

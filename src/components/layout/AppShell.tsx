@@ -98,10 +98,14 @@ export function AppShell({ desktopStatus }: AppShellProps) {
       items.push({ article, group });
     };
     for (const article of feed.data?.articles ?? []) {
-      if (terms.every((term) =>
-        `${article.title} ${article.summary ?? ''} ${article.sourceName}`
-          .toLocaleLowerCase().includes(term)
-      )) add(article, 'Latest reports');
+      if (
+        terms.every((term) =>
+          `${article.title} ${article.summary ?? ''} ${article.sourceName}`
+            .toLocaleLowerCase()
+            .includes(term),
+        )
+      )
+        add(article, 'Latest reports');
       if (items.length >= 8) break;
     }
     if (quickMatches.query === quickTerm && quickTerm.length >= 2) {
@@ -250,7 +254,8 @@ export function AppShell({ desktopStatus }: AppShellProps) {
               expandedWidth={320}
               maxResults={6}
               onSelect={(item) => {
-                const article = quickArticles.find(({ article: entry }) => entry.id === item.id)?.article ??
+                const article =
+                  quickArticles.find(({ article: entry }) => entry.id === item.id)?.article ??
                   feed.data?.articles.find((entry) => entry.id === item.id);
                 if (!article) return;
                 setView('news');

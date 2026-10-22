@@ -298,18 +298,20 @@ export function NewsFeed({
           </h2>
           {view !== 'saved' && (
             <div className="signal-feed__actions">
-              {view === 'explore' && <button
-                type="button"
-                aria-label="Search news"
-                aria-expanded={searchOpen}
-                title="Search"
-                onClick={() => {
-                  setSearchOpen(!searchOpen);
-                  if (searchOpen) setQuery('');
-                }}
-              >
-                <Search size={18} aria-hidden="true" />
-              </button>}
+              {view === 'explore' && (
+                <button
+                  type="button"
+                  aria-label="Search news"
+                  aria-expanded={searchOpen}
+                  title="Search"
+                  onClick={() => {
+                    setSearchOpen(!searchOpen);
+                    if (searchOpen) setQuery('');
+                  }}
+                >
+                  <Search size={18} aria-hidden="true" />
+                </button>
+              )}
               <FilterPopover
                 open={filtersOpen}
                 onOpenChange={setFiltersOpen}
@@ -385,19 +387,31 @@ export function NewsFeed({
         {view !== 'saved' && (category !== 'all' || source !== 'all' || sort !== 'newest') && (
           <div className="signal-feed__active-filters" aria-label="Active news filters">
             {source !== 'all' && (
-              <button type="button" onClick={() => setSource('all')} aria-label="Clear publisher filter">
+              <button
+                type="button"
+                onClick={() => setSource('all')}
+                aria-label="Clear publisher filter"
+              >
                 {publisherOptions.find((item) => item.value === source)?.label ?? source}
                 <X size={12} aria-hidden="true" />
               </button>
             )}
             {category !== 'all' && (
-              <button type="button" onClick={() => setCategory('all')} aria-label="Clear category filter">
+              <button
+                type="button"
+                onClick={() => setCategory('all')}
+                aria-label="Clear category filter"
+              >
                 {category.charAt(0).toUpperCase() + category.slice(1)}
                 <X size={12} aria-hidden="true" />
               </button>
             )}
             {sort !== 'newest' && (
-              <button type="button" onClick={() => setSort('newest')} aria-label="Reset story sort order">
+              <button
+                type="button"
+                onClick={() => setSort('newest')}
+                aria-label="Reset story sort order"
+              >
                 Oldest first <X size={12} aria-hidden="true" />
               </button>
             )}

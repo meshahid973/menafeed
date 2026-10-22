@@ -11,7 +11,12 @@ interface FilterPopoverProps {
 }
 
 /** A compact anchored control panel; no second navigation or full-screen overlay. */
-export function FilterPopover({ open, onOpenChange, active = false, children }: FilterPopoverProps) {
+export function FilterPopover({
+  open,
+  onOpenChange,
+  active = false,
+  children,
+}: FilterPopoverProps) {
   return (
     <Popover.Root open={open} onOpenChange={onOpenChange}>
       <Popover.Trigger
@@ -24,7 +29,13 @@ export function FilterPopover({ open, onOpenChange, active = false, children }: 
         <SlidersHorizontal size={18} aria-hidden="true" />
       </Popover.Trigger>
       <Popover.Portal>
-        <Popover.Positioner side="bottom" align="end" sideOffset={8} collisionPadding={12} className="signal-arc-popover__positioner">
+        <Popover.Positioner
+          side="bottom"
+          align="end"
+          sideOffset={8}
+          collisionPadding={12}
+          className="signal-arc-popover__positioner"
+        >
           <Popover.Popup className="signal-arc-popover__popup">
             <Popover.Title className="signal-arc-popover__title">Filters</Popover.Title>
             {children}

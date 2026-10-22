@@ -23,8 +23,8 @@ jobs:
         run: npm ci --no-audit
       - name: Show formatting fixes
         run: |
-          npx prettier --write src/components/layout/AppShell.tsx src/features/news/NewsFeed.tsx src/components/arc/expanding-search/expanding-search.tsx src/components/arc/popover/popover.tsx src/app/App.test.tsx src/features/news/NewsFeed.test.tsx
-          git diff -- src/components/layout/AppShell.tsx src/features/news/NewsFeed.tsx src/components/arc/expanding-search/expanding-search.tsx src/components/arc/popover/popover.tsx src/app/App.test.tsx src/features/news/NewsFeed.test.tsx
+          npx prettier --write src/components/layout/AppShell.tsx src/features/news/NewsFeed.tsx src/components/arc/expanding-search/expanding-search.tsx src/components/arc/popover/popover.tsx src/app/App.test.tsx src/features/news/NewsFeed.test.tsx src/components/arc/popover/popover.css src/features/news/NewsFeed.css
+          git diff -- src/components/layout/AppShell.tsx src/features/news/NewsFeed.tsx src/components/arc/expanding-search/expanding-search.tsx src/components/arc/popover/popover.tsx src/app/App.test.tsx src/features/news/NewsFeed.test.tsx src/components/arc/popover/popover.css src/features/news/NewsFeed.css
       - name: Typecheck, lint, format, tests, build
         run: npm run check
 

@@ -436,7 +436,12 @@ export function ExpandingSearch({
 
   const trimmed = query.trim();
   const results = useMemo(
-    () => (trimmed ? (resultsArePreRanked ? items.slice(0, maxResults) : rank(items, trimmed, maxResults)) : []),
+    () =>
+      trimmed
+        ? resultsArePreRanked
+          ? items.slice(0, maxResults)
+          : rank(items, trimmed, maxResults)
+        : [],
     [items, trimmed, maxResults, resultsArePreRanked],
   );
   const mode: Mode | null = !trimmed
