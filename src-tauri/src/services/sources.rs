@@ -342,7 +342,11 @@ mod tests {
             &Url::parse("https://rss.dw.com/xml/rss-en-all").unwrap()
         ));
         for source in SOURCES {
-            assert!(approved_feed_host(&Url::parse(source.feed).unwrap()), "{}", source.id);
+            assert!(
+                approved_feed_host(&Url::parse(source.feed).unwrap()),
+                "{}",
+                source.id
+            );
         }
         assert!(!approved_feed_host(
             &Url::parse("https://evil.example/rss").unwrap()
