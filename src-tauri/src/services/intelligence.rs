@@ -192,17 +192,21 @@ pub fn save(conn: &mut Connection, response: &Value) -> rusqlite::Result<usize> 
             continue;
         }
         let payload = article.to_string();
+        let published_at = article.get("publishedAt").and_then(Value::as_str);
+        let published_epoch = published_at
+            .and_then(|value| chrono::DateTime::parse_from_rfc3339(value).ok())
+            .map(|date| date.timestamp());
         tx.execute(
             "INSERT INTO news_articles
-             (canonical_url,payload_json,title,summary,source_id,category,cluster_id,published_at,first_seen,last_seen)
-             VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?9)
+             (canonical_url,payload_json,title,summary,source_id,category,cluster_id,published_at,published_epoch,first_seen,last_seen)
+             VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?10)
              ON CONFLICT(canonical_url) DO UPDATE SET
              payload_json=excluded.payload_json,title=excluded.title,summary=excluded.summary,
              source_id=excluded.source_id,category=excluded.category,cluster_id=excluded.cluster_id,
-             published_at=excluded.published_at,last_seen=excluded.last_seen",
+             published_at=excluded.published_at,published_epoch=excluded.published_epoch,last_seen=excluded.last_seen",
             params![url,payload,text(article,"title"),text(article,"summary"),
                 text(article,"sourceId"),text(article,"category"),text(article,"clusterId"),
-                article.get("publishedAt").and_then(Value::as_str),now],
+                published_at,published_epoch,now],
         )?;
         count += 1;
     }

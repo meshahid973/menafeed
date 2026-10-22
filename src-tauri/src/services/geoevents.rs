@@ -35,10 +35,13 @@ pub struct GeoSnapshot {
 }
 
 /// Explicit, attributed locations only. Text mentions are not event coordinates.
-fn known_mena_country(code: &str) -> bool {
+pub(crate) fn known_mena_country(code: &str) -> bool {
     matches!(
         code,
         "MA" | "DZ"
+            | "EH"
+            | "ER"
+            | "CY"
             | "TN"
             | "LY"
             | "EG"

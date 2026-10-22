@@ -1,6 +1,7 @@
 use crate::{
+    database,
     models::AppStatus,
-    services::{geoevents, intelligence, news},
+    services::{geoevents, history, intelligence, news},
 };
 use tauri_plugin_opener::OpenerExt;
 
@@ -8,7 +9,7 @@ use tauri_plugin_opener::OpenerExt;
 pub fn get_app_status() -> AppStatus {
     AppStatus {
         app_name: "SIGNAL",
-        schema_version: 1,
+        schema_version: database::SCHEMA_VERSION,
     }
 }
 
@@ -31,6 +32,18 @@ pub fn search_cached_news(
     limit: usize,
 ) -> Result<Vec<serde_json::Value>, String> {
     intelligence::search_cached(&app, &query, limit)
+}
+
+#[tauri::command]
+pub fn get_reporting_history(
+    app: tauri::AppHandle,
+    start_epoch: i64,
+    end_epoch: i64,
+    bucket_count: usize,
+    selected_index: usize,
+    country_code: Option<String>,
+) -> Result<history::HistorySnapshot, String> {
+    history::snapshot(&app, start_epoch, end_epoch, bucket_count, selected_index, country_code)
 }
 
 #[tauri::command]

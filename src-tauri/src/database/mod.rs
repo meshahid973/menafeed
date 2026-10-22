@@ -3,7 +3,7 @@ use std::{error::Error, fs, time::Duration};
 
 use tauri::Manager;
 
-const SCHEMA_VERSION: i64 = 2;
+pub const SCHEMA_VERSION: i64 = 3;
 
 pub fn open(app: &tauri::AppHandle) -> Result<Connection, Box<dyn Error>> {
     let directory = app.path().app_local_data_dir()?;
@@ -30,14 +30,21 @@ fn migrate(connection: &mut Connection) -> rusqlite::Result<()> {
     if version < 1 {
         let transaction = connection.transaction()?;
         transaction.execute_batch(include_str!("../../migrations/0001_initialize.sql"))?;
-        transaction.pragma_update(None, "user_version", SCHEMA_VERSION)?;
+        transaction.pragma_update(None, "user_version", 1)?;
         transaction.commit()?;
     }
 
     if version < 2 {
         let transaction = connection.transaction()?;
         transaction.execute_batch(include_str!("../../migrations/0002_news_intelligence.sql"))?;
-        transaction.pragma_update(None, "user_version", SCHEMA_VERSION)?;
+        transaction.pragma_update(None, "user_version", 2)?;
+        transaction.commit()?;
+    }
+
+    if version < 3 {
+        let transaction = connection.transaction()?;
+        transaction.execute_batch(include_str!("../../migrations/0003_reporting_history.sql"))?;
+        transaction.pragma_update(None, "user_version", 3)?;
         transaction.commit()?;
     }
 
