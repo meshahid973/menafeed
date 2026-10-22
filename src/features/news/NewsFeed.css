@@ -436,7 +436,7 @@
   max-width: 100%;
 }
 .signal-feed__search-shell label,
-.signal-feed__publisher label {
+.signal-feed__publisher > label {
   position: absolute;
   width: 1px;
   height: 1px;
