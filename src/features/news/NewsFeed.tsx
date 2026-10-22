@@ -3,14 +3,20 @@ import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 import type { WorkspaceView } from '../../components/layout/workspaceTypes';
 import type { DesktopStatus } from '../../services/desktop';
-import { openArticle } from '../../services/news';
+import { openArticle, searchCachedNews } from '../../services/news';
+import { SearchField } from '../../components/arc/search-field/search-field';
+import { Select } from '../../components/arc/select/select';
+import { FilterToolbar } from '../../components/arc/filter-toolbar/filter-toolbar';
+import type { FilterChip, FilterField } from '../../components/arc/filter-toolbar/filter-toolbar';
+import { DropdownMenu } from '../../components/arc/dropdown-menu/dropdown-menu';
+import { EmptyState } from '../../components/arc/empty-state/empty-state';
 import { ArticleReader } from './ArticleReader';
 import type { FeedArticle } from './contracts';
 import { StoryCard } from './StoryCard';
 import type { useNewsFeed } from './useNewsFeed';
 import { getMenaCountryName } from '../map';
 import type { MenaCountryCode } from '../map';
-import { RefreshCw, Search } from 'lucide-react';
+import { RefreshCw, Search, SlidersHorizontal, Newspaper, Bookmark } from 'lucide-react';
 import './NewsFeed.css';
 
 interface Props {
@@ -54,6 +60,10 @@ export function NewsFeed({
   const enabled = desktopStatus.kind === 'ready' && view !== 'saved';
   const { data, error, loading, refreshing, refresh } = feed;
   const [source, setSource] = useState('all');
+  const [category, setCategory] = useState('all');
+  const [sort, setSort] = useState<'newest' | 'oldest'>('newest');
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [cachedMatches, setCachedMatches] = useState<FeedArticle[]>([]);
   const [query, setQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const [selected, setSelected] = useState<FeedArticle | null>(null);
@@ -118,10 +128,50 @@ export function NewsFeed({
     }
   }, [selectedArticleId, data, onStoryHandled]);
 
+  useEffect(() => {
+    if (!enabled || !searchOpen || deferredQuery.length < 2) {
+      setCachedMatches([]);
+      return;
+    }
+    let live = true;
+    void searchCachedNews(deferredQuery, 40).then((matches) => {
+      if (live) setCachedMatches(matches);
+    }).catch(() => {
+      if (live) setCachedMatches([]);
+    });
+    return () => { live = false; };
+  }, [enabled, searchOpen, deferredQuery]);
+
+  const categoryFields: FilterField[] = useMemo(() => [{
+    id: 'category',
+    label: 'Category',
+    options: [
+      { value: 'general', label: 'General' },
+      { value: 'politics', label: 'Politics' },
+      { value: 'economy', label: 'Economy' },
+      { value: 'humanitarian', label: 'Humanitarian' },
+      { value: 'culture', label: 'Culture' },
+    ],
+  }], []);
+  const activeFilters: FilterChip[] = useMemo(() => category === 'all'
+    ? [] : [{ id: 'category', label: 'Category', value: category }], [category]);
+  const publisherOptions = useMemo(() => [
+    { value: 'all', label: 'All publishers' },
+    ...(data?.sources ?? []).map((item) => ({ value: item.id, label: item.name })),
+  ], [data?.sources]);
+
   const articles = useMemo(() => {
-    const base = view === 'saved' ? bookmarks : (data?.articles ?? []);
+    const live = view === 'saved' ? bookmarks : (data?.articles ?? []);
+    // SQLite results supplement, never overwrite or duplicate, live reports.
+    const base = view === 'saved' ? live : [...live, ...cachedMatches];
+    const seenUrls = new Set<string>();
     return deduplicate(base).filter((article) => {
+      const key = article.canonicalUrl ?? article.url;
+      if (seenUrls.has(key)) return false;
+      seenUrls.add(key);
       if (view !== 'saved' && source !== 'all' && article.sourceId !== source) return false;
+      if (view !== 'saved' && category !== 'all' && (article.category ?? 'general') !== category)
+        return false;
       if (view !== 'saved' && selectedCountry) {
         const location = article.location;
         const matchesCountry =
@@ -129,14 +179,14 @@ export function NewsFeed({
           (location.precision !== 'unknown' && location.countryCode === selectedCountry);
         if (!matchesCountry) return false;
       }
-      return (
-        !deferredQuery ||
+      return !deferredQuery ||
         `${article.title} ${article.summary ?? ''} ${article.sourceName}`
-          .toLocaleLowerCase()
-          .includes(deferredQuery)
-      );
+          .toLocaleLowerCase().includes(deferredQuery);
+    }).sort((a, b) => {
+      const diff = (Date.parse(b.publishedAt ?? '') || 0) - (Date.parse(a.publishedAt ?? '') || 0);
+      return sort === 'newest' ? diff : -diff;
     });
-  }, [data, view, bookmarks, source, deferredQuery, selectedCountry]);
+  }, [data, view, bookmarks, source, category, deferredQuery, selectedCountry, cachedMatches, sort]);
 
   async function handleOpen(url: string) {
     try {
@@ -194,9 +244,21 @@ export function NewsFeed({
                 aria-label="Search news"
                 aria-expanded={searchOpen}
                 title="Search"
-                onClick={() => setSearchOpen(!searchOpen)}
+                onClick={() => {
+                  setSearchOpen(!searchOpen);
+                  if (searchOpen) setQuery('');
+                }}
               >
                 <Search size={18} aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                aria-label="Filter news"
+                aria-expanded={filtersOpen}
+                title="Filters"
+                onClick={() => setFiltersOpen((value) => !value)}
+              >
+                <SlidersHorizontal size={18} aria-hidden="true" />
               </button>
               <button
                 type="button"
@@ -221,39 +283,53 @@ export function NewsFeed({
           </p>
         )}
         {searchOpen && view !== 'saved' && (
-          <input
-            ref={searchRef}
-            className="signal-feed__search"
-            type="search"
-            value={query}
-            placeholder="Search headlines"
-            aria-label="Search headlines"
-            onChange={(event) => setQuery(event.target.value)}
-          />
+          <div className="signal-feed__search-shell">
+            <SearchField
+              ref={searchRef}
+              label="Search headlines"
+              value={query}
+              onValueChange={setQuery}
+              placeholder="Search headlines"
+            />
+          </div>
+        )}
+        {view !== 'saved' && (filtersOpen || category !== 'all' || source !== 'all') && (
+          <div className="signal-feed__advanced-filters">
+            <div className="signal-feed__filter-actions">
+              <div className="signal-feed__publisher">
+                <Select
+                  label="Publisher"
+                  value={source}
+                  onValueChange={setSource}
+                  options={publisherOptions}
+                />
+              </div>
+              <DropdownMenu
+                label={sort === 'newest' ? 'Newest first' : 'Oldest first'}
+                items={[
+                  { label: 'Newest first', onSelect: () => setSort('newest') },
+                  { label: 'Oldest first', onSelect: () => setSort('oldest') },
+                ]}
+              />
+            </div>
+            <FilterToolbar
+              filters={activeFilters}
+              onRemove={(id) => { if (id === 'category') setCategory('all'); }}
+              onClearAll={() => setCategory('all')}
+              addFilter={{
+                fields: categoryFields,
+                label: 'Category',
+                onAdd: (chip) => setCategory(chip.value ?? 'all'),
+              }}
+            />
+          </div>
         )}
         {view !== 'saved' && sourceStates.length > 0 && (
-          <div className="signal-feed__filters">
-            <select
-              aria-label="Publisher"
-              value={source}
-              onChange={(event) => setSource(event.target.value)}
-            >
-              <option value="all">All publishers</option>
-              {sourceStates.map((item) => (
-                <option value={item.id} key={item.id}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
-            <span>
-              {stale
-                ? 'Cached reporting'
-                : unavailable
-                  ? 'Partial coverage'
-                  : available === 0
-                    ? 'Sources unavailable'
-                    : `${articles.length} stories`}
-            </span>
+          <div className="signal-feed__count" role="status">
+            {stale ? 'Cached reporting'
+              : unavailable ? 'Partial coverage'
+              : available === 0 ? 'Sources unavailable'
+              : `${articles.length} stories`}
           </div>
         )}
       </div>
@@ -292,25 +368,33 @@ export function NewsFeed({
           )}
           {!showFeed && (
             <div className="signal-feed__empty">
-              {desktopStatus.kind === 'preview'
-                ? 'Open the desktop app to read live RSS.'
-                : 'Desktop news service unavailable.'}
+              <EmptyState
+                icon={<Newspaper size={22} />}
+                title="Desktop news"
+                description={desktopStatus.kind === 'preview'
+                  ? 'Open the desktop app to read live RSS.'
+                  : 'Desktop news service unavailable.'}
+              />
             </div>
           )}
           {showFeed && !loading && articles.length === 0 && (
             <div className="signal-feed__empty">
-              {view === 'saved'
-                ? 'No saved stories yet. Bookmark a report to see it here.'
-                : selectedCountry
-                  ? 'No country-related reports for this country yet. Try refreshing for the latest stories.'
-                  : query || source !== 'all'
-                    ? 'No matching stories.'
-                    : 'No reports available.'}
-              {selectedCountry && (
-                <button className="signal-feed__clear" type="button" onClick={onClearCountry}>
-                  All regional stories
-                </button>
-              )}
+              <EmptyState
+                icon={view === 'saved' ? <Bookmark size={22} /> : <Newspaper size={22} />}
+                title={view === 'saved' ? 'Nothing saved' : 'No reports'}
+                description={view === 'saved'
+                  ? 'No saved stories yet. Bookmark a report to see it here.'
+                  : selectedCountry
+                    ? 'No country-related reports for this country yet. Try refreshing for the latest stories.'
+                    : query || source !== 'all' || category !== 'all'
+                      ? 'No matching stories.'
+                      : 'No reports available.'}
+                action={selectedCountry ? (
+                  <button className="signal-feed__clear" type="button" onClick={onClearCountry}>
+                    All regional stories
+                  </button>
+                ) : undefined}
+              />
             </div>
           )}
           {articles.map((article, index) => (
