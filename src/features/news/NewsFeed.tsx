@@ -1,14 +1,11 @@
 import { AnimatePresence } from 'motion/react';
-import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 import type { WorkspaceView } from '../../components/layout/workspaceTypes';
 import type { DesktopStatus } from '../../services/desktop';
 import { openArticle, searchCachedNews } from '../../services/news';
 import { SearchField } from '../../components/arc/search-field/search-field';
-import { Select } from '../../components/arc/select/select';
-import { FilterToolbar } from '../../components/arc/filter-toolbar/filter-toolbar';
 import type { FilterChip, FilterField } from '../../components/arc/filter-toolbar/filter-toolbar';
-import { DropdownMenu } from '../../components/arc/dropdown-menu/dropdown-menu';
 import { EmptyState } from '../../components/arc/empty-state/empty-state';
 import { ArticleReader } from './ArticleReader';
 import type { FeedArticle } from './contracts';
@@ -18,6 +15,21 @@ import { getMenaCountryName } from '../map';
 import type { MenaCountryCode } from '../map';
 import { RefreshCw, Search, SlidersHorizontal, Newspaper, Bookmark } from 'lucide-react';
 import './NewsFeed.css';
+
+// These controls are loaded only when the user opens advanced filters.
+const Select = lazy(() =>
+  import('../../components/arc/select/select').then((module) => ({ default: module.Select })),
+);
+const FilterToolbar = lazy(() =>
+  import('../../components/arc/filter-toolbar/filter-toolbar').then((module) => ({
+    default: module.FilterToolbar,
+  })),
+);
+const DropdownMenu = lazy(() =>
+  import('../../components/arc/dropdown-menu/dropdown-menu').then((module) => ({
+    default: module.DropdownMenu,
+  })),
+);
 
 interface Props {
   desktopStatus: DesktopStatus;
@@ -324,7 +336,8 @@ export function NewsFeed({
           </div>
         )}
         {view !== 'saved' && (filtersOpen || category !== 'all' || source !== 'all') && (
-          <div className="signal-feed__advanced-filters">
+          <Suspense fallback={null}>
+            <div className="signal-feed__advanced-filters">
             <div className="signal-feed__filter-actions">
               <div className="signal-feed__publisher">
                 <Select
@@ -354,7 +367,8 @@ export function NewsFeed({
                 onAdd: (chip) => setCategory(chip.value ?? 'all'),
               }}
             />
-          </div>
+            </div>
+          </Suspense>
         )}
         {view !== 'saved' && sourceStates.length > 0 && (
           <div className="signal-feed__count" role="status">
