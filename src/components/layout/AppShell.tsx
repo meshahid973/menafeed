@@ -162,7 +162,7 @@ export function AppShell({ desktopStatus }: AppShellProps) {
                 All countries ×
               </button>
             )}
-            <span>Middle East &amp; North Africa</span>
+            <span>World news · geographic context</span>
             <button
               className="signal-shell__search"
               type="button"
