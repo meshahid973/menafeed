@@ -68,7 +68,7 @@ describe('news desk', () => {
     expect(await screen.findByText('Regional energy talks')).toBeInTheDocument();
     expect(screen.getAllByText('Regional energy talks')).toHaveLength(1);
     fireEvent.click(screen.getByRole('button', { name: 'Filter news' }));
-    const publisher = screen.getByRole('combobox', { name: 'Publisher' });
+    const publisher = await screen.findByRole('combobox', { name: 'Publisher' });
     fireEvent.click(publisher);
     const option = await screen.findByRole('option', { name: 'France 24' });
     fireEvent.pointerUp(option, { pointerId: 1, pointerType: 'mouse', button: 0 });
