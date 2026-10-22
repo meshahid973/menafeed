@@ -4,13 +4,13 @@ A self-contained, offline-first **orthographic world globe** built with D3 Geo a
 
 ## Globe interaction
 
-The circular horizon, radial shading and graticule create a spherical view without a WebGL dependency or a permanently running animation loop. Drag to rotate, scroll or use the controls to zoom without an arbitrary upper zoom ceiling. Reset animates a full spin and an eased zoom back to the default MENA-centered view. Keyboard arrows rotate the focused globe; plus and minus zoom.
+The circular horizon, radial shading and graticule create a spherical view without a WebGL dependency or a permanently running animation loop. Drag to rotate, scroll or use the controls to zoom without an arbitrary upper zoom ceiling. Pointer and wheel updates are frame-throttled to reduce full SVG path recalculation on every input event. Reset animates a full spin and an eased zoom back to the default MENA-centered view. Clicking a country smoothly rotates and zooms toward its geographic centroid. Keyboard arrows rotate the focused globe; plus and minus zoom.
 
-Country polygons are selectable across the world, not just inside the MENA region. The existing MENA country picker remains as a shortcut list. Tiny-country locator dots have been removed from the boundary layer; when a country's outline is too small to see at world scale, zoom in to inspect the available map geometry.
+Country polygons are selectable across the world, not just inside the MENA region. Country names are rendered directly on the globe using overlap-aware placement and become denser as the user zooms in. The existing MENA country picker remains as a shortcut list. Tiny-country locator dots have been removed from the boundary layer; when a country's outline is too small to see at world scale, zoom in to inspect the available map geometry.
 
 ## Cities and geographic context
 
-Major populated places from Natural Earth's ne_110m_populated_places dataset are bundled offline. City points appear as the globe is zoomed in; country capitals and larger cities receive labels at closer zoom levels. City coordinates are reference locations, not proof that a news event took place there.
+Major populated places from Natural Earth's ne_110m_populated_places dataset are bundled offline. City points and city names appear only for the currently selected country; capitals and larger cities receive labels at closer zoom levels. City coordinates are reference locations, not proof that a news event took place there.
 
 ## World news and country filtering
 
