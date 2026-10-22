@@ -81,6 +81,51 @@ mod tests {
     }
 
     #[test]
+    fn upgrades_v2_with_utc_backfill_and_preserves_undated_reports() {
+        let mut db = Connection::open_in_memory().unwrap();
+        db.execute_batch(include_str!("../../migrations/0001_initialize.sql"))
+            .unwrap();
+        db.execute_batch(include_str!("../../migrations/0002_news_intelligence.sql"))
+            .unwrap();
+        db.pragma_update(None, "user_version", 2).unwrap();
+        db.execute(
+            "INSERT INTO news_articles
+             (canonical_url,payload_json,title,source_id,category,cluster_id,published_at,first_seen,last_seen)
+             VALUES ('https://example.org/a','{}','a','test','general','',?1,100,100)",
+            ["2026-10-23T00:00:00+03:00"],
+        )
+        .unwrap();
+        db.execute(
+            "INSERT INTO news_articles
+             (canonical_url,payload_json,title,source_id,category,cluster_id,first_seen,last_seen)
+             VALUES ('https://example.org/b','{}','b','test','general','',100,100)",
+            [],
+        )
+        .unwrap();
+        migrate(&mut db).unwrap();
+        let stored: Option<i64> = db
+            .query_row(
+                "SELECT published_epoch FROM news_articles WHERE title = 'a'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        let epoch = chrono::DateTime::parse_from_rfc3339("2026-10-23T00:00:00+03:00")
+            .unwrap()
+            .timestamp();
+        assert_eq!(stored, Some(epoch));
+        let missing: Option<i64> = db
+            .query_row(
+                "SELECT published_epoch FROM news_articles WHERE title = 'b'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(missing, None);
+        migrate(&mut db).unwrap();
+    }
+
+    #[test]
     fn refuses_a_newer_schema_instead_of_downgrading_it() {
         let mut db = Connection::open_in_memory().expect("in-memory SQLite");
         db.pragma_update(None, "user_version", 99)

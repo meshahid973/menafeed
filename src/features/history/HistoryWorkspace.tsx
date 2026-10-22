@@ -79,7 +79,7 @@ export function HistoryWorkspace({
 
   const count: 24 | 28 = period === 'day' ? 24 : 28;
   const step = period === 'day' ? HOUR : HOUR * 6;
-  const end = useMemo(() => Math.floor(Date.now() / 1000 / step) * step, [step, revision]);
+  const end = useMemo(() => Math.ceil(Date.now() / 1000 / step) * step, [step, revision]);
   const start = end - (period === 'day' ? DAY : 7 * DAY);
   const index = Math.min(slot, count - 1);
   const key = `${start}:${end}:${index}:${country ?? ''}:${revision}`;
