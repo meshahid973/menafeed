@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent, ReactNode, RefObject } from 'react';
 import { flushSync } from 'react-dom';
 import {
@@ -43,6 +43,12 @@ export interface ExpandingSearchProps {
   placeholder?: string;
   onSelect?: (item: ExpandingSearchItem) => void;
   onExpandedChange?: (expanded: boolean) => void;
+  /** Forward typed text to an optional SQLite-backed search adapter. */
+  onQueryChange?: (query: string) => void;
+  /** Accept server-ranked results as-is, including multiword FTS matches. */
+  resultsArePreRanked?: boolean;
+  /** A changing number opens the search from a keyboard shortcut. */
+  openRequest?: number;
   /** The widest the field grows. It never grows past its container. */
   expandedWidth?: number;
   maxResults?: number;
@@ -324,6 +330,9 @@ export function ExpandingSearch({
   placeholder,
   onSelect,
   onExpandedChange,
+  onQueryChange,
+  resultsArePreRanked = false,
+  openRequest = 0,
   expandedWidth = 360,
   maxResults = 6,
   anchor = 'end',
@@ -336,6 +345,7 @@ export function ExpandingSearch({
   const shellRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const lastOpenRequest = useRef(0);
   const [expanded, setExpanded] = useState(false);
   const [focused, setFocused] = useState(false);
   const [query, setQuery] = useState('');
@@ -411,15 +421,23 @@ export function ExpandingSearch({
       setQuery('');
       setActive(-1);
     });
+    onQueryChange?.('');
     if (returnFocus) buttonRef.current?.focus({ preventScroll: true });
     morphTo(size.current.collapsed);
     onExpandedChange?.(false);
   }
 
+  useEffect(() => {
+    if (openRequest > 0 && lastOpenRequest.current !== openRequest) {
+      lastOpenRequest.current = openRequest;
+      buttonRef.current?.click();
+    }
+  }, [openRequest]);
+
   const trimmed = query.trim();
   const results = useMemo(
-    () => (trimmed ? rank(items, trimmed, maxResults) : []),
-    [items, trimmed, maxResults],
+    () => (trimmed ? (resultsArePreRanked ? items.slice(0, maxResults) : rank(items, trimmed, maxResults)) : []),
+    [items, trimmed, maxResults, resultsArePreRanked],
   );
   const mode: Mode | null = !trimmed
     ? suggestions.length
@@ -539,6 +557,7 @@ export function ExpandingSearch({
           onChange={(event) => {
             const next = event.target.value;
             setQuery(next);
+            onQueryChange?.(next);
             setActive(next.trim() ? 0 : -1);
             keyboard.current = false;
           }}
@@ -562,6 +581,7 @@ export function ExpandingSearch({
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => {
                 setQuery('');
+                onQueryChange?.('');
                 setActive(-1);
                 inputRef.current?.focus({ preventScroll: true });
               }}
