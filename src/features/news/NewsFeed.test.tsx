@@ -352,7 +352,9 @@ describe('news desk', () => {
     const relatedTab = screen.getByRole('tab', { name: /Related coverage/ });
     fireEvent.click(relatedTab);
     fireEvent.click(screen.getByRole('button', { name: /Cultural event announced/ }));
-    expect(await screen.findByRole('heading', { name: 'Cultural event announced' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'Cultural event announced' }),
+    ).toBeInTheDocument();
   });
 
   it('copies the selected publisher link on demand', async () => {
