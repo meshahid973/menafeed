@@ -68,3 +68,31 @@ export function isInsideMap(point: readonly [number, number]): boolean {
     y <= MAP_BOUNDS.maxY
   );
 }
+
+export interface CountryFocus {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/**
+ * Computes the selected country's centre and projected bounds for a simple
+ * zoom-and-pan camera target. The map is never rotated.
+ */
+export function getCountryFocus(feature: CountryFeature): CountryFocus | null {
+  const [[x0, y0], [x1, y1]] = COUNTRY_PATH.bounds(feature);
+  const [centroidX, centroidY] = COUNTRY_PATH.centroid(feature);
+  if (![x0, y0, x1, y1, centroidX, centroidY].every(Number.isFinite)) return null;
+
+  const width = x1 - x0;
+  const height = y1 - y0;
+  if (width <= 0 || height <= 0) return null;
+
+  return {
+    x: centroidX >= x0 && centroidX <= x1 ? centroidX : (x0 + x1) / 2,
+    y: centroidY >= y0 && centroidY <= y1 ? centroidY : (y0 + y1) / 2,
+    width,
+    height,
+  };
+}

@@ -104,9 +104,119 @@ describe('news desk', () => {
     render(
       <FeedHarness desktopStatus={{ kind: 'ready', schemaVersion: 1 }} selectedCountry="BH" />,
     );
-    await waitFor(() =>
-      expect(screen.getByText(/No location-verified reports/)).toBeInTheDocument(),
+    await waitFor(() => expect(screen.getByText(/No country-related reports/)).toBeInTheDocument());
+    expect(screen.queryByText('Regional energy talks')).not.toBeInTheDocument();
+  });
+
+  it('shows country-relevant stories without pretending a text mention is exact geolocation', async () => {
+    const taggedStory = {
+      ...sample.articles[0]!,
+      title: 'Egyptian aid talks continue after Gaza meeting',
+      countryCodes: ['EG', 'PS'],
+      location: { precision: 'unknown' as const },
+    };
+    vi.mocked(getNewsFeed).mockResolvedValueOnce({ ...sample, articles: [taggedStory] });
+    const { rerender } = render(
+      <FeedHarness desktopStatus={{ kind: 'ready', schemaVersion: 1 }} selectedCountry="EG" />,
     );
+    expect(
+      await screen.findByText('Egyptian aid talks continue after Gaza meeting'),
+    ).toBeInTheDocument();
+
+    rerender(
+      <FeedHarness desktopStatus={{ kind: 'ready', schemaVersion: 1 }} selectedCountry="PS" />,
+    );
+    expect(
+      await screen.findByText('Egyptian aid talks continue after Gaza meeting'),
+    ).toBeInTheDocument();
+
+    rerender(
+      <FeedHarness desktopStatus={{ kind: 'ready', schemaVersion: 1 }} selectedCountry="BH" />,
+    );
+    await waitFor(() =>
+      expect(
+        screen.queryByText('Egyptian aid talks continue after Gaza meeting'),
+      ).not.toBeInTheDocument(),
+    );
+  });
+
+  it('keeps the selected-country label and articles synchronized across rapid country changes', async () => {
+    const countryArticles: NewsFeedResponse['articles'] = [
+      {
+        ...sample.articles[0]!,
+        id: 'egypt-story',
+        title: 'Egypt tagged report',
+        url: 'https://www.bbc.com/news/egypt-story',
+        location: { precision: 'country', countryCode: 'EG' },
+      },
+      {
+        ...sample.articles[0]!,
+        id: 'saudi-story',
+        title: 'Saudi Arabia tagged report',
+        url: 'https://www.bbc.com/news/saudi-story',
+        location: { precision: 'country', countryCode: 'SA' },
+      },
+      {
+        ...sample.articles[0]!,
+        id: 'morocco-story',
+        title: 'Morocco tagged report',
+        url: 'https://www.bbc.com/news/morocco-story',
+        location: { precision: 'country', countryCode: 'MA' },
+      },
+      ...sample.articles,
+    ];
+    vi.mocked(getNewsFeed).mockResolvedValueOnce({ ...sample, articles: countryArticles });
+
+    const { rerender } = render(
+      <FeedHarness desktopStatus={{ kind: 'ready', schemaVersion: 1 }} selectedCountry="EG" />,
+    );
+
+    expect(await screen.findByText('Egypt tagged report')).toBeInTheDocument();
+    expect(screen.getByText('Now showing news for Egypt')).toBeInTheDocument();
+    expect(screen.queryByText('Saudi Arabia tagged report')).not.toBeInTheDocument();
+    expect(screen.queryByText('Morocco tagged report')).not.toBeInTheDocument();
+    expect(screen.queryByText('Regional energy talks')).not.toBeInTheDocument();
+
+    rerender(
+      <FeedHarness desktopStatus={{ kind: 'ready', schemaVersion: 1 }} selectedCountry="SA" />,
+    );
+    expect(await screen.findByText('Saudi Arabia tagged report')).toBeInTheDocument();
+    expect(screen.getByText('Now showing news for Saudi Arabia')).toBeInTheDocument();
+    expect(screen.queryByText('Egypt tagged report')).not.toBeInTheDocument();
+
+    rerender(
+      <FeedHarness desktopStatus={{ kind: 'ready', schemaVersion: 1 }} selectedCountry="MA" />,
+    );
+    expect(await screen.findByText('Morocco tagged report')).toBeInTheDocument();
+    expect(screen.getByText('Now showing news for Morocco')).toBeInTheDocument();
+    expect(screen.queryByText('Saudi Arabia tagged report')).not.toBeInTheDocument();
+  });
+
+  it('keeps country filtering active in the full News view', async () => {
+    vi.mocked(getNewsFeed).mockResolvedValueOnce({
+      ...sample,
+      articles: [
+        {
+          ...sample.articles[0]!,
+          id: 'egypt-only',
+          title: 'Publisher-tagged Egypt report',
+          url: 'https://www.bbc.com/news/egypt-only',
+          location: { precision: 'country', countryCode: 'EG' },
+        },
+        sample.articles[0]!,
+      ],
+    });
+
+    render(
+      <FeedHarness
+        desktopStatus={{ kind: 'ready', schemaVersion: 1 }}
+        view="news"
+        selectedCountry="EG"
+      />,
+    );
+
+    expect(await screen.findByText('Publisher-tagged Egypt report')).toBeInTheDocument();
+    expect(screen.getByText('Now showing news for Egypt')).toBeInTheDocument();
     expect(screen.queryByText('Regional energy talks')).not.toBeInTheDocument();
   });
 

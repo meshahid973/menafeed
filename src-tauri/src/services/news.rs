@@ -14,7 +14,9 @@ use rusqlite::{params, OptionalExtension};
 use serde::{Deserialize, Serialize};
 use tauri::AppHandle;
 
-use super::sources::{approved_feed_host, is_mena_relevant, Source, SOURCES};
+use super::sources::{
+    approved_feed_host, country_codes_from_text, is_mena_relevant, Source, SOURCES,
+};
 use crate::database;
 
 const MAX_FEED_BYTES: usize = 1_500_000;
@@ -28,12 +30,19 @@ pub struct FeedArticle {
     url: String,
     published_at: Option<String>,
     summary: Option<String>,
-    location: UnknownLocation,
+    location: ArticleLocation,
+    #[serde(default)]
+    country_codes: Vec<String>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-struct UnknownLocation {
-    precision: String,
+#[serde(tag = "precision", rename_all = "lowercase")]
+enum ArticleLocation {
+    Unknown,
+    Country {
+        #[serde(rename = "countryCode")]
+        country_code: String,
+    },
 }
 
 #[derive(Serialize)]
@@ -241,9 +250,8 @@ async fn load_reliefweb(
                         url,
                         published_at: item.published_at,
                         summary: None,
-                        location: UnknownLocation {
-                            precision: "unknown".into(),
-                        },
+                        location: ArticleLocation::Unknown,
+                        country_codes: item.country_codes,
                     })
                 })
                 .take(source.max_articles)
@@ -355,6 +363,8 @@ fn parse_source(xml: &[u8], source: Source) -> Result<Vec<FeedArticle>, String> 
             continue;
         }
 
+        let country_codes =
+            country_codes_from_entry(&entry.categories, &title, summary.as_deref().unwrap_or(""));
         articles.push(FeedArticle {
             id: url.clone(),
             source_id: source.id.into(),
@@ -366,14 +376,108 @@ fn parse_source(xml: &[u8], source: Source) -> Result<Vec<FeedArticle>, String> 
                 .or(entry.updated)
                 .map(|date| date.to_rfc3339()),
             summary,
-            location: UnknownLocation {
-                precision: "unknown".into(),
-            },
+            location: location_from_categories(&entry.categories),
+            country_codes,
         });
     }
 
     articles.truncate(source.max_articles);
     Ok(articles)
+}
+
+/// Assign country precision only when a publisher's category explicitly names
+/// exactly one MENA country. Headline and summary text are never geocoded here.
+fn location_from_categories(categories: &[feed_rs::model::Category]) -> ArticleLocation {
+    let mut country_codes = HashSet::new();
+    for category in categories {
+        if let Some(code) = country_code_from_category(&category.term) {
+            country_codes.insert(code);
+        }
+        if let Some(label) = category.label.as_deref() {
+            if let Some(code) = country_code_from_category(label) {
+                country_codes.insert(code);
+            }
+        }
+    }
+
+    if country_codes.len() == 1 {
+        ArticleLocation::Country {
+            country_code: country_codes
+                .into_iter()
+                .next()
+                .unwrap_or_default()
+                .to_string(),
+        }
+    } else {
+        // Multiple country tags are ambiguous for a single-country filter.
+        ArticleLocation::Unknown
+    }
+}
+
+fn country_codes_from_entry(
+    categories: &[feed_rs::model::Category],
+    title: &str,
+    summary: &str,
+) -> Vec<String> {
+    let mut country_codes = HashSet::new();
+    for category in categories {
+        if let Some(code) = country_code_from_category(&category.term) {
+            country_codes.insert(code.to_string());
+        }
+        if let Some(label) = category.label.as_deref() {
+            if let Some(code) = country_code_from_category(label) {
+                country_codes.insert(code.to_string());
+            }
+            country_codes.extend(country_codes_from_text(label));
+        }
+        country_codes.extend(country_codes_from_text(&category.term));
+    }
+    country_codes.extend(country_codes_from_text(title));
+    country_codes.extend(country_codes_from_text(summary));
+    let mut country_codes = country_codes.into_iter().collect::<Vec<_>>();
+    country_codes.sort();
+    country_codes
+}
+
+fn country_code_from_category(value: &str) -> Option<&'static str> {
+    let normalized = value
+        .trim()
+        .to_ascii_lowercase()
+        .replace(['_', '-'], " ")
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ");
+
+    match normalized.as_str() {
+        "algeria" => Some("DZ"),
+        "bahrain" => Some("BH"),
+        "djibouti" => Some("DJ"),
+        "egypt" => Some("EG"),
+        "eritrea" => Some("ER"),
+        "iran" | "iranian" => Some("IR"),
+        "iraq" | "iraqi" => Some("IQ"),
+        "israel" | "israeli" => Some("IL"),
+        "jordan" | "jordanian" => Some("JO"),
+        "kuwait" | "kuwaiti" => Some("KW"),
+        "lebanon" | "lebanese" => Some("LB"),
+        "libya" | "libyan" => Some("LY"),
+        "mauritania" => Some("MR"),
+        "morocco" | "moroccan" => Some("MA"),
+        "oman" | "omani" => Some("OM"),
+        "palestine" | "palestinian territories" | "west bank and gaza" | "west bank" => Some("PS"),
+        "qatar" | "qatari" => Some("QA"),
+        "saudi arabia" | "saudi" | "ksa" => Some("SA"),
+        "somalia" | "somali" => Some("SO"),
+        "sudan" | "sudanese" => Some("SD"),
+        "syria" | "syrian" => Some("SY"),
+        "tunisia" | "tunisian" => Some("TN"),
+        "turkiye" | "türkiye" | "turkey" => Some("TR"),
+        "united arab emirates" | "uae" | "emirates" => Some("AE"),
+        "yemen" | "yemeni" => Some("YE"),
+        "western sahara" | "sahrawi arab democratic republic" => Some("EH"),
+        "cyprus" | "cypriot" => Some("CY"),
+        _ => None,
+    }
 }
 
 fn clean_text(input: &str, limit: usize) -> String {
@@ -434,10 +538,28 @@ fn read_cache(app: &AppHandle, source: &str) -> Result<Option<Cached>, String> {
     row.map(|(json, expires_at)| {
         let stored: StoredFormat =
             serde_json::from_str(&json).map_err(|_| "Cached feed is invalid")?;
-        let (articles, headers) = match stored {
+        let (mut articles, headers) = match stored {
             StoredFormat::Legacy(articles) => (articles, CacheHeaders::default()),
             StoredFormat::Current(data) => (data.articles, data.headers),
         };
+        // Older cache entries predate country relevance tags. Backfill them
+        // from their saved text so country filters work immediately after upgrade.
+        for article in &mut articles {
+            if article.country_codes.is_empty() {
+                let text = format!(
+                    "{} {}",
+                    article.title,
+                    article.summary.as_deref().unwrap_or("")
+                );
+                let mut codes = country_codes_from_text(&text);
+                if let ArticleLocation::Country { country_code } = &article.location {
+                    codes.push(country_code.clone());
+                }
+                codes.sort();
+                codes.dedup();
+                article.country_codes = codes;
+            }
+        }
         Ok(Cached {
             articles,
             headers,
@@ -492,9 +614,64 @@ mod tests {
         </channel></rss>"#;
         let articles = parse_source(feed, SOURCES[0]).unwrap();
         assert_eq!(articles.len(), 1);
-        assert_eq!(articles[0].location.precision, "unknown");
+        assert!(matches!(&articles[0].location, ArticleLocation::Unknown));
         assert_eq!(articles[0].source_id, "bbc");
         assert!(articles[0].published_at.is_some());
+    }
+
+    #[test]
+    fn only_explicit_single_country_categories_produce_country_precision() {
+        let tagged = br#"<rss version="2.0"><channel><title>Test</title>
+        <item><title>Regional update</title><link>https://example.org/story</link>
+        <category>Egypt</category></item>
+        </channel></rss>"#;
+        let articles = parse_source(tagged, SOURCES[0]).unwrap();
+        assert_eq!(articles.len(), 1);
+        assert!(matches!(
+            &articles[0].location,
+            ArticleLocation::Country { country_code } if country_code == "EG"
+        ));
+        assert_eq!(articles[0].country_codes, vec!["EG"]);
+        let json = serde_json::to_value(&articles[0]).unwrap();
+        assert_eq!(json["location"]["precision"], "country");
+        assert_eq!(json["location"]["countryCode"], "EG");
+    }
+
+    #[test]
+    fn country_mentions_create_relevance_tags_without_claiming_exact_location() {
+        let feed = br#"<rss version="2.0"><channel><title>Test</title>
+        <item><title>Egyptian officials discuss aid with Saudi Arabia</title>
+        <link>https://example.org/story</link>
+        <description>Talks also cover neighbouring countries.</description></item>
+        </channel></rss>"#;
+        let articles = parse_source(feed, SOURCES[0]).unwrap();
+        assert_eq!(articles.len(), 1);
+        assert_eq!(articles[0].country_codes, vec!["EG", "SA"]);
+        assert!(matches!(&articles[0].location, ArticleLocation::Unknown));
+        let json = serde_json::to_value(&articles[0]).unwrap();
+        assert_eq!(json["countryCodes"], serde_json::json!(["EG", "SA"]));
+        assert_eq!(json["location"]["precision"], "unknown");
+    }
+
+    #[test]
+    fn headline_mentions_never_assign_country_location() {
+        let feed = br#"<rss version="2.0"><channel><title>Test</title>
+        <item><title>Egypt and Morocco discussed at regional meeting</title>
+        <link>https://example.org/story</link><description>Talks include Saudi Arabia.</description></item>
+        </channel></rss>"#;
+        let articles = parse_source(feed, SOURCES[0]).unwrap();
+        assert_eq!(articles.len(), 1);
+        assert!(matches!(&articles[0].location, ArticleLocation::Unknown));
+    }
+
+    #[test]
+    fn multiple_country_categories_are_not_force_assigned() {
+        let feed = br#"<rss version="2.0"><channel><title>Test</title>
+        <item><title>Regional update</title><link>https://example.org/story</link>
+        <category>Egypt</category><category>Morocco</category></item>
+        </channel></rss>"#;
+        let articles = parse_source(feed, SOURCES[0]).unwrap();
+        assert!(matches!(&articles[0].location, ArticleLocation::Unknown));
     }
 
     #[test]

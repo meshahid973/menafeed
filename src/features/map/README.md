@@ -48,6 +48,14 @@ The feature has no dependency on SIGNAL's news feature or app state. It reuses t
 
 The editorial coverage manifest contains 27 entries, including Western Sahara, Palestine and Cyprus. Coverage is a product decision, not a declaration of sovereignty. Natural Earth-style cartography is generalized at small scales and commonly represents de-facto administrative lines. Western Sahara, Israel/Palestine, Cyprus and other contested areas can differ by cartographic source or zoom level. The boundaries are for context and news visualization only; they are not legal, surveying, military, or diplomatic reference lines. Bahrain uses a higher-resolution supplement because very small Gulf island geometry is lost in generalized country datasets.
 
+## Country focus and newsroom filtering
+
+Selecting a country gently zooms and recentres the existing regional map over 480 ms. The target comes from the country's projected bounds and centre, with a restrained maximum zoom. The map never rotates; it keeps the same projection and simply moves and scales into focus. Switching countries smoothly updates the focus, clearing selection returns to the regional overview, and system reduced-motion preferences bypass the animation.
+
+This feature remains a projected 2D regional map, not a perspective 3D globe. Country focus is a simple zoom-and-pan transition rather than spherical camera movement.
+
+Country-news filtering uses separate `countryCodes` **relevance tags**, populated from explicit publisher categories and recognized country/place mentions in headlines and summaries. A mention is not evidence of an event location: precise `location` remains unknown unless publisher metadata explicitly supports a single country. Multi-country reporting can appear under each relevant country. This is rule-based matching and can be incomplete; no city coordinates or event dots are inferred from mentions.
+
 ## Interaction and accessibility
 
 - The region opens centered on North Africa and West Asia with country hover/selection highlighting.

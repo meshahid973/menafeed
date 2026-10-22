@@ -122,10 +122,12 @@ export function NewsFeed({
     const base = view === 'saved' ? bookmarks : (data?.articles ?? []);
     return deduplicate(base).filter((article) => {
       if (view !== 'saved' && source !== 'all' && article.sourceId !== source) return false;
-      if (view === 'explore' && selectedCountry) {
+      if (view !== 'saved' && selectedCountry) {
         const location = article.location;
-        if (location.precision === 'unknown' || location.countryCode !== selectedCountry)
-          return false;
+        const matchesCountry =
+          article.countryCodes?.includes(selectedCountry) ||
+          (location.precision !== 'unknown' && location.countryCode === selectedCountry);
+        if (!matchesCountry) return false;
       }
       return (
         !deferredQuery ||
@@ -183,13 +185,7 @@ export function NewsFeed({
       <div className="signal-feed__intro">
         <div className="signal-feed__heading">
           <h2>
-            {view === 'saved'
-              ? 'Saved stories'
-              : view === 'news'
-                ? 'The briefing'
-                : selectedCountry
-                  ? getMenaCountryName(selectedCountry)
-                  : 'Latest'}
+            {view === 'saved' ? 'Saved stories' : view === 'news' ? 'The briefing' : 'Latest'}
           </h2>
           {view !== 'saved' && (
             <div className="signal-feed__actions">
@@ -219,6 +215,11 @@ export function NewsFeed({
           )}
         </div>
         {view === 'saved' && <p>Your saved reports, available offline.</p>}
+        {view !== 'saved' && selectedCountry && (
+          <p key={selectedCountry} className="signal-feed__country-context" aria-live="polite">
+            Now showing news for {getMenaCountryName(selectedCountry)}
+          </p>
+        )}
         {searchOpen && view !== 'saved' && (
           <input
             ref={searchRef}
@@ -301,7 +302,7 @@ export function NewsFeed({
               {view === 'saved'
                 ? 'No saved stories yet. Bookmark a report to see it here.'
                 : selectedCountry
-                  ? 'No location-verified reports for this country yet. RSS stories are not automatically geotagged.'
+                  ? 'No country-related reports for this country yet. Try refreshing for the latest stories.'
                   : query || source !== 'all'
                     ? 'No matching stories.'
                     : 'No reports available.'}

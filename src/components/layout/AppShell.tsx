@@ -122,7 +122,7 @@ export function AppShell({ desktopStatus }: AppShellProps) {
       onToggleBookmark={bookmarks.toggle}
       searchRequest={searchRequest}
       feed={feed}
-      selectedCountry={view === 'explore' ? country : null}
+      selectedCountry={country}
       onClearCountry={() => setCountry(null)}
       selectedArticleId={selectedStory}
       onStoryHandled={() => setSelectedStory(null)}
