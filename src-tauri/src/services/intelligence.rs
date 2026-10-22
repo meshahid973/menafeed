@@ -340,6 +340,8 @@ mod tests {
         let mut conn = Connection::open_in_memory().unwrap();
         conn.execute_batch(include_str!("../../migrations/0002_news_intelligence.sql"))
             .unwrap();
+        conn.execute_batch(include_str!("../../migrations/0003_reporting_history.sql"))
+            .unwrap();
         let mut response = json!({"articles":[{"url":"https://example.org/sudan","title":"Sudan humanitarian aid","summary":"Relief report","sourceId":"s","sourceName":"Publisher","id":"s1","publishedAt":"2026-10-21T10:00:00Z","location":{"precision":"unknown"}}]});
         enrich(&mut response);
         save(&mut conn, &response).unwrap();
@@ -354,6 +356,8 @@ mod tests {
     fn can_restore_persisted_history_when_sources_fail() {
         let mut conn = Connection::open_in_memory().unwrap();
         conn.execute_batch(include_str!("../../migrations/0002_news_intelligence.sql"))
+            .unwrap();
+        conn.execute_batch(include_str!("../../migrations/0003_reporting_history.sql"))
             .unwrap();
         let mut response = json!({"articles":[{"id":"1","url":"https://example.org/offline","title":"Offline saved article","sourceId":"bbc","publishedAt":"2026-10-21T10:00:00Z","location":{"precision":"unknown"}}]});
         enrich(&mut response);
