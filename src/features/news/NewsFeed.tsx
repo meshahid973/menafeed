@@ -8,6 +8,7 @@ import { SearchField } from '../../components/arc/search-field/search-field';
 import { FilterPopover } from '../../components/arc/popover/popover';
 import type { FilterChip, FilterField } from '../../components/arc/filter-toolbar/filter-toolbar';
 import { EmptyState } from '../../components/arc/empty-state/empty-state';
+import { PublisherSelection } from '../../components/news/PublisherSelection';
 import { ArticleReader } from './ArticleReader';
 import type { FeedArticle } from './contracts';
 import { StoryCard } from './StoryCard';
@@ -19,9 +20,6 @@ import { RefreshCw, Search, X, Newspaper, Bookmark } from 'lucide-react';
 import './NewsFeed.css';
 
 // These controls are loaded only when the user opens advanced filters.
-const Select = lazy(() =>
-  import('../../components/arc/select/select').then((module) => ({ default: module.Select })),
-);
 const FilterToolbar = lazy(() =>
   import('../../components/arc/filter-toolbar/filter-toolbar').then((module) => ({
     default: module.FilterToolbar,
@@ -73,7 +71,7 @@ export function NewsFeed({
 }: Props) {
   const enabled = desktopStatus.kind === 'ready' && view !== 'saved';
   const { data, error, loading, refreshing, refresh } = feed;
-  const [source, setSource] = useState('all');
+  const [source, setSource] = useState<string[]>([]);
   const [category, setCategory] = useState('all');
   const [sort, setSort] = useState<'newest' | 'oldest'>('newest');
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -207,13 +205,6 @@ export function NewsFeed({
     () => (category === 'all' ? [] : [{ id: 'category', label: 'Category', value: category }]),
     [category],
   );
-  const publisherOptions = useMemo(
-    () => [
-      { value: 'all', label: 'All publishers' },
-      ...(data?.sources ?? []).map((item) => ({ value: item.id, label: item.name })),
-    ],
-    [data?.sources],
-  );
 
   const articles = useMemo(() => {
     const live = view === 'saved' ? bookmarks : (data?.articles ?? []);
@@ -235,7 +226,7 @@ export function NewsFeed({
         const key = article.canonicalUrl ?? article.url;
         if (seenUrls.has(key)) return false;
         seenUrls.add(key);
-        if (view !== 'saved' && source !== 'all' && article.sourceId !== source) return false;
+        if (view !== 'saved' && source.length > 0 && !source.includes(article.sourceId)) return false;
         if (view !== 'saved' && category !== 'all' && (article.category ?? 'general') !== category)
           return false;
         if (view !== 'saved' && selectedCountry) {
@@ -309,6 +300,24 @@ export function NewsFeed({
   const unavailable = sourceStates.some((item) => item.mode === 'unavailable');
   const available = sourceStates.filter((item) => item.mode !== 'unavailable').length;
 
+  // Only show related reporting when independent publishers share the exact
+  // backend event-cluster ID. No speculative headline similarity.
+  const relatedArticles = useMemo(() => {
+    if (!selected?.clusterId) return [];
+    const seen = new Set<string>([selected.canonicalUrl ?? selected.url]);
+    const publishers = new Set<string>([selected.sourceId]);
+    return [...(data?.articles ?? []), ...cachedMatches.articles, ...bookmarks]
+      .filter((article) => {
+        const key = article.canonicalUrl ?? article.url;
+        if (!article.clusterId || article.clusterId !== selected.clusterId ||
+          seen.has(key) || publishers.has(article.sourceId)) return false;
+        seen.add(key);
+        publishers.add(article.sourceId);
+        return true;
+      })
+      .slice(0, 6);
+  }, [selected, data?.articles, cachedMatches.articles, bookmarks]);
+
   return (
     <section
       className={`signal-feed${isFull ? ' signal-feed--full' : ''}`}
@@ -338,17 +347,16 @@ export function NewsFeed({
               <FilterPopover
                 open={filtersOpen}
                 onOpenChange={setFiltersOpen}
-                active={category !== 'all' || source !== 'all' || sort !== 'newest'}
+                active={category !== 'all' || source.length > 0 || sort !== 'newest'}
               >
                 <Suspense fallback={<div className="signal-feed__filter-loading" />}>
                   <div className="signal-feed__advanced-filters">
                     <div className="signal-feed__filter-actions">
                       <div className="signal-feed__publisher">
-                        <Select
-                          label="Publisher"
-                          value={source}
-                          onValueChange={setSource}
-                          options={publisherOptions}
+                        <PublisherSelection
+                          sources={data?.sources ?? []}
+                          selected={source}
+                          onChange={setSource}
                         />
                       </div>
                       <DropdownMenu
@@ -407,18 +415,19 @@ export function NewsFeed({
             />
           </div>
         )}
-        {view !== 'saved' && (category !== 'all' || source !== 'all' || sort !== 'newest') && (
+        {view !== 'saved' && (category !== 'all' || source.length > 0 || sort !== 'newest') && (
           <div className="signal-feed__active-filters" aria-label="Active news filters">
-            {source !== 'all' && (
+            {source.map((sourceId) => (
               <button
+                key={sourceId}
                 type="button"
-                onClick={() => setSource('all')}
-                aria-label="Clear publisher filter"
+                onClick={() => setSource((current) => current.filter((id) => id !== sourceId))}
+                aria-label={`Clear publisher filter: ${sourceId}`}
               >
-                {publisherOptions.find((item) => item.value === source)?.label ?? source}
+                {data?.sources.find((item) => item.id === sourceId)?.name ?? sourceId}
                 <X size={12} aria-hidden="true" />
               </button>
-            )}
+            ))}
             {category !== 'all' && (
               <button
                 type="button"
@@ -518,7 +527,7 @@ export function NewsFeed({
                     ? 'No saved stories yet. Bookmark a report to see it here.'
                     : selectedCountry
                       ? 'No country-related reports for this country yet. Try refreshing for the latest stories.'
-                      : query || source !== 'all' || category !== 'all'
+                      : query || source.length > 0 || category !== 'all'
                         ? 'No matching stories.'
                         : 'No reports available.'
                 }
@@ -552,6 +561,9 @@ export function NewsFeed({
               key={selected.id}
               article={selected}
               saved={savedUrls.has(selected.url)}
+              relatedArticles={relatedArticles}
+              source={sourceStates.find((item) => item.id === selected.sourceId)}
+              onRelatedSelect={setSelected}
               onBack={back}
               onOpen={(url) => void handleOpen(url)}
               onToggleSave={() => onToggleBookmark(selected)}
