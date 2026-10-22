@@ -72,7 +72,11 @@ export function HistoryWorkspace({
   const [period, setPeriod] = useState<Period>('day');
   const [slot, setSlot] = useState(23);
   const [revision, setRevision] = useState(0);
-  const [loaded, setLoaded] = useState<{ key: string; data: HistorySnapshot } | null>(null);
+  const [loaded, setLoaded] = useState<{
+    key: string;
+    rangeKey: string;
+    data: HistorySnapshot;
+  } | null>(null);
   const [failed, setFailed] = useState<{ key: string; message: string } | null>(null);
   const [reading, setReading] = useState<FeedArticle | null>(null);
   const [openError, setOpenError] = useState(false);
@@ -82,8 +86,10 @@ export function HistoryWorkspace({
   const end = useMemo(() => Math.ceil(Date.now() / 1000 / step) * step, [step, revision]);
   const start = end - (period === 'day' ? DAY : 7 * DAY);
   const index = Math.min(slot, count - 1);
-  const key = `${start}:${end}:${index}:${country ?? ''}:${revision}`;
+  const rangeKey = `${start}:${end}:${country ?? ''}:${revision}`;
+  const key = `${rangeKey}:${index}`;
   const data = loaded?.key === key ? loaded.data : null;
+  const summary = loaded?.rangeKey === rangeKey ? loaded.data : null;
   const error = failed?.key === key ? failed.message : null;
   const loading = desktopStatus.kind === 'ready' && !data && !error;
 
@@ -94,7 +100,7 @@ export function HistoryWorkspace({
       void getReportingHistory(start, end, count, index, country)
         .then((response) => {
           if (!active) return;
-          setLoaded({ key, data: response });
+          setLoaded({ key, rangeKey, data: response });
           setFailed(null);
         })
         .catch(() => {
@@ -105,7 +111,7 @@ export function HistoryWorkspace({
       active = false;
       window.clearTimeout(timer);
     };
-  }, [desktopStatus.kind, start, end, count, index, country, key]);
+  }, [desktopStatus.kind, start, end, count, index, country, key, rangeKey]);
 
   const markers = useMemo<MenaMarker[]>(
     () =>
@@ -194,9 +200,9 @@ export function HistoryWorkspace({
           >
             7 days
           </button>
-          <span>{data ? `${data.totalCount} indexed reports` : 'Local SQLite history'}</span>
+          <span>{summary ? `${summary.totalCount} indexed reports` : 'Local SQLite history'}</span>
         </div>
-        <Sparkline data={data} index={index} />
+        <Sparkline data={summary} index={index} />
         <label className="signal-history__time" htmlFor="signal-history-scrubber">
           <span>TIME SCRUBBER</span>
           <strong>
@@ -244,7 +250,7 @@ export function HistoryWorkspace({
                     if (article) setReading(article);
                   }}
                 />
-                {!markers.length && (
+                {data && !markers.length && (
                   <div className="signal-history__map-note">
                     <MapPin size={13} /> No verified city events in this interval
                   </div>

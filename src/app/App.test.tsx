@@ -143,4 +143,14 @@ describe('workspace', () => {
     );
     expect(screen.getByRole('heading', { name: 'News', level: 1 })).toBeInTheDocument();
   });
+
+  it('opens the History workspace without polling RSS in preview mode', () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'History' }));
+    expect(screen.getByRole('heading', { name: 'History', level: 1 })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Across the region', level: 2 })).toBeInTheDocument();
+    expect(screen.getByText(/archive is available in the desktop app/)).toBeInTheDocument();
+    expect(getNewsFeed).not.toHaveBeenCalled();
+  });
+
 });
