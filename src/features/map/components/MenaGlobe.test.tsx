@@ -80,5 +80,4 @@ describe('MenaGlobe', () => {
     expect(selection).not.toBeNull();
     expect(within(selection!).getByText('Japan')).toBeInTheDocument();
   });
-
 });
