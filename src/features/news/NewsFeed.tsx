@@ -75,7 +75,10 @@ export function NewsFeed({
   const [category, setCategory] = useState('all');
   const [sort, setSort] = useState<'newest' | 'oldest'>('newest');
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [cachedMatches, setCachedMatches] = useState<FeedArticle[]>([]);
+  const [cachedMatches, setCachedMatches] = useState<{ query: string; articles: FeedArticle[] }>({
+    query: '',
+    articles: [],
+  });
   const [query, setQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const [selected, setSelected] = useState<FeedArticle | null>(null);
@@ -142,16 +145,16 @@ export function NewsFeed({
 
   useEffect(() => {
     if (!enabled || !searchOpen || deferredQuery.length < 2) {
-      setCachedMatches([]);
+      setCachedMatches({ query: '', articles: [] });
       return;
     }
     let live = true;
     void searchCachedNews(deferredQuery, 40)
       .then((matches) => {
-        if (live) setCachedMatches(matches);
+        if (live) setCachedMatches({ query: deferredQuery, articles: matches });
       })
       .catch(() => {
-        if (live) setCachedMatches([]);
+        if (live) setCachedMatches({ query: '', articles: [] });
       });
     return () => {
       live = false;
@@ -188,8 +191,18 @@ export function NewsFeed({
 
   const articles = useMemo(() => {
     const live = view === 'saved' ? bookmarks : (data?.articles ?? []);
-    // SQLite results supplement, never overwrite or duplicate, live reports.
-    const base = view === 'saved' ? live : [...live, ...cachedMatches];
+    // Index matches belong only to the query that produced them. The Rust FTS5
+    // search has already validated matches across separate words and fields.
+    const cached =
+      view !== 'saved' &&
+      searchOpen &&
+      deferredQuery.length >= 2 &&
+      cachedMatches.query === deferredQuery
+        ? cachedMatches.articles
+        : [];
+    const base = view === 'saved' ? live : [...live, ...cached];
+    const indexMatches = new Set(cached.map((article) => article.canonicalUrl ?? article.url));
+    const searchTerms = deferredQuery.split(/\s+/).filter(Boolean);
     const seenUrls = new Set<string>();
     return deduplicate(base)
       .filter((article) => {
@@ -206,12 +219,12 @@ export function NewsFeed({
             (location.precision !== 'unknown' && location.countryCode === selectedCountry);
           if (!matchesCountry) return false;
         }
-        return (
-          !deferredQuery ||
-          `${article.title} ${article.summary ?? ''} ${article.sourceName}`
-            .toLocaleLowerCase()
-            .includes(deferredQuery)
-        );
+        // Saved never inherits hidden filters from another workspace. FTS5
+        // results are trusted even when their words are separated in the text.
+        if (view === 'saved' || searchTerms.length === 0 || indexMatches.has(key)) return true;
+        const searchable =
+          `${article.title} ${article.summary ?? ''} ${article.sourceName}`.toLocaleLowerCase();
+        return searchTerms.every((term) => searchable.includes(term));
       })
       .sort((a, b) => {
         const diff =
@@ -227,6 +240,7 @@ export function NewsFeed({
     deferredQuery,
     selectedCountry,
     cachedMatches,
+    searchOpen,
     sort,
   ]);
 

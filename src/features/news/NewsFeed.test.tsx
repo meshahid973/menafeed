@@ -276,4 +276,41 @@ describe('news desk', () => {
     fireEvent.keyDown(first, { key: 'ArrowDown' });
     expect(second).toHaveFocus();
   });
+  it('keeps SQLite multiword results when the words are not adjacent', async () => {
+    vi.mocked(searchCachedNews).mockResolvedValueOnce([
+      {
+        ...sample.articles[0]!,
+        id: 'historical-sudan',
+        url: 'https://example.org/sudan',
+        title: 'Sudan announces new aid distribution',
+        summary: 'Regional relief organizations are responding.',
+      },
+    ]);
+    render(<FeedHarness desktopStatus={{ kind: 'ready', schemaVersion: 2 }} view="news" />);
+    await screen.findByText('Regional energy talks');
+    fireEvent.click(screen.getByRole('button', { name: 'Search news' }));
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Search headlines' }), {
+      target: { value: 'Sudan relief' },
+    });
+    await waitFor(() => expect(searchCachedNews).toHaveBeenCalledWith('sudan relief', 40));
+    expect(await screen.findByText('Sudan announces new aid distribution')).toBeInTheDocument();
+  });
+
+  it('does not hide Saved stories behind a previous News search', async () => {
+    const props = {
+      desktopStatus: { kind: 'ready' as const, schemaVersion: 2 },
+      bookmarks: [sample.articles[2]!],
+    };
+    const { rerender } = render(<FeedHarness {...props} view="news" />);
+    await screen.findByText('Regional energy talks');
+    fireEvent.click(screen.getByRole('button', { name: 'Search news' }));
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Search headlines' }), {
+      target: { value: 'energy' },
+    });
+    await waitFor(() =>
+      expect(screen.queryByText('Cultural event announced')).not.toBeInTheDocument(),
+    );
+    rerender(<FeedHarness {...props} view="saved" />);
+    expect(screen.getByText('Cultural event announced')).toBeInTheDocument();
+  });
 });
