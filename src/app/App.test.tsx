@@ -3,16 +3,17 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from './App';
 
 vi.mock('../services/desktop', () => ({ readDesktopStatus: vi.fn() }));
-vi.mock('../services/news', () => ({ getNewsFeed: vi.fn(), openArticle: vi.fn() }));
+vi.mock('../services/news', () => ({ getNewsFeed: vi.fn(), openArticle: vi.fn(), searchCachedNews: vi.fn() }));
 
 import { readDesktopStatus } from '../services/desktop';
-import { getNewsFeed } from '../services/news';
+import { getNewsFeed, searchCachedNews } from '../services/news';
 
 describe('workspace', () => {
   beforeEach(() => {
     window.localStorage.clear();
     vi.mocked(readDesktopStatus).mockResolvedValue({ kind: 'preview' });
     vi.mocked(getNewsFeed).mockResolvedValue({ articles: [], sources: [], receivedAt: '' });
+    vi.mocked(searchCachedNews).mockResolvedValue([]);
   });
 
   it('renders the offline geographic map with collapsed navigation', async () => {
@@ -105,4 +106,35 @@ describe('workspace', () => {
     fireEvent.click(screen.getByRole('button', { name: 'News' }));
     await waitFor(() => expect(getNewsFeed).toHaveBeenCalledTimes(pausedCalls + 1));
   });
+
+  it('opens the Arc header search with Ctrl+K and reads a historical SQLite result', async () => {
+    vi.mocked(readDesktopStatus).mockResolvedValue({ kind: 'ready', schemaVersion: 2 });
+    const historical = {
+      id: 'archived-sudan',
+      url: 'https://example.org/sudan-aid',
+      sourceId: 'bbc',
+      sourceName: 'BBC',
+      title: 'Sudan announces new humanitarian aid',
+      summary: 'Relief teams distribute supplies.',
+      publishedAt: '2026-10-18T12:00:00Z',
+      location: { precision: 'unknown' as const },
+    };
+    vi.mocked(searchCachedNews).mockResolvedValue([historical]);
+    render(<App />);
+    await screen.findByText('No reports');
+    fireEvent.keyDown(window, { key: 'k', ctrlKey: true });
+    const input = await screen.findByRole('combobox', { name: 'Search news' });
+    expect(input).toHaveFocus();
+    fireEvent.change(input, { target: { value: 'Sudan humanitarian' } });
+    await waitFor(() =>
+      expect(searchCachedNews).toHaveBeenCalledWith('sudan humanitarian', 30),
+    );
+    const option = await screen.findByRole('option', { name: /Sudan announces new humanitarian aid/ });
+    fireEvent.click(option);
+    await waitFor(() =>
+      expect(screen.getByRole('heading', { name: 'Sudan announces new humanitarian aid' })).toBeInTheDocument(),
+    );
+    expect(screen.getByRole('heading', { name: 'News', level: 1 })).toBeInTheDocument();
+  });
+
 });
