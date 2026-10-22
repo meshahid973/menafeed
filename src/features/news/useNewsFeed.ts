@@ -7,22 +7,24 @@ export function useNewsFeed(enabled: boolean) {
   const [loading, setLoading] = useState(enabled);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const requestId = useRef(0);
+  const active = useRef(false);
   const hasLoaded = useRef(false);
   const pending = useRef<Promise<void> | null>(null);
 
   const refresh = useCallback((force: boolean): Promise<void> => {
-    // A poll must never overlap a manual refresh or another poll.
+    if (!active.current) return Promise.resolve();
+    // A poll and a manual refresh share one in-flight native request.
     if (pending.current) return pending.current;
     const job = (async () => {
-      const current = ++requestId.current;
       setError(null);
       if (force) setRefreshing(true);
       else if (!hasLoaded.current) setLoading(true);
 
       try {
         const result = await getNewsFeed(force);
-        if (current !== requestId.current) return;
+        // A response completed while Saved or unmounted must not update the feed.
+        // If the user has already returned, the pending response is still usable.
+        if (!active.current) return;
         hasLoaded.current = true;
         setData(result);
         if (
@@ -32,9 +34,9 @@ export function useNewsFeed(enabled: boolean) {
           setError('Sources are currently unavailable. Try again later.');
         }
       } catch {
-        if (current === requestId.current) setError('Could not reach the news service.');
+        if (active.current) setError('Could not reach the news service.');
       } finally {
-        if (current === requestId.current) {
+        if (active.current) {
           setLoading(false);
           setRefreshing(false);
         }
@@ -48,25 +50,26 @@ export function useNewsFeed(enabled: boolean) {
   }, []);
 
   useEffect(() => {
-    if (enabled) {
-      void refresh(false);
-      // Refresh while visible; Rust enforces each provider's cache interval.
-      const poll = () => {
-        if (!document.hidden) void refresh(false);
-      };
-      const timer = window.setInterval(poll, 60_000);
-      document.addEventListener('visibilitychange', poll);
-      return () => {
-        window.clearInterval(timer);
-        document.removeEventListener('visibilitychange', poll);
-        requestId.current += 1;
-      };
-    } else {
+    active.current = enabled;
+    if (!enabled) {
       setLoading(false);
       setRefreshing(false);
+      return () => {
+        active.current = false;
+      };
     }
+
+    void refresh(false);
+    // Pause polling outside the live newsroom and while the window is hidden.
+    const poll = () => {
+      if (!document.hidden) void refresh(false);
+    };
+    const timer = window.setInterval(poll, 60_000);
+    document.addEventListener('visibilitychange', poll);
     return () => {
-      requestId.current += 1;
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', poll);
+      active.current = false;
     };
   }, [enabled, refresh]);
 

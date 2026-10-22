@@ -88,4 +88,16 @@ describe('workspace', () => {
       expect(screen.getByRole('heading', { name: 'Manama event report' })).toBeInTheDocument(),
     );
   });
+  it('stops native news refreshes in Saved and resumes after navigation', async () => {
+    vi.mocked(readDesktopStatus).mockResolvedValue({ kind: 'ready', schemaVersion: 2 });
+    render(<App />);
+    await waitFor(() => expect(getNewsFeed).toHaveBeenCalledTimes(1));
+    fireEvent.click(screen.getByRole('button', { name: 'Saved' }));
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Saved', level: 1 })).toBeInTheDocument());
+    fireEvent(document, new Event('visibilitychange'));
+    expect(getNewsFeed).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole('button', { name: 'News' }));
+    await waitFor(() => expect(getNewsFeed).toHaveBeenCalledTimes(2));
+  });
+
 });
