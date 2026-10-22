@@ -430,7 +430,8 @@ export function ExpandingSearch({
   useEffect(() => {
     if (openRequest > 0 && lastOpenRequest.current !== openRequest) {
       lastOpenRequest.current = openRequest;
-      buttonRef.current?.click();
+      // Native click from a microtask avoids flushSync during React's effect commit.
+      queueMicrotask(() => buttonRef.current?.click());
     }
   }, [openRequest]);
 

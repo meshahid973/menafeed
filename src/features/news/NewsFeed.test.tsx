@@ -302,7 +302,6 @@ describe('news desk', () => {
     };
     const { rerender } = render(<FeedHarness {...props} view="news" />);
     await screen.findByText('Regional energy talks');
-    fireEvent.click(screen.getByRole('button', { name: 'Search news' }));
     fireEvent.change(screen.getByRole('searchbox', { name: 'Search headlines' }), {
       target: { value: 'energy' },
     });

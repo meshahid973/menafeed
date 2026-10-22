@@ -18,7 +18,9 @@
   box-shadow: 0 16px 48px #000c;
   outline: none;
   transform-origin: var(--transform-origin);
-  transition: opacity var(--signal-duration-fast), transform var(--signal-duration-fast);
+  transition:
+    opacity var(--signal-duration-fast),
+    transform var(--signal-duration-fast);
 }
 
 .signal-arc-popover__popup[data-starting-style],

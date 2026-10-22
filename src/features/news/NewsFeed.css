@@ -490,4 +490,6 @@
   color: var(--signal-text);
   border-color: var(--signal-accent);
 }
-.signal-feed__filter-loading { min-height: 84px; }
+.signal-feed__filter-loading {
+  min-height: 84px;
+}
