@@ -65,8 +65,11 @@ const COUNTRY_LABELS = COUNTRY_FEATURES.map((feature) => {
     latitude,
   };
 }).filter(({ longitude, latitude }) => Number.isFinite(longitude) && Number.isFinite(latitude));
-const COUNTRY_LOCATIONS = new Map(
-  COUNTRY_LABELS.map(({ code, longitude, latitude }) => [code, { longitude, latitude }]),
+const COUNTRY_LOCATIONS = new Map<string, { longitude: number; latitude: number }>(
+  COUNTRY_LABELS.map(({ code, longitude, latitude }) => [
+    code,
+    { longitude, latitude },
+  ]),
 );
 const VIEW_UPDATE_INTERVAL = 1000 / 30;
 const GRATICULE = geoGraticule().step([15, 15])();
@@ -176,17 +179,20 @@ export function MenaGlobe({
 
   const visibleCountryLabels = useMemo(() => {
     if (view.zoom < 0.88) return [];
-    const minimumDistance = view.zoom < 1.18 ? 66 : view.zoom < 1.7 ? 43 : view.zoom < 2.5 ? 28 : 16;
+    const minimumDistance =
+      view.zoom < 1.18 ? 66 : view.zoom < 1.7 ? 43 : view.zoom < 2.5 ? 28 : 16;
     const candidates = COUNTRY_LABELS.flatMap((country) => {
       if (!isFacingCamera(country.longitude, country.latitude, view)) return [];
       const position = projection([country.longitude, country.latitude]);
       if (!position || !position.every(Number.isFinite)) return [];
-      return [{
-        ...country,
-        x: position[0],
-        y: position[1],
-        width: Math.max(22, country.name.length * 4.7),
-      }];
+      return [
+        {
+          ...country,
+          x: position[0],
+          y: position[1],
+          width: Math.max(22, country.name.length * 4.7),
+        },
+      ];
     }).sort((a, b) => {
       if (a.code === activeCountry) return -1;
       if (b.code === activeCountry) return 1;
@@ -321,11 +327,14 @@ export function MenaGlobe({
   const animateToCountry = useCallback((code: string) => {
     const location = COUNTRY_LOCATIONS.get(code);
     if (!location) return;
-    animateViewTo({
-      longitude: location.longitude,
-      latitude: clampLatitude(location.latitude),
-      zoom: 2.55,
-    }, 920);
+    animateViewTo(
+      {
+        longitude: location.longitude,
+        latitude: clampLatitude(location.latitude),
+        zoom: 2.55,
+      },
+      920,
+    );
   }, [animateViewTo]);
 
   const resetGlobe = useCallback(() => {
