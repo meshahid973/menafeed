@@ -526,3 +526,110 @@
   background: var(--signal-bg);
   pointer-events: none;
 }
+
+/* Editorial reader: native Base UI tabs and read-only source previews. */
+.signal-reader__excerpt {
+  color: #c2c2bd;
+  font-size: 16px;
+  line-height: 1.8;
+}
+.signal-reader__publisher {
+  color: var(--signal-text);
+  border-bottom: 1px dotted var(--signal-text-muted);
+  text-decoration: none;
+  cursor: pointer;
+}
+.signal-reader__publisher-popup {
+  z-index: 50;
+  display: grid;
+  gap: 6px;
+  max-width: 240px;
+  padding: 14px;
+  border: 1px solid var(--signal-border);
+  border-radius: 8px;
+  background: var(--signal-surface-raised);
+  box-shadow: 0 12px 36px #000c;
+  color: var(--signal-text);
+  font-size: 12px;
+}
+.signal-reader__publisher-popup > span {
+  color: var(--signal-text-muted);
+  font-size: 11px;
+}
+.signal-reader__tabs {
+  margin-top: 22px;
+}
+.signal-reader__tab-list {
+  position: relative;
+  display: flex;
+  gap: 20px;
+  border-bottom: 1px solid var(--signal-border);
+}
+.signal-reader__tab {
+  position: relative;
+  padding: 11px 0;
+  border: 0;
+  background: transparent;
+  color: var(--signal-text-muted);
+  cursor: pointer;
+  font-size: 12px;
+}
+.signal-reader__tab[data-active] {
+  color: var(--signal-text);
+}
+.signal-reader__tab span {
+  margin-left: 4px;
+  color: var(--signal-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.signal-reader__tab-indicator {
+  position: absolute;
+  bottom: -1px;
+  left: var(--active-tab-left);
+  width: var(--active-tab-width);
+  height: 1px;
+  background: var(--signal-accent);
+  transition: left 180ms var(--signal-ease-standard), width 180ms var(--signal-ease-standard);
+}
+.signal-reader__tab-panel {
+  padding-top: 16px;
+}
+.signal-reader__tab-panel[hidden] {
+  display: none;
+}
+.signal-reader__related {
+  display: grid;
+  gap: 0;
+}
+.signal-reader__related-item {
+  display: grid;
+  gap: 7px;
+  padding: 14px 0;
+  border: 0;
+  border-bottom: 1px solid var(--signal-border);
+  background: transparent;
+  color: var(--signal-text);
+  text-align: left;
+  cursor: pointer;
+}
+.signal-reader__related-item:hover {
+  color: var(--signal-accent);
+}
+.signal-reader__related-item > span {
+  color: var(--signal-text-muted);
+  font-size: 11px;
+}
+.signal-reader__related-item > strong {
+  font-size: 14px;
+  font-weight: 540;
+  line-height: 1.4;
+}
+.signal-reader__copy {
+  color: var(--signal-text);
+  background: var(--signal-surface);
+}
+@media (prefers-reduced-motion: reduce) {
+  .signal-reader__tab-indicator {
+    transition: none;
+  }
+}
