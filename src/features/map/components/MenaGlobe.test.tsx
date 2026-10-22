@@ -74,10 +74,10 @@ describe('MenaGlobe', () => {
   it('selects countries outside MENA through their geographic shapes', () => {
     const onCountrySelect = vi.fn();
     render(<MenaGlobe onCountrySelect={onCountrySelect} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Select Japan' }));
-    expect(onCountrySelect).toHaveBeenCalledWith('JP');
+    fireEvent.click(screen.getByRole('button', { name: 'Select India' }));
+    expect(onCountrySelect).toHaveBeenCalledWith('IN');
     const selection = screen.getByText('ACTIVE TERRITORY').parentElement;
     expect(selection).not.toBeNull();
-    expect(within(selection!).getByText('Japan')).toBeInTheDocument();
+    expect(within(selection!).getByText('India')).toBeInTheDocument();
   });
 });
