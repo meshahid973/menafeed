@@ -108,6 +108,7 @@
 }
 
 .signal-feed__list {
+  position: relative;
   height: 100%;
   overflow-y: auto;
   overflow-x: hidden;
@@ -515,4 +516,13 @@
   .signal-feed__heading {
     gap: 8px;
   }
+}
+
+/* Skeletons dissolve over the real first reports, without holding list space. */
+.signal-feed__skeletons {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: var(--signal-bg);
+  pointer-events: none;
 }

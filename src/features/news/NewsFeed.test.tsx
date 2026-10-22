@@ -319,4 +319,24 @@ describe('news desk', () => {
     expect(screen.queryByRole('button', { name: 'Search news' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Filter news' })).toBeInTheDocument();
   });
+
+  it('animates only newly polled reports, not the initially loaded list', async () => {
+    render(<FeedHarness desktopStatus={{ kind: 'ready', schemaVersion: 2 }} view="news" />);
+    const original = await screen.findByText('Regional energy talks');
+    expect(original.closest('.signal-story')).not.toHaveAttribute('data-new-report');
+
+    const incoming = {
+      ...sample.articles[0]!,
+      id: 'incoming',
+      url: 'https://example.org/new-report',
+      title: 'Fresh regional report',
+      publishedAt: '2026-10-22T12:00:00Z',
+    };
+    vi.mocked(getNewsFeed).mockResolvedValue({ ...sample, articles: [incoming, ...sample.articles] });
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh news' }));
+    const latest = await screen.findByText('Fresh regional report');
+    await waitFor(() => expect(latest.closest('.signal-story')).toHaveAttribute('data-new-report'));
+    expect(original.closest('.signal-story')).not.toHaveAttribute('data-new-report');
+  });
+
 });
