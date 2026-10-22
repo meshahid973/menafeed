@@ -21,6 +21,10 @@ jobs:
         run: npm install --global npm@11.6.3
       - name: Install dependencies
         run: npm ci --no-audit
+      - name: Diagnose Phase 4 TS/CSS formatting
+        run: |
+          npx prettier --write src/components/layout/AppShell.tsx src/components/layout/Sidebar.tsx src/features/history/*.tsx src/features/history/*.ts src/features/history/*.css src/services/news.ts src/services/news.test.ts src/app/App.test.tsx
+          git diff -- src/components/layout/AppShell.tsx src/components/layout/Sidebar.tsx src/features/history src/services/news.ts src/services/news.test.ts src/app/App.test.tsx
       - name: Typecheck, lint, format, tests, build
         run: npm run check
 
@@ -42,6 +46,10 @@ jobs:
         run: npm install --global npm@11.6.3
       - name: Install frontend dependencies
         run: npm ci --no-audit
+      - name: Diagnose Phase 4 Rust formatting
+        run: |
+          cargo fmt --manifest-path src-tauri/Cargo.toml --all
+          git diff -- src-tauri/src
       - name: Rust format
         run: cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check
       - name: Rust lint
