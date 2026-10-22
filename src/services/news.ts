@@ -1,5 +1,6 @@
 import { invoke, isTauri } from '@tauri-apps/api/core';
 import type { NewsFeedResponse } from '../features/news/contracts';
+import type { HistorySnapshot } from '../features/history/contracts';
 
 export async function getNewsFeed(force = false): Promise<NewsFeedResponse> {
   if (!isTauri()) {
@@ -38,4 +39,18 @@ export async function getGeoSnapshot(): Promise<
 > {
   if (!isTauri()) return { markers: [], countries: [] };
   return invoke<import('../features/news/geographicEvents').GeoSnapshot>('get_geo_snapshot');
+}
+
+/** UTC history, backed by SQLite; country relevance is not verified geolocation. */
+export async function getReportingHistory(
+  startEpoch: number,
+  endEpoch: number,
+  bucketCount: 24 | 28,
+  selectedIndex: number,
+  countryCode: string | null,
+): Promise<HistorySnapshot> {
+  if (!isTauri()) throw new Error('History is available in the desktop app.');
+  return invoke<HistorySnapshot>('get_reporting_history', {
+    startEpoch, endEpoch, bucketCount, selectedIndex, countryCode,
+  });
 }

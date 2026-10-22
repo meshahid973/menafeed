@@ -1,4 +1,4 @@
-import { Bookmark, Globe2, Menu, Newspaper, Settings2 } from 'lucide-react';
+import { Bookmark, Clock3, Globe2, Menu, Newspaper, Settings2 } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
 import { Tooltip } from '../arc/tooltip/tooltip';
 import type { WorkspaceView } from './workspaceTypes';
@@ -15,6 +15,7 @@ interface SidebarProps {
 const links = [
   { id: 'explore', label: 'Explore', Icon: Globe2 },
   { id: 'news', label: 'News', Icon: Newspaper },
+  { id: 'history', label: 'History', Icon: Clock3 },
   { id: 'saved', label: 'Saved', Icon: Bookmark },
 ] as const;
 
