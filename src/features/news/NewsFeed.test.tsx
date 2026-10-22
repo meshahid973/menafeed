@@ -338,9 +338,7 @@ describe('news desk', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: 'Refresh news' }));
     const latest = await screen.findByText('Fresh regional report');
-    await waitFor(() =>
-      expect(latest.closest('.signal-story')).toHaveAttribute('data-new-report'),
-    );
+    await waitFor(() => expect(latest.closest('.signal-story')).toHaveAttribute('data-new-report'));
     expect(original.closest('.signal-story')).not.toHaveAttribute('data-new-report');
   });
 });
