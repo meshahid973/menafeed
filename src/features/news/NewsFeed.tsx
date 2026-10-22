@@ -126,7 +126,12 @@ export function NewsFeed({
         const location = article.location;
         if (location.precision !== 'unknown') {
           if (location.countryCode !== selectedCountry) return false;
-        } else if (!articleMentionsCountry(`${article.title} ${article.summary ?? ''}`, selectedCountry)) {
+        } else if (
+          !articleMentionsCountry(
+            `${article.title} ${article.summary ?? ''}`,
+            selectedCountry,
+          )
+        ) {
           return false;
         }
       }
