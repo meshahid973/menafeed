@@ -51,6 +51,10 @@ export async function getReportingHistory(
 ): Promise<HistorySnapshot> {
   if (!isTauri()) throw new Error('History is available in the desktop app.');
   return invoke<HistorySnapshot>('get_reporting_history', {
-    startEpoch, endEpoch, bucketCount, selectedIndex, countryCode,
+    startEpoch,
+    endEpoch,
+    bucketCount,
+    selectedIndex,
+    countryCode,
   });
 }

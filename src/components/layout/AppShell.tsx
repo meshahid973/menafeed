@@ -42,7 +42,9 @@ export function AppShell({ desktopStatus }: AppShellProps) {
   const [country, setCountry] = useState<MenaCountryCode | null>(null);
   const [selectedStory, setSelectedStory] = useState<string | null>(null);
   const bookmarks = useBookmarks();
-  const feed = useNewsFeed(desktopStatus.kind === 'ready' && view !== 'saved' && view !== 'history');
+  const feed = useNewsFeed(
+    desktopStatus.kind === 'ready' && view !== 'saved' && view !== 'history',
+  );
   const onMarkerSelect = useCallback((marker: MenaMarker) => setSelectedStory(marker.id), []);
 
   const markers = useMemo(

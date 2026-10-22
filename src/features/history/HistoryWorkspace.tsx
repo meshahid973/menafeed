@@ -30,16 +30,24 @@ function Sparkline({ data, index }: { data: HistorySnapshot | null; index: numbe
   const y = (count: number) => 60 - (count / maximum) * 53;
   const x = (position: number) => (position / Math.max(1, counts.length - 1)) * 600;
   return (
-    <svg viewBox="0 0 600 64" preserveAspectRatio="none" className="signal-history__spark"
-      role="img" aria-label="Indexed reporting activity by time interval">
+    <svg
+      viewBox="0 0 600 64"
+      preserveAspectRatio="none"
+      className="signal-history__spark"
+      role="img"
+      aria-label="Indexed reporting activity by time interval"
+    >
       <path d="M0 60 H600" stroke="currentColor" opacity="0.2" />
       {counts.length > 0 && (
         <>
-          <polyline fill="none" stroke="var(--signal-accent)" strokeWidth="2"
+          <polyline
+            fill="none"
+            stroke="var(--signal-accent)"
+            strokeWidth="2"
             vectorEffect="non-scaling-stroke"
-            points={counts.map((count, slot) => `${x(slot)},${y(count)}`).join(' ')} />
-          <circle cx={x(index)} cy={y(counts[index] ?? 0)} r="3.5"
-            fill="var(--signal-accent)" />
+            points={counts.map((count, slot) => `${x(slot)},${y(count)}`).join(' ')}
+          />
+          <circle cx={x(index)} cy={y(counts[index] ?? 0)} r="3.5" fill="var(--signal-accent)" />
         </>
       )}
     </svg>
@@ -55,7 +63,11 @@ interface Props {
 }
 
 export function HistoryWorkspace({
-  desktopStatus, country, onCountrySelect, bookmarks, onToggleBookmark,
+  desktopStatus,
+  country,
+  onCountrySelect,
+  bookmarks,
+  onToggleBookmark,
 }: Props) {
   const [period, setPeriod] = useState<Period>('day');
   const [slot, setSlot] = useState(23);
@@ -95,15 +107,25 @@ export function HistoryWorkspace({
     };
   }, [desktopStatus.kind, start, end, count, index, country, key]);
 
-  const markers = useMemo<MenaMarker[]>(() => (data?.geo.markers ?? []).flatMap((marker) => {
-    const story = data?.articles.find((article) => marker.articleIds.includes(article.id));
-    if (country && marker.countryCode !== country) return [];
-    return story ? [{
-      id: story.id, label: `${marker.cityName} · ${marker.count} reports`,
-      longitude: marker.longitude, latitude: marker.latitude,
-      detail: 'Publisher-verified location',
-    }] : [];
-  }), [data, country]);
+  const markers = useMemo<MenaMarker[]>(
+    () =>
+      (data?.geo.markers ?? []).flatMap((marker) => {
+        const story = data?.articles.find((article) => marker.articleIds.includes(article.id));
+        if (country && marker.countryCode !== country) return [];
+        return story
+          ? [
+              {
+                id: story.id,
+                label: `${marker.cityName} · ${marker.count} reports`,
+                longitude: marker.longitude,
+                latitude: marker.latitude,
+                detail: 'Publisher-verified location',
+              },
+            ]
+          : [];
+      }),
+    [data, country],
+  );
 
   const groups = useMemo(() => {
     const byDate = new Map<string, FeedArticle[]>();
@@ -135,49 +157,93 @@ export function HistoryWorkspace({
       <div className="signal-history__controls">
         <div className="signal-history__heading">
           <div>
-            <span className="signal-history__eyebrow"><Clock3 size={13} /> REPORTING ARCHIVE</span>
+            <span className="signal-history__eyebrow">
+              <Clock3 size={13} /> REPORTING ARCHIVE
+            </span>
             <h2>{country ? getMenaCountryName(country) : 'Across the region'}</h2>
           </div>
           <div className="signal-history__actions">
-            {country && <button type="button" onClick={() => { setReading(null); onCountrySelect(null); }}>All countries</button>}
-            <button type="button" aria-label="Refresh history"
-              onClick={() => setRevision((current) => current + 1)}>
+            {country && (
+              <button
+                type="button"
+                onClick={() => {
+                  setReading(null);
+                  onCountrySelect(null);
+                }}
+              >
+                All countries
+              </button>
+            )}
+            <button
+              type="button"
+              aria-label="Refresh history"
+              onClick={() => setRevision((current) => current + 1)}
+            >
               <RefreshCcw size={15} aria-hidden="true" />
             </button>
           </div>
         </div>
         <div className="signal-history__period" aria-label="Reporting range">
-          <button type="button" aria-pressed={period === 'day'} onClick={() => choosePeriod('day')}>24 hours</button>
-          <button type="button" aria-pressed={period === 'week'} onClick={() => choosePeriod('week')}>7 days</button>
+          <button type="button" aria-pressed={period === 'day'} onClick={() => choosePeriod('day')}>
+            24 hours
+          </button>
+          <button
+            type="button"
+            aria-pressed={period === 'week'}
+            onClick={() => choosePeriod('week')}
+          >
+            7 days
+          </button>
           <span>{data ? `${data.totalCount} indexed reports` : 'Local SQLite history'}</span>
         </div>
         <Sparkline data={data} index={index} />
         <label className="signal-history__time" htmlFor="signal-history-scrubber">
           <span>TIME SCRUBBER</span>
-          <strong>{utc(slotStart)}–{utc(slotStart + step)} UTC</strong>
+          <strong>
+            {utc(slotStart)}–{utc(slotStart + step)} UTC
+          </strong>
         </label>
-        <input id="signal-history-scrubber" type="range" min={0} max={count - 1}
-          step={1} value={index} className="signal-history__scrubber"
-          aria-label="Reporting time" aria-valuetext={`${utc(slotStart)} UTC`}
-          onChange={(event) => { setSlot(Number(event.target.value)); setReading(null); }} />
+        <input
+          id="signal-history-scrubber"
+          type="range"
+          min={0}
+          max={count - 1}
+          step={1}
+          value={index}
+          className="signal-history__scrubber"
+          aria-label="Reporting time"
+          aria-valuetext={`${utc(slotStart)} UTC`}
+          onChange={(event) => {
+            setSlot(Number(event.target.value));
+            setReading(null);
+          }}
+        />
         <div className="signal-history__scale" aria-hidden="true">
-          <span>{utc(start, false)}</span><span>{utc(end, false)} UTC</span>
+          <span>{utc(start, false)}</span>
+          <span>{utc(end, false)} UTC</span>
         </div>
       </div>
       {desktopStatus.kind !== 'ready' ? (
-        <p className="signal-history__message">The reporting archive is available in the desktop app.</p>
+        <p className="signal-history__message">
+          The reporting archive is available in the desktop app.
+        </p>
       ) : (
         <div className="signal-history__workspace">
           <WorkspaceSplit
             map={
               <div className="signal-history__map">
-                <MapSlot selectedCountry={country}
-                  onCountrySelect={(next) => { setReading(null); onCountrySelect(next); }}
+                <MapSlot
+                  selectedCountry={country}
+                  onCountrySelect={(next) => {
+                    setReading(null);
+                    onCountrySelect(next);
+                  }}
                   markers={markers}
                   onMarkerSelect={(marker) => {
                     const article = data?.articles.find((item) => item.id === marker.id);
                     if (article) setReading(article);
-                  }} />
+                  }}
+                />
                 {!markers.length && (
                   <div className="signal-history__map-note">
                     <MapPin size={13} /> No verified city events in this interval
@@ -189,33 +255,63 @@ export function HistoryWorkspace({
               <div className="signal-history__feed">
                 {reading ? (
                   <>
-                    {openError && <p role="alert" className="signal-history__message">Could not open the original report.</p>}
-                    <ArticleReader key={reading.id} article={reading}
+                    {openError && (
+                      <p role="alert" className="signal-history__message">
+                        Could not open the original report.
+                      </p>
+                    )}
+                    <ArticleReader
+                      key={reading.id}
+                      article={reading}
                       saved={bookmarks.some((article) => article.url === reading.url)}
                       onToggleSave={() => onToggleBookmark(reading)}
-                      onBack={() => { setReading(null); setOpenError(false); }}
-                      onOpen={(url) => void original(url)} />
+                      onBack={() => {
+                        setReading(null);
+                        setOpenError(false);
+                      }}
+                      onOpen={(url) => void original(url)}
+                    />
                   </>
                 ) : (
                   <>
                     <div className="signal-history__feed-header">
-                      {loading ? 'Reading index…' : `${data?.selectedCount ?? 0} reports in this interval`}
+                      {loading
+                        ? 'Reading index…'
+                        : `${data?.selectedCount ?? 0} reports in this interval`}
                       {data && data.selectedCount > data.articles.length && (
                         <small>Latest {data.articles.length} shown</small>
                       )}
                     </div>
                     <div className="signal-history__reports" aria-live="polite">
-                      {loading && <p role="status" className="signal-history__message">Loading reports…</p>}
-                      {error && <p role="alert" className="signal-history__message">{error}</p>}
-                      {data && !data.articles.length &&
-                        <p className="signal-history__message">No stored reports published in this interval.</p>}
+                      {loading && (
+                        <p role="status" className="signal-history__message">
+                          Loading reports…
+                        </p>
+                      )}
+                      {error && (
+                        <p role="alert" className="signal-history__message">
+                          {error}
+                        </p>
+                      )}
+                      {data && !data.articles.length && (
+                        <p className="signal-history__message">
+                          No stored reports published in this interval.
+                        </p>
+                      )}
                       {groups.map((group) => (
                         <div key={group.date}>
                           <h3 className="signal-history__date">{group.date} · UTC</h3>
                           {group.articles.map((article) => (
-                            <button key={article.canonicalUrl ?? article.url} type="button"
-                              className="signal-history__report" onClick={() => setReading(article)}>
-                              <span>{article.sourceName} · {utc(Date.parse(article.publishedAt ?? '') / 1000)} UTC</span>
+                            <button
+                              key={article.canonicalUrl ?? article.url}
+                              type="button"
+                              className="signal-history__report"
+                              onClick={() => setReading(article)}
+                            >
+                              <span>
+                                {article.sourceName} ·{' '}
+                                {utc(Date.parse(article.publishedAt ?? '') / 1000)} UTC
+                              </span>
                               <strong>{article.title}</strong>
                             </button>
                           ))}

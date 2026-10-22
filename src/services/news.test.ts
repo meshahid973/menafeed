@@ -25,13 +25,20 @@ describe('news boundary', () => {
     expect(invoke).toHaveBeenCalledWith('get_news_feed', { force: true });
   });
 
-
   it('passes bounded historical reporting queries to Rust', async () => {
     vi.mocked(isTauri).mockReturnValue(true);
-    vi.mocked(invoke).mockResolvedValue({ articles: [], buckets: [], geo: { markers: [], countries: [] } });
+    vi.mocked(invoke).mockResolvedValue({
+      articles: [],
+      buckets: [],
+      geo: { markers: [], countries: [] },
+    });
     await getReportingHistory(1000, 87400, 24, 23, 'BH');
     expect(invoke).toHaveBeenCalledWith('get_reporting_history', {
-      startEpoch: 1000, endEpoch: 87400, bucketCount: 24, selectedIndex: 23, countryCode: 'BH',
+      startEpoch: 1000,
+      endEpoch: 87400,
+      bucketCount: 24,
+      selectedIndex: 23,
+      countryCode: 'BH',
     });
   });
 

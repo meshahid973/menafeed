@@ -24,13 +24,13 @@
   align-items: center;
   color: var(--signal-text-muted);
   font: 10px var(--signal-font-mono);
-  letter-spacing: .09em;
+  letter-spacing: 0.09em;
 }
 .signal-history__heading h2 {
   margin: 5px 0 0;
   font-size: 22px;
   font-weight: 560;
-  letter-spacing: -.05em;
+  letter-spacing: -0.05em;
 }
 .signal-history__actions {
   display: flex;
@@ -63,7 +63,7 @@
   cursor: pointer;
   font-size: 11px;
 }
-.signal-history__period button[aria-pressed=true] {
+.signal-history__period button[aria-pressed='true'] {
   border-color: #53692e;
   background: #131b0d;
   color: var(--signal-accent);
@@ -195,8 +195,16 @@
   font-size: 12px;
 }
 @media (max-width: 700px) {
-  .signal-history__controls { padding: 12px; }
-  .signal-history__heading h2 { font-size: 19px; }
-  .signal-history__time strong { font-size: 10px; }
-  .signal-history__period > span { font-size: 10px; }
+  .signal-history__controls {
+    padding: 12px;
+  }
+  .signal-history__heading h2 {
+    font-size: 19px;
+  }
+  .signal-history__time strong {
+    font-size: 10px;
+  }
+  .signal-history__period > span {
+    font-size: 10px;
+  }
 }
