@@ -13,3 +13,8 @@ class TestResizeObserver {
 if (typeof ResizeObserver === 'undefined') {
   Object.defineProperty(globalThis, 'ResizeObserver', { value: TestResizeObserver });
 }
+
+/** Radix Select scrolls highlighted options; jsdom has no scrollIntoView. */
+if (!Element.prototype.scrollIntoView) {
+  Element.prototype.scrollIntoView = () => undefined;
+}
