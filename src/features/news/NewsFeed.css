@@ -9,10 +9,11 @@
 
 .signal-feed__intro {
   flex: none;
-  padding: 18px clamp(16px, 2vw, 28px) 12px;
+  padding: 9px clamp(12px, 1.35vw, 20px) 8px;
 }
 
 .signal-feed__heading {
+  min-height: 30px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -20,8 +21,9 @@
 }
 
 .signal-feed__heading h2 {
+  min-width: 0;
   margin: 0;
-  font-size: clamp(23px, 2vw, 29px);
+  font-size: clamp(18px, 1.65vw, 24px);
   font-weight: 610;
   letter-spacing: -0.055em;
   line-height: 1.15;
@@ -67,6 +69,7 @@
 }
 
 .signal-feed__actions {
+  flex: none;
   display: flex;
   align-items: center;
   gap: 5px;
@@ -75,8 +78,8 @@
 .signal-feed__actions button {
   display: grid;
   place-items: center;
-  width: 36px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
   border: 0;
   border-radius: 6px;
   color: var(--signal-text-muted);
@@ -105,6 +108,7 @@
 }
 
 .signal-feed__list {
+  position: relative;
   height: 100%;
   overflow-y: auto;
   overflow-x: hidden;
@@ -413,8 +417,8 @@
 
 /* Full-width reading is intentionally roomier than the Explore wire. */
 .signal-feed--full .signal-feed__intro {
-  padding-top: 26px;
-  padding-bottom: 20px;
+  padding-top: 16px;
+  padding-bottom: 12px;
 }
 .signal-feed--full .signal-story:not(.signal-story--featured) .signal-story__headline {
   padding-top: 20px;
@@ -428,7 +432,7 @@
 }
 
 .signal-feed__search-shell {
-  margin-top: 12px;
+  margin-top: 9px;
   max-width: 100%;
 }
 .signal-feed__search-shell label,
@@ -459,7 +463,7 @@
   max-width: 270px;
 }
 .signal-feed__count {
-  margin-top: 9px;
+  margin-top: 5px;
   color: var(--signal-text-muted);
   font-size: 11px;
 }
@@ -492,4 +496,33 @@
 }
 .signal-feed__filter-loading {
   min-height: 84px;
+}
+
+/* Keep the first report close to the tools in a narrow split pane. */
+.signal-split__feed .signal-feed__intro {
+  padding-top: 7px;
+  padding-bottom: 6px;
+}
+.signal-split__feed .signal-feed__heading h2 {
+  font-size: 19px;
+}
+.signal-split__feed .signal-feed__list > .signal-story:first-of-type {
+  border-top-color: var(--signal-border);
+}
+@media (max-width: 720px) {
+  .signal-feed__intro {
+    padding-inline: 12px;
+  }
+  .signal-feed__heading {
+    gap: 8px;
+  }
+}
+
+/* Skeletons dissolve over the real first reports, without holding list space. */
+.signal-feed__skeletons {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: var(--signal-bg);
+  pointer-events: none;
 }

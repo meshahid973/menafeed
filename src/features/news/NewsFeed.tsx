@@ -1,4 +1,4 @@
-import { AnimatePresence } from 'motion/react';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { lazy, Suspense, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 import type { WorkspaceView } from '../../components/layout/workspaceTypes';
@@ -11,6 +11,7 @@ import { EmptyState } from '../../components/arc/empty-state/empty-state';
 import { ArticleReader } from './ArticleReader';
 import type { FeedArticle } from './contracts';
 import { StoryCard } from './StoryCard';
+import { Skeleton } from '../../components/arc/skeleton/skeleton';
 import type { useNewsFeed } from './useNewsFeed';
 import { getMenaCountryName } from '../map';
 import type { MenaCountryCode } from '../map';
@@ -87,9 +88,31 @@ export function NewsFeed({
   const searchRef = useRef<HTMLInputElement>(null);
   const deferredQuery = useDeferredValue(query.trim().toLocaleLowerCase());
   const listRef = useRef<HTMLDivElement>(null);
+  const reduced = useReducedMotion() ?? false;
+  const seenReports = useRef<Set<string> | null>(null);
+  const lastReports = useRef<FeedArticle[] | null>(null);
+  const [newReportUrls, setNewReportUrls] = useState<Set<string>>(() => new Set());
   const savedUrls = useMemo(() => new Set(bookmarks.map((item) => item.url)), [bookmarks]);
   // On the full News workspace, Arc Search Field is permanently accessible.
   const showSearch = view === 'news' || searchOpen;
+
+  useEffect(() => {
+    const reports = data?.articles;
+    if (!reports || lastReports.current === reports) return;
+    lastReports.current = reports;
+    const previous = seenReports.current;
+    const next = new Set(reports.map((article) => article.canonicalUrl ?? article.url));
+    if (previous) {
+      setNewReportUrls(
+        new Set(
+          reports
+            .filter((article) => !previous.has(article.canonicalUrl ?? article.url))
+            .map((article) => article.canonicalUrl ?? article.url),
+        ),
+      );
+    }
+    seenReports.current = next;
+  }, [data?.articles]);
 
   useEffect(() => {
     if (searchOpen && view !== 'saved') searchRef.current?.focus();
@@ -452,16 +475,26 @@ export function NewsFeed({
           hidden={selected !== null}
           onKeyDown={handleListKeyDown}
         >
-          {loading && view !== 'saved' && (
-            <div className="signal-feed__skeletons" role="status" aria-label="Loading news">
-              {[0, 1, 2, 3].map((item) => (
-                <div key={item} className="signal-feed__skeleton">
-                  <span />
-                  <span />
-                </div>
-              ))}
-            </div>
-          )}
+          <AnimatePresence initial={false}>
+            {loading && view !== 'saved' && (
+              <motion.div
+                key="loading"
+                className="signal-feed__skeletons"
+                initial={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: reduced ? 0 : 0.14 }}
+              >
+                {[0, 1, 2, 3].map((item) => (
+                  <Skeleton
+                    key={item}
+                    className="signal-feed__skeleton"
+                    lines={2}
+                    label="Loading news"
+                  />
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
           {!showFeed && (
             <div className="signal-feed__empty">
               <EmptyState
@@ -504,6 +537,9 @@ export function NewsFeed({
               key={article.url}
               article={article}
               featured={view === 'news' && index === 0}
+              animateNew={
+                view !== 'saved' && newReportUrls.has(article.canonicalUrl ?? article.url)
+              }
               saved={savedUrls.has(article.url)}
               onSelect={() => setSelected(article)}
               onToggleSave={() => onToggleBookmark(article)}

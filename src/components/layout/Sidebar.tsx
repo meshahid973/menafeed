@@ -1,5 +1,5 @@
 import { Bookmark, Globe2, Menu, Newspaper, Settings2 } from 'lucide-react';
-import { motion } from 'motion/react';
+import { motion, useReducedMotion } from 'motion/react';
 import { Tooltip } from '../arc/tooltip/tooltip';
 import type { WorkspaceView } from './workspaceTypes';
 import './Sidebar.css';
@@ -18,11 +18,15 @@ const links = [
   { id: 'saved', label: 'Saved', Icon: Bookmark },
 ] as const;
 
+/** Bencho-inspired fold: icon column stays fixed while labels leave first. */
 export function Sidebar({ view, expanded, onToggle, onSelect, onSettings }: SidebarProps) {
+  const reduced = useReducedMotion() ?? false;
+  const labelTransition = reduced ? { duration: 0 } : { duration: 0.16, ease: 'easeOut' as const };
   return (
     <nav
       className={`signal-sidebar${expanded ? ' signal-sidebar--expanded' : ''}`}
       aria-label="Main navigation"
+      data-expanded={expanded || undefined}
     >
       <div className="signal-sidebar__top">
         <Tooltip
@@ -39,11 +43,15 @@ export function Sidebar({ view, expanded, onToggle, onSelect, onSettings }: Side
             <Menu size={20} strokeWidth={1.8} aria-hidden="true" />
           </button>
         </Tooltip>
-        {expanded && (
-          <span className="signal-sidebar__wordmark">
-            signal<span>.</span>
-          </span>
-        )}
+        <motion.span
+          className="signal-sidebar__wordmark"
+          aria-hidden={!expanded}
+          initial={false}
+          animate={{ opacity: expanded ? 1 : 0, x: expanded ? 0 : -6 }}
+          transition={labelTransition}
+        >
+          signal<span>.</span>
+        </motion.span>
       </div>
       <div className="signal-sidebar__links">
         {links.map(({ id, Icon, label }) => (
@@ -55,14 +63,33 @@ export function Sidebar({ view, expanded, onToggle, onSelect, onSettings }: Side
               aria-current={view === id ? 'page' : undefined}
               onClick={() => onSelect(id)}
             >
+              {view === id && (
+                <motion.span
+                  layoutId="signal-nav-indicator"
+                  className="signal-sidebar__indicator"
+                  aria-hidden="true"
+                  transition={
+                    reduced ? { duration: 0 } : { type: 'spring', stiffness: 390, damping: 36 }
+                  }
+                />
+              )}
               <motion.span
+                className="signal-sidebar__icon"
                 aria-hidden="true"
-                whileHover={{ scale: 1.08 }}
-                whileTap={{ scale: 0.96 }}
+                whileHover={reduced ? undefined : { scale: 1.06 }}
+                whileTap={reduced ? undefined : { scale: 0.96 }}
               >
                 <Icon size={20} strokeWidth={1.8} />
               </motion.span>
-              {expanded && <span>{label}</span>}
+              <motion.span
+                className="signal-sidebar__label"
+                aria-hidden={!expanded}
+                initial={false}
+                animate={{ opacity: expanded ? 1 : 0, x: expanded ? 0 : -7 }}
+                transition={labelTransition}
+              >
+                {label}
+              </motion.span>
             </button>
           </Tooltip>
         ))}
@@ -74,10 +101,23 @@ export function Sidebar({ view, expanded, onToggle, onSelect, onSettings }: Side
           onClick={onSettings}
           aria-label="Settings"
         >
-          <motion.span aria-hidden="true" whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.96 }}>
+          <motion.span
+            className="signal-sidebar__icon"
+            aria-hidden="true"
+            whileHover={reduced ? undefined : { scale: 1.06 }}
+            whileTap={reduced ? undefined : { scale: 0.96 }}
+          >
             <Settings2 size={20} strokeWidth={1.8} />
           </motion.span>
-          {expanded && <span>Settings</span>}
+          <motion.span
+            className="signal-sidebar__label"
+            aria-hidden={!expanded}
+            initial={false}
+            animate={{ opacity: expanded ? 1 : 0, x: expanded ? 0 : -7 }}
+            transition={labelTransition}
+          >
+            Settings
+          </motion.span>
         </button>
       </Tooltip>
     </nav>
