@@ -338,35 +338,35 @@ export function NewsFeed({
         {view !== 'saved' && (filtersOpen || category !== 'all' || source !== 'all') && (
           <Suspense fallback={null}>
             <div className="signal-feed__advanced-filters">
-            <div className="signal-feed__filter-actions">
-              <div className="signal-feed__publisher">
-                <Select
-                  label="Publisher"
-                  value={source}
-                  onValueChange={setSource}
-                  options={publisherOptions}
+              <div className="signal-feed__filter-actions">
+                <div className="signal-feed__publisher">
+                  <Select
+                    label="Publisher"
+                    value={source}
+                    onValueChange={setSource}
+                    options={publisherOptions}
+                  />
+                </div>
+                <DropdownMenu
+                  label={sort === 'newest' ? 'Newest first' : 'Oldest first'}
+                  items={[
+                    { label: 'Newest first', onSelect: () => setSort('newest') },
+                    { label: 'Oldest first', onSelect: () => setSort('oldest') },
+                  ]}
                 />
               </div>
-              <DropdownMenu
-                label={sort === 'newest' ? 'Newest first' : 'Oldest first'}
-                items={[
-                  { label: 'Newest first', onSelect: () => setSort('newest') },
-                  { label: 'Oldest first', onSelect: () => setSort('oldest') },
-                ]}
+              <FilterToolbar
+                filters={activeFilters}
+                onRemove={(id) => {
+                  if (id === 'category') setCategory('all');
+                }}
+                onClearAll={() => setCategory('all')}
+                addFilter={{
+                  fields: categoryFields,
+                  label: 'Category',
+                  onAdd: (chip) => setCategory(chip.value ?? 'all'),
+                }}
               />
-            </div>
-            <FilterToolbar
-              filters={activeFilters}
-              onRemove={(id) => {
-                if (id === 'category') setCategory('all');
-              }}
-              onClearAll={() => setCategory('all')}
-              addFilter={{
-                fields: categoryFields,
-                label: 'Category',
-                onAdd: (chip) => setCategory(chip.value ?? 'all'),
-              }}
-            />
             </div>
           </Suspense>
         )}
