@@ -332,11 +332,15 @@ describe('news desk', () => {
       title: 'Fresh regional report',
       publishedAt: '2026-10-22T12:00:00Z',
     };
-    vi.mocked(getNewsFeed).mockResolvedValue({ ...sample, articles: [incoming, ...sample.articles] });
+    vi.mocked(getNewsFeed).mockResolvedValue({
+      ...sample,
+      articles: [incoming, ...sample.articles],
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Refresh news' }));
     const latest = await screen.findByText('Fresh regional report');
-    await waitFor(() => expect(latest.closest('.signal-story')).toHaveAttribute('data-new-report'));
+    await waitFor(() =>
+      expect(latest.closest('.signal-story')).toHaveAttribute('data-new-report'),
+    );
     expect(original.closest('.signal-story')).not.toHaveAttribute('data-new-report');
   });
-
 });
