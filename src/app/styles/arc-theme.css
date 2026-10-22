@@ -1,22 +1,22 @@
 /* Arc UI design tokens mapped to SIGNAL's OLED palette.
    Import before SIGNAL tokens so existing styles retain ownership. */
 :root {
-  --background: #000;
-  --surface: #0c0c0c;
-  --surface-raised: #181818;
+  --background: var(--signal-bg);
+  --surface: var(--signal-surface);
+  --surface-raised: var(--signal-surface-raised);
   --surface-muted: #111311;
-  --foreground: #f2f2ee;
+  --foreground: var(--signal-text);
   --text-secondary: #c2c4bf;
-  --text-muted: #999b98;
-  --border: #242424;
+  --text-muted: var(--signal-text-muted);
+  --border: var(--signal-border);
   --border-subtle: #1c201d;
   --border-strong: #454b45;
-  --accent: #d4fd73;
-  --accent-strong: #d4fd73;
+  --accent: var(--signal-accent);
+  --accent-strong: var(--signal-accent);
   --accent-subtle: #1c2910;
-  --accent-foreground: #15200b;
-  --danger: #ff9a8f;
-  --focus-outline: #d4fd73;
+  --accent-foreground: var(--signal-accent-text);
+  --danger: var(--signal-danger);
+  --focus-outline: var(--signal-accent);
   --focus-ring: transparent;
   --focus-outline-width: 2px;
   --focus-outline-offset: 2px;
@@ -43,11 +43,11 @@
   --leading-body: 1.45;
   --tracking-body: -0.01em;
   --duration-instant: 100ms;
-  --duration-fast: 120ms;
-  --duration-standard: 200ms;
+  --duration-fast: var(--signal-duration-fast);
+  --duration-standard: var(--signal-duration-normal);
   --duration-considered: 320ms;
   --duration-spring: 240ms;
-  --ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-standard: var(--signal-ease-standard);
   --ease-enter: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-spring: cubic-bezier(0.2, 0.8, 0.2, 1);
 }

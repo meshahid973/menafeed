@@ -288,7 +288,6 @@ describe('news desk', () => {
     ]);
     render(<FeedHarness desktopStatus={{ kind: 'ready', schemaVersion: 2 }} view="news" />);
     await screen.findByText('Regional energy talks');
-    fireEvent.click(screen.getByRole('button', { name: 'Search news' }));
     fireEvent.change(screen.getByRole('searchbox', { name: 'Search headlines' }), {
       target: { value: 'Sudan relief' },
     });
@@ -303,7 +302,6 @@ describe('news desk', () => {
     };
     const { rerender } = render(<FeedHarness {...props} view="news" />);
     await screen.findByText('Regional energy talks');
-    fireEvent.click(screen.getByRole('button', { name: 'Search news' }));
     fireEvent.change(screen.getByRole('searchbox', { name: 'Search headlines' }), {
       target: { value: 'energy' },
     });
@@ -312,5 +310,13 @@ describe('news desk', () => {
     );
     rerender(<FeedHarness {...props} view="saved" />);
     expect(screen.getByText('Cultural event announced')).toBeInTheDocument();
+  });
+
+  it('keeps Arc Search Field visible on the full News workspace', async () => {
+    render(<FeedHarness desktopStatus={{ kind: 'ready', schemaVersion: 2 }} view="news" />);
+    await screen.findByText('Regional energy talks');
+    expect(screen.getByRole('searchbox', { name: 'Search headlines' })).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Search news' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Filter news' })).toBeInTheDocument();
   });
 });

@@ -1,0 +1,43 @@
+.signal-arc-popover__trigger[data-active] {
+  color: var(--signal-accent);
+  background: var(--signal-surface-raised);
+}
+
+.signal-arc-popover__positioner {
+  z-index: 25;
+}
+
+.signal-arc-popover__popup {
+  width: min(350px, calc(100vw - 32px));
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--signal-border);
+  border-radius: var(--signal-radius-md);
+  background: var(--signal-surface);
+  color: var(--signal-text);
+  box-shadow: 0 16px 48px #000c;
+  outline: none;
+  transform-origin: var(--transform-origin);
+  transition:
+    opacity var(--signal-duration-fast),
+    transform var(--signal-duration-fast);
+}
+
+.signal-arc-popover__popup[data-starting-style],
+.signal-arc-popover__popup[data-ending-style] {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
+.signal-arc-popover__title {
+  margin: 0 0 12px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .signal-arc-popover__popup {
+    transition: none;
+  }
+}

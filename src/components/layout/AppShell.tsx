@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import type { FeedArticle } from '../../features/news/contracts';
+import { searchCachedNews } from '../../services/news';
 import { ExpandingSearch } from '../arc/expanding-search/expanding-search';
 import { NewsFeed } from '../../features/news/NewsFeed';
 import { useBookmarks } from '../../features/news/useBookmarks';
@@ -29,7 +31,13 @@ export function AppShell({ desktopStatus }: AppShellProps) {
   const [view, setView] = useState<WorkspaceView>('explore');
   const [expanded, setExpanded] = useState(readExpanded);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [searchRequest, setSearchRequest] = useState(0);
+  const [quickOpenRequest, setQuickOpenRequest] = useState(0);
+  const [quickQuery, setQuickQuery] = useState('');
+  const [quickMatches, setQuickMatches] = useState<{ query: string; articles: FeedArticle[] }>({
+    query: '',
+    articles: [],
+  });
+  const [quickSelected, setQuickSelected] = useState<FeedArticle | null>(null);
   const [country, setCountry] = useState<MenaCountryCode | null>(null);
   const [selectedStory, setSelectedStory] = useState<string | null>(null);
   const bookmarks = useBookmarks();
@@ -59,13 +67,70 @@ export function AppShell({ desktopStatus }: AppShellProps) {
     [feed.data?.articles],
   );
 
+  const quickTerm = quickQuery.trim().toLocaleLowerCase();
+
+  useEffect(() => {
+    if (desktopStatus.kind !== 'ready' || quickTerm.length < 2) return;
+    let live = true;
+    const timer = window.setTimeout(() => {
+      void searchCachedNews(quickTerm, 30)
+        .then((articles) => {
+          if (live) setQuickMatches({ query: quickTerm, articles });
+        })
+        .catch(() => {
+          if (live) setQuickMatches({ query: quickTerm, articles: [] });
+        });
+    }, 180);
+    return () => {
+      live = false;
+      window.clearTimeout(timer);
+    };
+  }, [desktopStatus.kind, quickTerm]);
+
+  const quickArticles = useMemo(() => {
+    const terms = quickTerm.split(/\s+/).filter(Boolean);
+    const seen = new Set<string>();
+    const items: { article: FeedArticle; group: string }[] = [];
+    const add = (article: FeedArticle, group: string) => {
+      const key = article.canonicalUrl ?? article.url;
+      if (seen.has(key)) return;
+      seen.add(key);
+      items.push({ article, group });
+    };
+    for (const article of feed.data?.articles ?? []) {
+      if (
+        terms.every((term) =>
+          `${article.title} ${article.summary ?? ''} ${article.sourceName}`
+            .toLocaleLowerCase()
+            .includes(term),
+        )
+      )
+        add(article, 'Latest reports');
+      if (items.length >= 8) break;
+    }
+    if (quickMatches.query === quickTerm && quickTerm.length >= 2) {
+      for (const article of quickMatches.articles) add(article, 'From history');
+    }
+    return items.slice(0, 12);
+  }, [feed.data?.articles, quickMatches, quickTerm]);
+
   const quickItems = useMemo(
     () =>
-      (feed.data?.articles ?? []).slice(0, 90).map((article) => ({
+      quickArticles.map(({ article, group }) => ({
         id: article.id,
         title: article.title,
         meta: article.sourceName,
-        group: 'Recent reports',
+        group,
+      })),
+    [quickArticles],
+  );
+  const quickSuggestions = useMemo(
+    () =>
+      (feed.data?.articles ?? []).slice(0, 5).map((article) => ({
+        id: article.id,
+        title: article.title,
+        meta: article.sourceName,
+        group: 'Latest reports',
       })),
     [feed.data?.articles],
   );
@@ -98,9 +163,8 @@ export function AppShell({ desktopStatus }: AppShellProps) {
         setExpanded((current) => !current);
       } else if ((event.ctrlKey || event.metaKey) && key === 'k') {
         event.preventDefault();
-        setView('news');
         setSettingsOpen(false);
-        setSearchRequest((current) => current + 1);
+        setQuickOpenRequest((current) => current + 1);
       } else if (event.key === 'Escape') {
         setSettingsOpen(false);
         setExpanded(false);
@@ -131,12 +195,15 @@ export function AppShell({ desktopStatus }: AppShellProps) {
       view={view}
       bookmarks={bookmarks.items}
       onToggleBookmark={bookmarks.toggle}
-      searchRequest={searchRequest}
       feed={feed}
+      selectedQuickArticle={quickSelected}
       selectedCountry={country}
       onClearCountry={() => setCountry(null)}
       selectedArticleId={selectedStory}
-      onStoryHandled={() => setSelectedStory(null)}
+      onStoryHandled={() => {
+        setSelectedStory(null);
+        setQuickSelected(null);
+      }}
     />
   );
 
@@ -179,11 +246,21 @@ export function AppShell({ desktopStatus }: AppShellProps) {
               label="Search news"
               placeholder="Recent reports"
               items={quickItems}
+              suggestions={quickSuggestions}
+              suggestionsLabel="Latest reports"
+              onQueryChange={setQuickQuery}
+              resultsArePreRanked
+              openRequest={quickOpenRequest}
               expandedWidth={320}
-              maxResults={5}
+              maxResults={6}
               onSelect={(item) => {
+                const article =
+                  quickArticles.find(({ article: entry }) => entry.id === item.id)?.article ??
+                  feed.data?.articles.find((entry) => entry.id === item.id);
+                if (!article) return;
                 setView('news');
-                setSelectedStory(item.id);
+                setCountry(null);
+                setQuickSelected(article);
               }}
             />
           </div>
