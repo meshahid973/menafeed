@@ -513,6 +513,7 @@ export function ExpandingSearch({
       ref={rootRef}
       className={[styles.root, className].filter(Boolean).join(' ')}
       data-anchor={anchor}
+      data-expanded={expanded || undefined}
     >
       <motion.div
         ref={shellRef}

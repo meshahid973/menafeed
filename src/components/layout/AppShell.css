@@ -107,3 +107,24 @@
     padding-inline: 12px;
   }
 }
+
+/* At narrow desktop sizes the subtitle competes with the command search. */
+@media (max-width: 1000px) {
+  .signal-shell__header-actions > span {
+    display: none;
+  }
+  .signal-shell__quick-search {
+    flex: none;
+    width: 38px;
+    min-width: 38px;
+    max-width: none;
+  }
+  .signal-shell__quick-search[data-expanded] {
+    position: absolute;
+    z-index: 30;
+    top: 7px;
+    right: 12px;
+    width: min(320px, calc(100vw - 78px));
+    height: 38px;
+  }
+}

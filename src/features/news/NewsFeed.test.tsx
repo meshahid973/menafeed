@@ -68,13 +68,12 @@ describe('news desk', () => {
     expect(await screen.findByText('Regional energy talks')).toBeInTheDocument();
     expect(screen.getAllByText('Regional energy talks')).toHaveLength(1);
     fireEvent.click(screen.getByRole('button', { name: 'Filter news' }));
-    const publisher = await screen.findByRole('combobox', { name: 'Publisher' });
-    fireEvent.click(publisher);
-    const option = await screen.findByRole('option', { name: 'France 24' });
-    fireEvent.pointerUp(option, { pointerId: 1, pointerType: 'mouse', button: 0 });
-    fireEvent.click(option);
+    const france = await screen.findByRole('checkbox', { name: /France 24/ });
+    fireEvent.click(france);
     await waitFor(() => expect(screen.getByText('Cultural event announced')).toBeInTheDocument());
     expect(screen.queryByText('Regional energy talks')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('checkbox', { name: /BBC Middle East/ }));
+    await waitFor(() => expect(screen.getByText('Regional energy talks')).toBeInTheDocument());
   });
 
   it('can clear the Arc search field without shifting focus', async () => {
@@ -340,5 +339,34 @@ describe('news desk', () => {
     const latest = await screen.findByText('Fresh regional report');
     await waitFor(() => expect(latest.closest('.signal-story')).toHaveAttribute('data-new-report'));
     expect(original.closest('.signal-story')).not.toHaveAttribute('data-new-report');
+  });
+
+  it('shows related publisher coverage only for shared backend clusters', async () => {
+    const articles = [
+      { ...sample.articles[0]!, clusterId: 'story-a', clusterSize: 2 },
+      { ...sample.articles[2]!, clusterId: 'story-a', clusterSize: 2 },
+    ];
+    vi.mocked(getNewsFeed).mockResolvedValue({ ...sample, articles });
+    render(<FeedHarness desktopStatus={{ kind: 'ready', schemaVersion: 2 }} view="news" />);
+    fireEvent.click(await screen.findByText('Regional energy talks'));
+    const relatedTab = screen.getByRole('tab', { name: /Related coverage/ });
+    fireEvent.click(relatedTab);
+    fireEvent.click(screen.getByRole('button', { name: /Cultural event announced/ }));
+    expect(
+      await screen.findByRole('heading', { name: 'Cultural event announced' }),
+    ).toBeInTheDocument();
+  });
+
+  it('copies the selected publisher link on demand', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    });
+    render(<FeedHarness desktopStatus={{ kind: 'ready', schemaVersion: 2 }} />);
+    fireEvent.click(await screen.findByText('Regional energy talks'));
+    fireEvent.click(screen.getByRole('button', { name: 'Copy link' }));
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith('https://www.bbc.com/news/example'));
+    expect(screen.getByRole('button', { name: 'Copied' })).toBeInTheDocument();
   });
 });

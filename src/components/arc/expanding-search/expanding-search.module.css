@@ -273,3 +273,13 @@
     transform: none;
   }
 }
+
+/* Never show a result list squeezed to icon width during search expansion. */
+.root[data-expanded] .panel {
+  min-width: min(260px, calc(100vw - 32px));
+  max-width: calc(100vw - 24px);
+}
+.root[data-expanded] .body {
+  width: max(100%, min(258px, calc(100vw - 34px)));
+  max-width: 100%;
+}
