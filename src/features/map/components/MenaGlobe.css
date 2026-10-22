@@ -193,6 +193,7 @@
   stroke: #405357;
   stroke-opacity: 0.9;
   pointer-events: visiblePainted;
+  cursor: pointer;
 }
 
 .signal-map__country--selectable {
@@ -209,21 +210,6 @@
   fill: #385743;
   stroke: #c0e5a0;
   stroke-opacity: 1;
-}
-
-.signal-map__country--point {
-  fill: #b6e5ad;
-  fill-opacity: 1;
-  stroke: #06130d;
-  stroke-opacity: 1;
-  stroke-width: 1.1;
-  cursor: help;
-}
-
-.signal-map__country--point.signal-map__country--hovered {
-  fill: #e2ffa1;
-  stroke: #f3ffe7;
-  stroke-width: 1.7;
 }
 
 .signal-map__country--selected {
@@ -536,4 +522,28 @@
   .signal-map__country-option {
     transition: none;
   }
+}
+
+
+.signal-map__city {
+  pointer-events: none;
+}
+
+.signal-map__city circle {
+  fill: #d6f6bf;
+  fill-opacity: 0.82;
+  stroke: #07120e;
+  stroke-width: 0.8;
+  vector-effect: non-scaling-stroke;
+}
+
+.signal-map__city text {
+  fill: #e0eadf;
+  font-family: var(--signal-font-mono);
+  font-size: 8px;
+  font-weight: 500;
+  paint-order: stroke;
+  stroke: #07100e;
+  stroke-linejoin: round;
+  stroke-width: 2.5px;
 }

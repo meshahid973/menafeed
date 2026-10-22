@@ -10,7 +10,7 @@ pub struct Source {
     pub require_region_match: bool,
 }
 
-pub const SOURCES: [Source; 6] = [
+pub const SOURCES: [Source; 11] = [
     Source {
         id: "bbc",
         name: "BBC Middle East",
@@ -21,7 +21,7 @@ pub const SOURCES: [Source; 6] = [
     },
     Source {
         id: "france24",
-        name: "France 24",
+        name: "France 24 · Middle East",
         feed: "https://www.france24.com/en/middle-east/rss",
         interval_seconds: 120,
         max_articles: 30,
@@ -53,11 +53,51 @@ pub const SOURCES: [Source; 6] = [
     },
     Source {
         id: "dw",
-        name: "Deutsche Welle",
+        name: "Deutsche Welle · World",
         feed: "https://rss.dw.com/xml/rss-en-all",
         interval_seconds: 300,
+        max_articles: 30,
+        require_region_match: false,
+    },
+    Source {
+        id: "bbc-world",
+        name: "BBC News · World",
+        feed: "https://feeds.bbci.co.uk/news/world/rss.xml",
+        interval_seconds: 120,
+        max_articles: 30,
+        require_region_match: false,
+    },
+    Source {
+        id: "guardian-world",
+        name: "The Guardian · World",
+        feed: "https://www.theguardian.com/world/rss",
+        interval_seconds: 180,
+        max_articles: 30,
+        require_region_match: false,
+    },
+    Source {
+        id: "npr-world",
+        name: "NPR · World",
+        feed: "https://feeds.npr.org/1004/rss.xml",
+        interval_seconds: 180,
+        max_articles: 30,
+        require_region_match: false,
+    },
+    Source {
+        id: "aljazeera",
+        name: "Al Jazeera English",
+        feed: "https://www.aljazeera.com/xml/rss/all.xml",
+        interval_seconds: 180,
+        max_articles: 30,
+        require_region_match: false,
+    },
+    Source {
+        id: "un-news",
+        name: "UN News",
+        feed: "https://news.un.org/feed/subscribe/en/news/all/rss.xml",
+        interval_seconds: 300,
         max_articles: 24,
-        require_region_match: true,
+        require_region_match: false,
     },
 ];
 
@@ -74,6 +114,13 @@ pub fn approved_feed_host(url: &Url) -> bool {
                     | "www.africanews.com"
                     | "africanews.com"
                     | "rss.dw.com"
+                    | "www.theguardian.com"
+                    | "feeds.npr.org"
+                    | "www.npr.org"
+                    | "www.aljazeera.com"
+                    | "aljazeera.com"
+                    | "news.un.org"
+                    | "www.un.org"
             )
         )
         && url.username().is_empty()
@@ -145,7 +192,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn global_feeds_only_match_regional_stories() {
+    fn mena_filter_still_matches_regional_stories() {
         assert!(is_mena_relevant("Talks held in Bahrain and Saudi Arabia"));
         assert!(is_mena_relevant("North Africa economy"));
         assert!(!is_mena_relevant("German local politics"));
@@ -157,11 +204,25 @@ mod tests {
         assert!(approved_feed_host(
             &Url::parse("https://rss.dw.com/xml/rss-en-all").unwrap()
         ));
+        assert!(approved_feed_host(
+            &Url::parse("https://www.theguardian.com/world/rss").unwrap()
+        ));
+        assert!(approved_feed_host(
+            &Url::parse("https://news.un.org/feed/subscribe/en/news/all/rss.xml").unwrap()
+        ));
         assert!(!approved_feed_host(
             &Url::parse("https://evil.example/rss").unwrap()
         ));
         assert!(!approved_feed_host(
             &Url::parse("http://www.aa.com.tr/en/rss").unwrap()
         ));
+    }
+
+    #[test]
+    fn global_sources_are_not_filtered_by_mena_mentions() {
+        for id in ["dw", "bbc-world", "guardian-world", "npr-world", "aljazeera", "un-news"] {
+            let source = SOURCES.iter().find(|source| source.id == id).unwrap();
+            assert!(!source.require_region_match);
+        }
     }
 }

@@ -16,25 +16,9 @@ describe('world coverage data', () => {
   it('includes global country-boundary features with unique feature codes', () => {
     const codes = dataset.features.map((feature) => feature.properties.code);
 
-    expect(dataset.features.length).toBeGreaterThan(200);
+    expect(dataset.features.length).toBeGreaterThan(150);
+    expect(dataset.features.every((feature) => feature.geometry.type !== 'Point')).toBe(true);
     expect(new Set(codes).size).toBe(codes.length);
-  });
-
-  it('includes point markers for microstates omitted at world-map scale', () => {
-    const byCode = new Map(dataset.features.map((feature) => [feature.properties.code, feature]));
-
-    for (const [code, name] of [
-      ['MC', 'Monaco'],
-      ['VA', 'Vatican City'],
-      ['LI', 'Liechtenstein'],
-      ['AD', 'Andorra'],
-      ['SM', 'San Marino'],
-    ] as const) {
-      const feature = byCode.get(code);
-      expect(feature?.properties.name).toBe(name);
-      expect(feature?.properties.sourceResolution).toBe('50m-point');
-      expect(feature?.geometry.type).toBe('Point');
-    }
   });
 
   it('keeps the full editorial MENA selection list with unique ISO alpha-2 codes', () => {

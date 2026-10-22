@@ -6,7 +6,7 @@ export interface CountryFeatureProperties {
   name: string;
   code: string;
   selectable: boolean;
-  sourceResolution?: '10m' | '110m' | '50m-point';
+  sourceResolution?: '10m' | '110m';
 }
 
 export interface MenaMarker {
@@ -21,9 +21,9 @@ export interface MenaMarker {
 
 export interface MenaGlobeProps {
   /** Omit for internal selection; pass null to control and clear selection. */
-  selectedCountry?: MenaCountryCode | null;
+  selectedCountry?: string | null;
   /** Emits null when a selection is cleared. */
-  onCountrySelect?: (country: MenaCountryCode | null) => void;
+  onCountrySelect?: (country: string | null) => void;
   /** Markers are plotted from WGS84 longitude/latitude coordinates. */
   markers?: readonly MenaMarker[];
   onMarkerSelect?: (marker: MenaMarker) => void;
