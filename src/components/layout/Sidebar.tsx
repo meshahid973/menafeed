@@ -47,11 +47,10 @@ export function Sidebar({ view, expanded, onToggle, onSelect, onSettings }: Side
       </div>
       <div className="signal-sidebar__links">
         {links.map(({ id, Icon, label }) => (
-          <Tooltip side="right" content={label}>
+          <Tooltip key={id} side="right" content={label}>
             <button
               className={`signal-sidebar__link${view === id ? ' signal-sidebar__link--active' : ''}`}
               type="button"
-              key={id}
               aria-label={label}
               aria-current={view === id ? 'page' : undefined}
               onClick={() => onSelect(id)}
