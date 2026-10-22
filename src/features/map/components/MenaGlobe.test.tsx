@@ -167,10 +167,10 @@ describe('MenaGlobe', () => {
   });
 
   it('keeps the camera position stable when hover rerenders during animation', () => {
-    let frame: FrameRequestCallback | null = null;
+    const animation = { frame: null as FrameRequestCallback | null };
     vi.stubGlobal('matchMedia', () => ({ matches: false }));
     vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
-      frame = callback;
+      animation.frame = callback;
       return 1;
     });
     vi.stubGlobal('cancelAnimationFrame', () => undefined);
@@ -178,8 +178,8 @@ describe('MenaGlobe', () => {
       render(<MenaGlobe />);
       const egypt = screen.getByRole('button', { name: 'Select Egypt' });
       fireEvent.click(egypt);
-      act(() => { if (frame) frame(0); });
-      act(() => { if (frame) frame(200); });
+      act(() => { animation.frame?.(0); });
+      act(() => { animation.frame?.(200); });
       const layer = screen.getByTestId('map-layer');
       const duringMotion = layer.getAttribute('transform');
       expect(duringMotion).not.toBe('translate(0 0) scale(1)');
