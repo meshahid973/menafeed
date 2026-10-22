@@ -12,7 +12,7 @@ pub struct Source {
     pub require_region_match: bool,
 }
 
-pub const SOURCES: [Source; 6] = [
+pub const SOURCES: [Source; 8] = [
     Source {
         id: "bbc",
         name: "BBC Middle East",
@@ -61,6 +61,22 @@ pub const SOURCES: [Source; 6] = [
         max_articles: 24,
         require_region_match: true,
     },
+    Source {
+        id: "aljazeera",
+        name: "Al Jazeera English",
+        feed: "https://www.aljazeera.com/xml/rss/all.xml",
+        interval_seconds: 180,
+        max_articles: 25,
+        require_region_match: true,
+    },
+    Source {
+        id: "omanobserver",
+        name: "Oman Observer",
+        feed: "https://www.omanobserver.om/rssFeed/home-page",
+        interval_seconds: 240,
+        max_articles: 24,
+        require_region_match: false,
+    },
 ];
 
 pub fn approved_feed_host(url: &Url) -> bool {
@@ -76,6 +92,8 @@ pub fn approved_feed_host(url: &Url) -> bool {
                     | "www.africanews.com"
                     | "africanews.com"
                     | "rss.dw.com"
+                    | "www.aljazeera.com"
+                    | "www.omanobserver.om"
             )
         )
         && url.username().is_empty()
@@ -323,6 +341,9 @@ mod tests {
         assert!(approved_feed_host(
             &Url::parse("https://rss.dw.com/xml/rss-en-all").unwrap()
         ));
+        for source in SOURCES {
+            assert!(approved_feed_host(&Url::parse(source.feed).unwrap()), "{}", source.id);
+        }
         assert!(!approved_feed_host(
             &Url::parse("https://evil.example/rss").unwrap()
         ));

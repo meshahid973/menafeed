@@ -113,24 +113,17 @@ pub async fn load(app: AppHandle, force: bool) -> Result<NewsFeedResponse, Strin
         .build()
         .map_err(|_| "Could not initialize the news service")?;
 
-    // API requests remain opt-in; all enabled sources load concurrently.
+    // Bounded registry: adding another RSS source never increases peak requests
+    // beyond four. ReliefWeb remains opt-in and runs independently.
     let reliefweb_task = async {
         let app_name = std::env::var("SIGNAL_RELIEFWEB_APPNAME").ok()?;
         Some(load_reliefweb(&app, &client, &app_name, force).await)
     };
-    let (a, b, c, d, e, f, reliefweb) = tokio::join!(
-        load_source(&app, &client, SOURCES[0], force),
-        load_source(&app, &client, SOURCES[1], force),
-        load_source(&app, &client, SOURCES[2], force),
-        load_source(&app, &client, SOURCES[3], force),
-        load_source(&app, &client, SOURCES[4], force),
-        load_source(&app, &client, SOURCES[5], force),
-        reliefweb_task
-    );
+    let (results, reliefweb) = tokio::join!(load_registry(&app, &client, force), reliefweb_task);
 
     let mut articles = Vec::new();
     let mut sources = Vec::new();
-    for result in [a, b, c, d, e, f] {
+    for result in results {
         sources.push(result.state);
         articles.extend(result.articles);
     }
@@ -151,6 +144,31 @@ pub async fn load(app: AppHandle, force: bool) -> Result<NewsFeedResponse, Strin
         sources,
         received_at: chrono::Utc::now().to_rfc3339(),
     })
+}
+
+/// Load independent providers concurrently without an unbounded request burst.
+async fn load_registry(app: &AppHandle, client: &Client, force: bool) -> Vec<SourceResult> {
+    let mut tasks = tokio::task::JoinSet::new();
+    let mut remaining = SOURCES.iter().copied().enumerate();
+    let mut results = Vec::with_capacity(SOURCES.len());
+
+    for (index, source) in remaining.by_ref().take(4) {
+        let app = app.clone();
+        let client = client.clone();
+        tasks.spawn(async move { (index, load_source(&app, &client, source, force).await) });
+    }
+    while let Some(joined) = tasks.join_next().await {
+        if let Ok(result) = joined {
+            results.push(result);
+        }
+        if let Some((index, source)) = remaining.next() {
+            let app = app.clone();
+            let client = client.clone();
+            tasks.spawn(async move { (index, load_source(&app, &client, source, force).await) });
+        }
+    }
+    results.sort_by_key(|(index, _)| *index);
+    results.into_iter().map(|(_, result)| result).collect()
 }
 
 async fn load_source(
