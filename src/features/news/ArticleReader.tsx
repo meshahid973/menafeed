@@ -18,7 +18,14 @@ interface Props {
 }
 
 export function ArticleReader({
-  article, saved, relatedArticles = [], source, onBack, onOpen, onToggleSave, onRelatedSelect,
+  article,
+  saved,
+  relatedArticles = [],
+  source,
+  onBack,
+  onOpen,
+  onToggleSave,
+  onRelatedSelect,
 }: Props) {
   const reduced = useReducedMotion() ?? false;
   const [copied, setCopied] = useState<'idle' | 'yes' | 'error'>('idle');
@@ -53,7 +60,10 @@ export function ArticleReader({
             <PreviewCard.Trigger
               className="signal-reader__publisher"
               href={article.url}
-              onClick={(event) => { event.preventDefault(); onOpen(article.url); }}
+              onClick={(event) => {
+                event.preventDefault();
+                onOpen(article.url);
+              }}
             >
               {article.sourceName}
             </PreviewCard.Trigger>
@@ -77,13 +87,17 @@ export function ArticleReader({
         {relatedArticles.length > 0 ? (
           <Tabs.Root defaultValue="report" className="signal-reader__tabs">
             <Tabs.List className="signal-reader__tab-list">
-              <Tabs.Tab className="signal-reader__tab" value="report">Report</Tabs.Tab>
+              <Tabs.Tab className="signal-reader__tab" value="report">
+                Report
+              </Tabs.Tab>
               <Tabs.Tab className="signal-reader__tab" value="coverage">
                 Related coverage <span>{relatedArticles.length}</span>
               </Tabs.Tab>
               <Tabs.Indicator className="signal-reader__tab-indicator" />
             </Tabs.List>
-            <Tabs.Panel value="report" className="signal-reader__tab-panel">{excerpt}</Tabs.Panel>
+            <Tabs.Panel value="report" className="signal-reader__tab-panel">
+              {excerpt}
+            </Tabs.Panel>
             <Tabs.Panel value="coverage" className="signal-reader__tab-panel">
               <div className="signal-reader__related">
                 {relatedArticles.map((related) => (
@@ -93,14 +107,18 @@ export function ArticleReader({
                     className="signal-reader__related-item"
                     onClick={() => onRelatedSelect?.(related)}
                   >
-                    <span>{related.sourceName} · {storyDate(related.publishedAt)}</span>
+                    <span>
+                      {related.sourceName} · {storyDate(related.publishedAt)}
+                    </span>
                     <strong>{related.title}</strong>
                   </button>
                 ))}
               </div>
             </Tabs.Panel>
           </Tabs.Root>
-        ) : excerpt}
+        ) : (
+          excerpt
+        )}
         <div className="signal-reader__actions">
           <button className="signal-reader__open" type="button" onClick={() => onOpen(article.url)}>
             Read original <ArrowUpRight size={16} aria-hidden="true" />
@@ -110,7 +128,11 @@ export function ArticleReader({
             {saved ? 'Remove saved' : 'Save story'}
           </button>
           <button className="signal-reader__copy" type="button" onClick={() => void copyLink()}>
-            {copied === 'yes' ? <Check size={16} aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />}
+            {copied === 'yes' ? (
+              <Check size={16} aria-hidden="true" />
+            ) : (
+              <Copy size={16} aria-hidden="true" />
+            )}
             {copied === 'yes' ? 'Copied' : copied === 'error' ? 'Copy unavailable' : 'Copy link'}
           </button>
         </div>

@@ -352,7 +352,7 @@ describe('news desk', () => {
     const relatedTab = screen.getByRole('tab', { name: /Related coverage/ });
     fireEvent.click(relatedTab);
     fireEvent.click(screen.getByRole('button', { name: /Cultural event announced/ }));
-    expect(screen.getByRole('heading', { name: 'Cultural event announced' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Cultural event announced' })).toBeInTheDocument();
   });
 
   it('copies the selected publisher link on demand', async () => {
@@ -364,10 +364,7 @@ describe('news desk', () => {
     render(<FeedHarness desktopStatus={{ kind: 'ready', schemaVersion: 2 }} />);
     fireEvent.click(await screen.findByText('Regional energy talks'));
     fireEvent.click(screen.getByRole('button', { name: 'Copy link' }));
-    await waitFor(() =>
-      expect(writeText).toHaveBeenCalledWith('https://www.bbc.com/news/example'),
-    );
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith('https://www.bbc.com/news/example'));
     expect(screen.getByRole('button', { name: 'Copied' })).toBeInTheDocument();
   });
-
 });

@@ -226,7 +226,8 @@ export function NewsFeed({
         const key = article.canonicalUrl ?? article.url;
         if (seenUrls.has(key)) return false;
         seenUrls.add(key);
-        if (view !== 'saved' && source.length > 0 && !source.includes(article.sourceId)) return false;
+        if (view !== 'saved' && source.length > 0 && !source.includes(article.sourceId))
+          return false;
         if (view !== 'saved' && category !== 'all' && (article.category ?? 'general') !== category)
           return false;
         if (view !== 'saved' && selectedCountry) {
@@ -309,8 +310,13 @@ export function NewsFeed({
     return [...(data?.articles ?? []), ...cachedMatches.articles, ...bookmarks]
       .filter((article) => {
         const key = article.canonicalUrl ?? article.url;
-        if (!article.clusterId || article.clusterId !== selected.clusterId ||
-          seen.has(key) || publishers.has(article.sourceId)) return false;
+        if (
+          !article.clusterId ||
+          article.clusterId !== selected.clusterId ||
+          seen.has(key) ||
+          publishers.has(article.sourceId)
+        )
+          return false;
         seen.add(key);
         publishers.add(article.sourceId);
         return true;

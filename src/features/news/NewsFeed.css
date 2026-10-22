@@ -589,7 +589,9 @@
   width: var(--active-tab-width);
   height: 1px;
   background: var(--signal-accent);
-  transition: left 180ms var(--signal-ease-standard), width 180ms var(--signal-ease-standard);
+  transition:
+    left 180ms var(--signal-ease-standard),
+    width 180ms var(--signal-ease-standard);
 }
 .signal-reader__tab-panel {
   padding-top: 16px;
