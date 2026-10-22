@@ -283,7 +283,7 @@ export function AppShell({ desktopStatus }: AppShellProps) {
             <section className="signal-shell__feed" aria-label="Regional news">
               {news}
             </section>
-          )
+          )}
         </div>
       </div>
       <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
