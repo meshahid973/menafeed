@@ -1,11 +1,11 @@
-name: Import Arc components
+name: Format controls
 on:
   push:
     branches: [feat/news-controls]
 permissions:
   contents: write
 jobs:
-  import:
+  format:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
@@ -15,19 +15,17 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: npm install -g npm@11.6.3
-      - run: npm ci --no-audit
-      - name: Install Arc UI source
-        run: |
-          npx --yes shadcn@latest add @uiarc/arc-foundation @uiarc/select @uiarc/expanding-search @uiarc/search-field @uiarc/filter-toolbar @uiarc/dropdown-menu @uiarc/tooltip @uiarc/empty-state --yes
-      - name: Format imported files
-        run: npx prettier --write "src/components/arc/**/*.{ts,tsx,css}" tsconfig.json vite.config.ts components.json package.json
-      - name: Commit source
+      - run: |
+          npm install -g npm@11.6.3
+          npm ci --no-audit
+      - name: Format Phase 1
+        run: npx prettier --write src/components/layout/AppShell.tsx src/components/layout/AppShell.css src/components/layout/Sidebar.tsx src/features/news/NewsFeed.tsx src/features/news/NewsFeed.css src/features/news/NewsFeed.test.tsx src/app/styles/arc-theme.css src/main.tsx package.json tsconfig.json vite.config.ts components.json
+      - name: Commit
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add .
           if ! git diff --cached --quiet; then
-            git commit -m "feat: import Arc controls"
+            git commit -m "style: format Arc controls"
             git push origin HEAD:feat/news-controls
           fi
