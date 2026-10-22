@@ -134,59 +134,89 @@ export function NewsFeed({
       return;
     }
     let live = true;
-    void searchCachedNews(deferredQuery, 40).then((matches) => {
-      if (live) setCachedMatches(matches);
-    }).catch(() => {
-      if (live) setCachedMatches([]);
-    });
-    return () => { live = false; };
+    void searchCachedNews(deferredQuery, 40)
+      .then((matches) => {
+        if (live) setCachedMatches(matches);
+      })
+      .catch(() => {
+        if (live) setCachedMatches([]);
+      });
+    return () => {
+      live = false;
+    };
   }, [enabled, searchOpen, deferredQuery]);
 
-  const categoryFields: FilterField[] = useMemo(() => [{
-    id: 'category',
-    label: 'Category',
-    options: [
-      { value: 'general', label: 'General' },
-      { value: 'politics', label: 'Politics' },
-      { value: 'economy', label: 'Economy' },
-      { value: 'humanitarian', label: 'Humanitarian' },
-      { value: 'culture', label: 'Culture' },
+  const categoryFields: FilterField[] = useMemo(
+    () => [
+      {
+        id: 'category',
+        label: 'Category',
+        options: [
+          { value: 'general', label: 'General' },
+          { value: 'politics', label: 'Politics' },
+          { value: 'economy', label: 'Economy' },
+          { value: 'humanitarian', label: 'Humanitarian' },
+          { value: 'culture', label: 'Culture' },
+        ],
+      },
     ],
-  }], []);
-  const activeFilters: FilterChip[] = useMemo(() => category === 'all'
-    ? [] : [{ id: 'category', label: 'Category', value: category }], [category]);
-  const publisherOptions = useMemo(() => [
-    { value: 'all', label: 'All publishers' },
-    ...(data?.sources ?? []).map((item) => ({ value: item.id, label: item.name })),
-  ], [data?.sources]);
+    [],
+  );
+  const activeFilters: FilterChip[] = useMemo(
+    () => (category === 'all' ? [] : [{ id: 'category', label: 'Category', value: category }]),
+    [category],
+  );
+  const publisherOptions = useMemo(
+    () => [
+      { value: 'all', label: 'All publishers' },
+      ...(data?.sources ?? []).map((item) => ({ value: item.id, label: item.name })),
+    ],
+    [data?.sources],
+  );
 
   const articles = useMemo(() => {
     const live = view === 'saved' ? bookmarks : (data?.articles ?? []);
     // SQLite results supplement, never overwrite or duplicate, live reports.
     const base = view === 'saved' ? live : [...live, ...cachedMatches];
     const seenUrls = new Set<string>();
-    return deduplicate(base).filter((article) => {
-      const key = article.canonicalUrl ?? article.url;
-      if (seenUrls.has(key)) return false;
-      seenUrls.add(key);
-      if (view !== 'saved' && source !== 'all' && article.sourceId !== source) return false;
-      if (view !== 'saved' && category !== 'all' && (article.category ?? 'general') !== category)
-        return false;
-      if (view !== 'saved' && selectedCountry) {
-        const location = article.location;
-        const matchesCountry =
-          article.countryCodes?.includes(selectedCountry) ||
-          (location.precision !== 'unknown' && location.countryCode === selectedCountry);
-        if (!matchesCountry) return false;
-      }
-      return !deferredQuery ||
-        `${article.title} ${article.summary ?? ''} ${article.sourceName}`
-          .toLocaleLowerCase().includes(deferredQuery);
-    }).sort((a, b) => {
-      const diff = (Date.parse(b.publishedAt ?? '') || 0) - (Date.parse(a.publishedAt ?? '') || 0);
-      return sort === 'newest' ? diff : -diff;
-    });
-  }, [data, view, bookmarks, source, category, deferredQuery, selectedCountry, cachedMatches, sort]);
+    return deduplicate(base)
+      .filter((article) => {
+        const key = article.canonicalUrl ?? article.url;
+        if (seenUrls.has(key)) return false;
+        seenUrls.add(key);
+        if (view !== 'saved' && source !== 'all' && article.sourceId !== source) return false;
+        if (view !== 'saved' && category !== 'all' && (article.category ?? 'general') !== category)
+          return false;
+        if (view !== 'saved' && selectedCountry) {
+          const location = article.location;
+          const matchesCountry =
+            article.countryCodes?.includes(selectedCountry) ||
+            (location.precision !== 'unknown' && location.countryCode === selectedCountry);
+          if (!matchesCountry) return false;
+        }
+        return (
+          !deferredQuery ||
+          `${article.title} ${article.summary ?? ''} ${article.sourceName}`
+            .toLocaleLowerCase()
+            .includes(deferredQuery)
+        );
+      })
+      .sort((a, b) => {
+        const diff =
+          (Date.parse(b.publishedAt ?? '') || 0) - (Date.parse(a.publishedAt ?? '') || 0);
+        return sort === 'newest' ? diff : -diff;
+      });
+  }, [
+    data,
+    view,
+    bookmarks,
+    source,
+    category,
+    deferredQuery,
+    selectedCountry,
+    cachedMatches,
+    sort,
+  ]);
 
   async function handleOpen(url: string) {
     try {
@@ -314,7 +344,9 @@ export function NewsFeed({
             </div>
             <FilterToolbar
               filters={activeFilters}
-              onRemove={(id) => { if (id === 'category') setCategory('all'); }}
+              onRemove={(id) => {
+                if (id === 'category') setCategory('all');
+              }}
               onClearAll={() => setCategory('all')}
               addFilter={{
                 fields: categoryFields,
@@ -326,10 +358,13 @@ export function NewsFeed({
         )}
         {view !== 'saved' && sourceStates.length > 0 && (
           <div className="signal-feed__count" role="status">
-            {stale ? 'Cached reporting'
-              : unavailable ? 'Partial coverage'
-              : available === 0 ? 'Sources unavailable'
-              : `${articles.length} stories`}
+            {stale
+              ? 'Cached reporting'
+              : unavailable
+                ? 'Partial coverage'
+                : available === 0
+                  ? 'Sources unavailable'
+                  : `${articles.length} stories`}
           </div>
         )}
       </div>
@@ -371,9 +406,11 @@ export function NewsFeed({
               <EmptyState
                 icon={<Newspaper size={22} />}
                 title="Desktop news"
-                description={desktopStatus.kind === 'preview'
-                  ? 'Open the desktop app to read live RSS.'
-                  : 'Desktop news service unavailable.'}
+                description={
+                  desktopStatus.kind === 'preview'
+                    ? 'Open the desktop app to read live RSS.'
+                    : 'Desktop news service unavailable.'
+                }
               />
             </div>
           )}
@@ -382,18 +419,22 @@ export function NewsFeed({
               <EmptyState
                 icon={view === 'saved' ? <Bookmark size={22} /> : <Newspaper size={22} />}
                 title={view === 'saved' ? 'Nothing saved' : 'No reports'}
-                description={view === 'saved'
-                  ? 'No saved stories yet. Bookmark a report to see it here.'
-                  : selectedCountry
-                    ? 'No country-related reports for this country yet. Try refreshing for the latest stories.'
-                    : query || source !== 'all' || category !== 'all'
-                      ? 'No matching stories.'
-                      : 'No reports available.'}
-                action={selectedCountry ? (
-                  <button className="signal-feed__clear" type="button" onClick={onClearCountry}>
-                    All regional stories
-                  </button>
-                ) : undefined}
+                description={
+                  view === 'saved'
+                    ? 'No saved stories yet. Bookmark a report to see it here.'
+                    : selectedCountry
+                      ? 'No country-related reports for this country yet. Try refreshing for the latest stories.'
+                      : query || source !== 'all' || category !== 'all'
+                        ? 'No matching stories.'
+                        : 'No reports available.'
+                }
+                action={
+                  selectedCountry ? (
+                    <button className="signal-feed__clear" type="button" onClick={onClearCountry}>
+                      All regional stories
+                    </button>
+                  ) : undefined
+                }
               />
             </div>
           )}

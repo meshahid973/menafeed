@@ -25,16 +25,19 @@ export function Sidebar({ view, expanded, onToggle, onSelect, onSettings }: Side
       aria-label="Main navigation"
     >
       <div className="signal-sidebar__top">
-        <Tooltip side="right" content={expanded ? 'Collapse sidebar (Ctrl+B)' : 'Expand sidebar (Ctrl+B)'}>
-          <button
-          className="signal-sidebar__control"
-          type="button"
-          onClick={onToggle}
-          aria-label={expanded ? 'Collapse sidebar' : 'Expand sidebar'}
-          aria-expanded={expanded}
+        <Tooltip
+          side="right"
+          content={expanded ? 'Collapse sidebar (Ctrl+B)' : 'Expand sidebar (Ctrl+B)'}
         >
-          <Menu size={20} strokeWidth={1.8} aria-hidden="true" />
-        </button>
+          <button
+            className="signal-sidebar__control"
+            type="button"
+            onClick={onToggle}
+            aria-label={expanded ? 'Collapse sidebar' : 'Expand sidebar'}
+            aria-expanded={expanded}
+          >
+            <Menu size={20} strokeWidth={1.8} aria-hidden="true" />
+          </button>
         </Tooltip>
         {expanded && (
           <span className="signal-sidebar__wordmark">
@@ -45,34 +48,38 @@ export function Sidebar({ view, expanded, onToggle, onSelect, onSettings }: Side
       <div className="signal-sidebar__links">
         {links.map(({ id, Icon, label }) => (
           <Tooltip side="right" content={label}>
-          <button
-            className={`signal-sidebar__link${view === id ? ' signal-sidebar__link--active' : ''}`}
-            type="button"
-            key={id}
-            aria-label={label}
-            aria-current={view === id ? 'page' : undefined}
-            onClick={() => onSelect(id)}
-          >
-            <motion.span aria-hidden="true" whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.96 }}>
-              <Icon size={20} strokeWidth={1.8} />
-            </motion.span>
-            {expanded && <span>{label}</span>}
-          </button>
+            <button
+              className={`signal-sidebar__link${view === id ? ' signal-sidebar__link--active' : ''}`}
+              type="button"
+              key={id}
+              aria-label={label}
+              aria-current={view === id ? 'page' : undefined}
+              onClick={() => onSelect(id)}
+            >
+              <motion.span
+                aria-hidden="true"
+                whileHover={{ scale: 1.08 }}
+                whileTap={{ scale: 0.96 }}
+              >
+                <Icon size={20} strokeWidth={1.8} />
+              </motion.span>
+              {expanded && <span>{label}</span>}
+            </button>
           </Tooltip>
         ))}
       </div>
       <Tooltip side="right" content="Settings">
-      <button
-        className="signal-sidebar__link signal-sidebar__settings"
-        type="button"
-        onClick={onSettings}
-        aria-label="Settings"
-      >
-        <motion.span aria-hidden="true" whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.96 }}>
-          <Settings2 size={20} strokeWidth={1.8} />
-        </motion.span>
-        {expanded && <span>Settings</span>}
-      </button>
+        <button
+          className="signal-sidebar__link signal-sidebar__settings"
+          type="button"
+          onClick={onSettings}
+          aria-label="Settings"
+        >
+          <motion.span aria-hidden="true" whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.96 }}>
+            <Settings2 size={20} strokeWidth={1.8} />
+          </motion.span>
+          {expanded && <span>Settings</span>}
+        </button>
       </Tooltip>
     </nav>
   );

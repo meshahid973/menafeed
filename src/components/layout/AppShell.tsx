@@ -60,12 +60,13 @@ export function AppShell({ desktopStatus }: AppShellProps) {
   );
 
   const quickItems = useMemo(
-    () => (feed.data?.articles ?? []).slice(0, 90).map((article) => ({
-      id: article.id,
-      title: article.title,
-      meta: article.sourceName,
-      group: 'Recent reports',
-    })),
+    () =>
+      (feed.data?.articles ?? []).slice(0, 90).map((article) => ({
+        id: article.id,
+        title: article.title,
+        meta: article.sourceName,
+        group: 'Recent reports',
+      })),
     [feed.data?.articles],
   );
 

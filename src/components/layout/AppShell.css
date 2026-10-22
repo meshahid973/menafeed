@@ -82,5 +82,8 @@
   max-width: min(320px, 32vw);
 }
 @media (max-width: 720px) {
-  .signal-shell__quick-search { flex-basis: 200px; max-width: 44vw; }
+  .signal-shell__quick-search {
+    flex-basis: 200px;
+    max-width: 44vw;
+  }
 }

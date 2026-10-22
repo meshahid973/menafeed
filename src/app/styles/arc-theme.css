@@ -47,9 +47,9 @@
   --duration-standard: 200ms;
   --duration-considered: 320ms;
   --duration-spring: 240ms;
-  --ease-standard: cubic-bezier(.2,.8,.2,1);
-  --ease-enter: cubic-bezier(.16,1,.3,1);
-  --ease-spring: cubic-bezier(.2,.8,.2,1);
+  --ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-enter: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 @media (prefers-reduced-motion: reduce) {
   :root {

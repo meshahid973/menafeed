@@ -6,7 +6,11 @@ import { useNewsFeed } from './useNewsFeed';
 import type { ComponentProps } from 'react';
 import type { NewsFeedResponse } from './contracts';
 
-vi.mock('../../services/news', () => ({ getNewsFeed: vi.fn(), openArticle: vi.fn(), searchCachedNews: vi.fn() }));
+vi.mock('../../services/news', () => ({
+  getNewsFeed: vi.fn(),
+  openArticle: vi.fn(),
+  searchCachedNews: vi.fn(),
+}));
 
 const sample: NewsFeedResponse = {
   receivedAt: '2026-10-21T12:00:00Z',
@@ -84,12 +88,14 @@ describe('news desk', () => {
   });
 
   it('merges SQLite search matches without duplicate articles', async () => {
-    vi.mocked(searchCachedNews).mockResolvedValueOnce([{
-      ...sample.articles[0]!,
-      id: 'historical',
-      url: 'https://example.org/history',
-      title: 'Historic regional agreement',
-    }]);
+    vi.mocked(searchCachedNews).mockResolvedValueOnce([
+      {
+        ...sample.articles[0]!,
+        id: 'historical',
+        url: 'https://example.org/history',
+        title: 'Historic regional agreement',
+      },
+    ]);
     render(<FeedHarness desktopStatus={{ kind: 'ready', schemaVersion: 1 }} />);
     await screen.findByText('Regional energy talks');
     fireEvent.click(screen.getByRole('button', { name: 'Search news' }));
