@@ -73,9 +73,7 @@ describe('news desk', () => {
     const option = await screen.findByRole('option', { name: 'France 24' });
     fireEvent.pointerUp(option, { pointerId: 1, pointerType: 'mouse', button: 0 });
     fireEvent.click(option);
-    await waitFor(() =>
-      expect(screen.getByText('Cultural event announced')).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getByText('Cultural event announced')).toBeInTheDocument());
     expect(screen.queryByText('Regional energy talks')).not.toBeInTheDocument();
   });
 
