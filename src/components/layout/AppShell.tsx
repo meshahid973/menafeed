@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Search } from 'lucide-react';
+import { ExpandingSearch } from '../arc/expanding-search/expanding-search';
 import { NewsFeed } from '../../features/news/NewsFeed';
 import { useBookmarks } from '../../features/news/useBookmarks';
 import { useNewsFeed } from '../../features/news/useNewsFeed';
@@ -56,6 +56,17 @@ export function AppShell({ desktopStatus }: AppShellProps) {
           },
         ];
       }),
+    [feed.data?.articles],
+  );
+
+  const quickItems = useMemo(
+    () =>
+      (feed.data?.articles ?? []).slice(0, 90).map((article) => ({
+        id: article.id,
+        title: article.title,
+        meta: article.sourceName,
+        group: 'Recent reports',
+      })),
     [feed.data?.articles],
   );
 
@@ -163,18 +174,18 @@ export function AppShell({ desktopStatus }: AppShellProps) {
               </button>
             )}
             <span>Middle East &amp; North Africa</span>
-            <button
-              className="signal-shell__search"
-              type="button"
-              aria-label="Search news"
-              title="Search (Ctrl+K)"
-              onClick={() => {
+            <ExpandingSearch
+              className="signal-shell__quick-search"
+              label="Search news"
+              placeholder="Recent reports"
+              items={quickItems}
+              expandedWidth={320}
+              maxResults={5}
+              onSelect={(item) => {
                 setView('news');
-                setSearchRequest((v) => v + 1);
+                setSelectedStory(item.id);
               }}
-            >
-              <Search size={18} />
-            </button>
+            />
           </div>
         </header>
         <div className={`signal-shell__workspace signal-shell__workspace--${view}`}>

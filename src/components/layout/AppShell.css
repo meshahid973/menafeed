@@ -39,21 +39,6 @@
   color: var(--signal-text-muted);
   font-size: 12px;
 }
-.signal-shell__search {
-  display: grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  background: none;
-  color: inherit;
-  border: 0;
-  border-radius: 6px;
-  cursor: pointer;
-}
-.signal-shell__search:hover {
-  color: var(--signal-text);
-  background: var(--signal-surface);
-}
 .signal-shell__clear {
   border: 0;
   background: transparent;
@@ -88,5 +73,17 @@
   }
   .signal-shell__header-actions > span {
     display: none;
+  }
+}
+
+.signal-shell__quick-search {
+  flex: 0 1 320px;
+  min-width: 38px;
+  max-width: min(320px, 32vw);
+}
+@media (max-width: 720px) {
+  .signal-shell__quick-search {
+    flex-basis: 200px;
+    max-width: 44vw;
   }
 }

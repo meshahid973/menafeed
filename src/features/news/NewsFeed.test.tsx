@@ -1,12 +1,16 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NewsFeed } from './NewsFeed';
-import { getNewsFeed, openArticle } from '../../services/news';
+import { getNewsFeed, openArticle, searchCachedNews } from '../../services/news';
 import { useNewsFeed } from './useNewsFeed';
 import type { ComponentProps } from 'react';
 import type { NewsFeedResponse } from './contracts';
 
-vi.mock('../../services/news', () => ({ getNewsFeed: vi.fn(), openArticle: vi.fn() }));
+vi.mock('../../services/news', () => ({
+  getNewsFeed: vi.fn(),
+  openArticle: vi.fn(),
+  searchCachedNews: vi.fn(),
+}));
 
 const sample: NewsFeedResponse = {
   receivedAt: '2026-10-21T12:00:00Z',
@@ -56,17 +60,52 @@ describe('news desk', () => {
     vi.clearAllMocks();
     vi.mocked(getNewsFeed).mockResolvedValue(sample);
     vi.mocked(openArticle).mockResolvedValue();
+    vi.mocked(searchCachedNews).mockResolvedValue([]);
   });
 
   it('fetches, filters by publisher and removes identical source headlines', async () => {
     render(<FeedHarness desktopStatus={{ kind: 'ready', schemaVersion: 1 }} />);
     expect(await screen.findByText('Regional energy talks')).toBeInTheDocument();
     expect(screen.getAllByText('Regional energy talks')).toHaveLength(1);
-    fireEvent.change(screen.getByRole('combobox', { name: 'Publisher' }), {
-      target: { value: 'france24' },
-    });
+    fireEvent.click(screen.getByRole('button', { name: 'Filter news' }));
+    const publisher = await screen.findByRole('combobox', { name: 'Publisher' });
+    fireEvent.click(publisher);
+    const option = await screen.findByRole('option', { name: 'France 24' });
+    fireEvent.pointerUp(option, { pointerId: 1, pointerType: 'mouse', button: 0 });
+    fireEvent.click(option);
+    await waitFor(() => expect(screen.getByText('Cultural event announced')).toBeInTheDocument());
     expect(screen.queryByText('Regional energy talks')).not.toBeInTheDocument();
-    expect(screen.getByText('Cultural event announced')).toBeInTheDocument();
+  });
+
+  it('can clear the Arc search field without shifting focus', async () => {
+    render(<FeedHarness desktopStatus={{ kind: 'ready', schemaVersion: 1 }} />);
+    await screen.findByText('Regional energy talks');
+    fireEvent.click(screen.getByRole('button', { name: 'Search news' }));
+    const search = screen.getByRole('searchbox', { name: 'Search headlines' });
+    fireEvent.change(search, { target: { value: 'cultural' } });
+    expect(screen.getByRole('button', { name: 'Clear search' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Clear search' }));
+    expect(search).toHaveValue('');
+    expect(search).toHaveFocus();
+  });
+
+  it('merges SQLite search matches without duplicate articles', async () => {
+    vi.mocked(searchCachedNews).mockResolvedValueOnce([
+      {
+        ...sample.articles[0]!,
+        id: 'historical',
+        url: 'https://example.org/history',
+        title: 'Historic regional agreement',
+      },
+    ]);
+    render(<FeedHarness desktopStatus={{ kind: 'ready', schemaVersion: 1 }} />);
+    await screen.findByText('Regional energy talks');
+    fireEvent.click(screen.getByRole('button', { name: 'Search news' }));
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Search headlines' }), {
+      target: { value: 'historic' },
+    });
+    await waitFor(() => expect(searchCachedNews).toHaveBeenCalled());
+    expect(await screen.findByText('Historic regional agreement')).toBeInTheDocument();
   });
 
   it('opens a story reader and original report', async () => {
