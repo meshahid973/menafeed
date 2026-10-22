@@ -88,7 +88,7 @@ export function AppShell({ desktopStatus }: AppShellProps) {
   }, [desktopStatus.kind, quickTerm]);
 
   const quickArticles = useMemo(() => {
-    const terms = quickTerm.split(/\\s+/).filter(Boolean);
+    const terms = quickTerm.split(/\s+/).filter(Boolean);
     const seen = new Set<string>();
     const items: { article: FeedArticle; group: string }[] = [];
     const add = (article: FeedArticle, group: string) => {

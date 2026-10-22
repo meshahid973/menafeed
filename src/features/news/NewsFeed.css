@@ -466,3 +466,28 @@
 .signal-feed__empty {
   padding: 12px clamp(16px, 2vw, 28px);
 }
+
+/* Active filter chips stay visible after the anchored popover closes. */
+.signal-feed__active-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+}
+.signal-feed__active-filters button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 9px;
+  border: 1px solid var(--signal-border);
+  border-radius: var(--signal-radius-sm);
+  background: var(--signal-surface);
+  color: var(--signal-text-muted);
+  font-size: 11px;
+  cursor: pointer;
+}
+.signal-feed__active-filters button:hover {
+  color: var(--signal-text);
+  border-color: var(--signal-accent);
+}
+.signal-feed__filter-loading { min-height: 84px; }

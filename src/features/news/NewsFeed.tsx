@@ -5,6 +5,7 @@ import type { WorkspaceView } from '../../components/layout/workspaceTypes';
 import type { DesktopStatus } from '../../services/desktop';
 import { openArticle, searchCachedNews } from '../../services/news';
 import { SearchField } from '../../components/arc/search-field/search-field';
+import { FilterPopover } from '../../components/arc/popover/popover';
 import type { FilterChip, FilterField } from '../../components/arc/filter-toolbar/filter-toolbar';
 import { EmptyState } from '../../components/arc/empty-state/empty-state';
 import { ArticleReader } from './ArticleReader';
@@ -13,7 +14,7 @@ import { StoryCard } from './StoryCard';
 import type { useNewsFeed } from './useNewsFeed';
 import { getMenaCountryName } from '../map';
 import type { MenaCountryCode } from '../map';
-import { RefreshCw, Search, SlidersHorizontal, Newspaper, Bookmark } from 'lucide-react';
+import { RefreshCw, Search, X, Newspaper, Bookmark } from 'lucide-react';
 import './NewsFeed.css';
 
 // These controls are loaded only when the user opens advanced filters.
@@ -36,8 +37,8 @@ interface Props {
   view?: WorkspaceView;
   bookmarks?: FeedArticle[];
   onToggleBookmark?: (article: FeedArticle) => void;
-  searchRequest?: number;
   feed: ReturnType<typeof useNewsFeed>;
+  selectedQuickArticle?: FeedArticle | null;
   selectedCountry?: MenaCountryCode | null;
   onClearCountry?: () => void;
   selectedArticleId?: string | null;
@@ -62,8 +63,8 @@ export function NewsFeed({
   view = 'explore',
   bookmarks = [],
   onToggleBookmark = () => undefined,
-  searchRequest = 0,
   feed,
+  selectedQuickArticle = null,
   selectedCountry = null,
   onClearCountry,
   selectedArticleId = null,
@@ -87,12 +88,8 @@ export function NewsFeed({
   const deferredQuery = useDeferredValue(query.trim().toLocaleLowerCase());
   const listRef = useRef<HTMLDivElement>(null);
   const savedUrls = useMemo(() => new Set(bookmarks.map((item) => item.url)), [bookmarks]);
-
-  useEffect(() => {
-    if (!searchRequest) return;
-    setSearchOpen(true);
-    setSelected(null);
-  }, [searchRequest]);
+  // On the full News workspace, Arc Search Field is permanently accessible.
+  const showSearch = view === 'news' || searchOpen;
 
   useEffect(() => {
     if (searchOpen && view !== 'saved') searchRef.current?.focus();
@@ -144,7 +141,13 @@ export function NewsFeed({
   }, [selectedArticleId, data, onStoryHandled]);
 
   useEffect(() => {
-    if (!enabled || !searchOpen || deferredQuery.length < 2) {
+    if (!selectedQuickArticle) return;
+    setSelected(selectedQuickArticle);
+    onStoryHandled?.();
+  }, [selectedQuickArticle, onStoryHandled]);
+
+  useEffect(() => {
+    if (!enabled || !showSearch || deferredQuery.length < 2) {
       setCachedMatches({ query: '', articles: [] });
       return;
     }
@@ -159,7 +162,7 @@ export function NewsFeed({
     return () => {
       live = false;
     };
-  }, [enabled, searchOpen, deferredQuery]);
+  }, [enabled, showSearch, deferredQuery]);
 
   const categoryFields: FilterField[] = useMemo(
     () => [
@@ -195,7 +198,7 @@ export function NewsFeed({
     // search has already validated matches across separate words and fields.
     const cached =
       view !== 'saved' &&
-      searchOpen &&
+      showSearch &&
       deferredQuery.length >= 2 &&
       cachedMatches.query === deferredQuery
         ? cachedMatches.articles
@@ -240,7 +243,7 @@ export function NewsFeed({
     deferredQuery,
     selectedCountry,
     cachedMatches,
-    searchOpen,
+    showSearch,
     sort,
   ]);
 
@@ -295,7 +298,7 @@ export function NewsFeed({
           </h2>
           {view !== 'saved' && (
             <div className="signal-feed__actions">
-              <button
+              {view === 'explore' && <button
                 type="button"
                 aria-label="Search news"
                 aria-expanded={searchOpen}
@@ -306,16 +309,46 @@ export function NewsFeed({
                 }}
               >
                 <Search size={18} aria-hidden="true" />
-              </button>
-              <button
-                type="button"
-                aria-label="Filter news"
-                aria-expanded={filtersOpen}
-                title="Filters"
-                onClick={() => setFiltersOpen((value) => !value)}
+              </button>}
+              <FilterPopover
+                open={filtersOpen}
+                onOpenChange={setFiltersOpen}
+                active={category !== 'all' || source !== 'all' || sort !== 'newest'}
               >
-                <SlidersHorizontal size={18} aria-hidden="true" />
-              </button>
+                <Suspense fallback={<div className="signal-feed__filter-loading" />}>
+                  <div className="signal-feed__advanced-filters">
+                    <div className="signal-feed__filter-actions">
+                      <div className="signal-feed__publisher">
+                        <Select
+                          label="Publisher"
+                          value={source}
+                          onValueChange={setSource}
+                          options={publisherOptions}
+                        />
+                      </div>
+                      <DropdownMenu
+                        label={sort === 'newest' ? 'Newest first' : 'Oldest first'}
+                        items={[
+                          { label: 'Newest first', onSelect: () => setSort('newest') },
+                          { label: 'Oldest first', onSelect: () => setSort('oldest') },
+                        ]}
+                      />
+                    </div>
+                    <FilterToolbar
+                      filters={activeFilters}
+                      onRemove={(id) => {
+                        if (id === 'category') setCategory('all');
+                      }}
+                      onClearAll={() => setCategory('all')}
+                      addFilter={{
+                        fields: categoryFields,
+                        label: 'Category',
+                        onAdd: (chip) => setCategory(chip.value ?? 'all'),
+                      }}
+                    />
+                  </div>
+                </Suspense>
+              </FilterPopover>
               <button
                 type="button"
                 aria-label="Refresh news"
@@ -338,7 +371,7 @@ export function NewsFeed({
             Now showing news for {getMenaCountryName(selectedCountry)}
           </p>
         )}
-        {searchOpen && view !== 'saved' && (
+        {showSearch && view !== 'saved' && (
           <div className="signal-feed__search-shell">
             <SearchField
               ref={searchRef}
@@ -349,40 +382,26 @@ export function NewsFeed({
             />
           </div>
         )}
-        {view !== 'saved' && (filtersOpen || category !== 'all' || source !== 'all') && (
-          <Suspense fallback={null}>
-            <div className="signal-feed__advanced-filters">
-              <div className="signal-feed__filter-actions">
-                <div className="signal-feed__publisher">
-                  <Select
-                    label="Publisher"
-                    value={source}
-                    onValueChange={setSource}
-                    options={publisherOptions}
-                  />
-                </div>
-                <DropdownMenu
-                  label={sort === 'newest' ? 'Newest first' : 'Oldest first'}
-                  items={[
-                    { label: 'Newest first', onSelect: () => setSort('newest') },
-                    { label: 'Oldest first', onSelect: () => setSort('oldest') },
-                  ]}
-                />
-              </div>
-              <FilterToolbar
-                filters={activeFilters}
-                onRemove={(id) => {
-                  if (id === 'category') setCategory('all');
-                }}
-                onClearAll={() => setCategory('all')}
-                addFilter={{
-                  fields: categoryFields,
-                  label: 'Category',
-                  onAdd: (chip) => setCategory(chip.value ?? 'all'),
-                }}
-              />
-            </div>
-          </Suspense>
+        {view !== 'saved' && (category !== 'all' || source !== 'all' || sort !== 'newest') && (
+          <div className="signal-feed__active-filters" aria-label="Active news filters">
+            {source !== 'all' && (
+              <button type="button" onClick={() => setSource('all')} aria-label="Clear publisher filter">
+                {publisherOptions.find((item) => item.value === source)?.label ?? source}
+                <X size={12} aria-hidden="true" />
+              </button>
+            )}
+            {category !== 'all' && (
+              <button type="button" onClick={() => setCategory('all')} aria-label="Clear category filter">
+                {categoryFields[0]?.options?.find((item) => item.value === category)?.label ?? category}
+                <X size={12} aria-hidden="true" />
+              </button>
+            )}
+            {sort !== 'newest' && (
+              <button type="button" onClick={() => setSort('newest')} aria-label="Reset story sort order">
+                Oldest first <X size={12} aria-hidden="true" />
+              </button>
+            )}
+          </div>
         )}
         {view !== 'saved' && sourceStates.length > 0 && (
           <div className="signal-feed__count" role="status">
