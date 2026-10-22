@@ -219,12 +219,13 @@
   background:
     linear-gradient(var(--signal-border), var(--signal-border)) center / 100% 1px no-repeat,
     repeating-linear-gradient(
-      90deg,
-      var(--signal-border) 0,
-      var(--signal-border) 1px,
-      transparent 1px,
-      transparent 4%
-    ) center / 100% 13px no-repeat;
+        90deg,
+        var(--signal-border) 0,
+        var(--signal-border) 1px,
+        transparent 1px,
+        transparent 4%
+      )
+      center / 100% 13px no-repeat;
 }
 .signal-history__scrubber::-webkit-slider-thumb {
   -webkit-appearance: none;
