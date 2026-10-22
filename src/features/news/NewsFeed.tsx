@@ -194,7 +194,10 @@ export function NewsFeed({
     // Index matches belong only to the query that produced them. The Rust FTS5
     // search has already validated matches across separate words and fields.
     const cached =
-      view !== 'saved' && searchOpen && deferredQuery.length >= 2 && cachedMatches.query === deferredQuery
+      view !== 'saved' &&
+      searchOpen &&
+      deferredQuery.length >= 2 &&
+      cachedMatches.query === deferredQuery
         ? cachedMatches.articles
         : [];
     const base = view === 'saved' ? live : [...live, ...cached];

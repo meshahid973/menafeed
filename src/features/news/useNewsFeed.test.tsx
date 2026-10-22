@@ -44,6 +44,7 @@ describe('background news refresh', () => {
     expect(result.current.data).toEqual(response);
     expect(result.current.error).toBe('Could not reach the news service.');
   });
+
   it('pauses polling when disabled and resumes when enabled', async () => {
     vi.mocked(getNewsFeed).mockResolvedValue(response);
     const { result, rerender } = renderHook(({ enabled }) => useNewsFeed(enabled), {
@@ -64,7 +65,12 @@ describe('background news refresh', () => {
   it('ignores a response completed while disabled and retries on return', async () => {
     let finish!: (value: typeof response) => void;
     vi.mocked(getNewsFeed)
-      .mockImplementationOnce(() => new Promise((resolve) => { finish = resolve; }))
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            finish = resolve;
+          }),
+      )
       .mockResolvedValue(response);
     const { result, rerender } = renderHook(({ enabled }) => useNewsFeed(enabled), {
       initialProps: { enabled: true },
@@ -82,7 +88,10 @@ describe('background news refresh', () => {
   it('reuses an in-flight request when reenabled before it completes', async () => {
     let finish!: (value: typeof response) => void;
     vi.mocked(getNewsFeed).mockImplementation(
-      () => new Promise((resolve) => { finish = resolve; }),
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
     );
     const { result, rerender } = renderHook(({ enabled }) => useNewsFeed(enabled), {
       initialProps: { enabled: true },
@@ -96,5 +105,4 @@ describe('background news refresh', () => {
     await waitFor(() => expect(result.current.data).toEqual(response));
     expect(getNewsFeed).toHaveBeenCalledTimes(1);
   });
-
 });

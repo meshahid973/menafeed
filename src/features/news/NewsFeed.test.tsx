@@ -307,9 +307,10 @@ describe('news desk', () => {
     fireEvent.change(screen.getByRole('searchbox', { name: 'Search headlines' }), {
       target: { value: 'energy' },
     });
-    await waitFor(() => expect(screen.queryByText('Cultural event announced')).not.toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.queryByText('Cultural event announced')).not.toBeInTheDocument(),
+    );
     rerender(<FeedHarness {...props} view="saved" />);
     expect(screen.getByText('Cultural event announced')).toBeInTheDocument();
   });
-
 });
