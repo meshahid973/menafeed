@@ -22,7 +22,12 @@ export function storyDate(value: string | null): string {
 }
 
 export function StoryCard({
-  article, featured = false, animateNew = false, saved, onSelect, onToggleSave,
+  article,
+  featured = false,
+  animateNew = false,
+  saved,
+  onSelect,
+  onToggleSave,
 }: Props) {
   const reduced = useReducedMotion() ?? false;
   return (

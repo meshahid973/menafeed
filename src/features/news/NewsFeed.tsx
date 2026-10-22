@@ -104,8 +104,11 @@ export function NewsFeed({
     const next = new Set(reports.map((article) => article.canonicalUrl ?? article.url));
     if (previous) {
       setNewReportUrls(
-        new Set(reports.filter((article) => !previous.has(article.canonicalUrl ?? article.url))
-          .map((article) => article.canonicalUrl ?? article.url)),
+        new Set(
+          reports
+            .filter((article) => !previous.has(article.canonicalUrl ?? article.url))
+            .map((article) => article.canonicalUrl ?? article.url),
+        ),
       );
     }
     seenReports.current = next;
@@ -534,7 +537,9 @@ export function NewsFeed({
               key={article.url}
               article={article}
               featured={view === 'news' && index === 0}
-              animateNew={view !== 'saved' && newReportUrls.has(article.canonicalUrl ?? article.url)}
+              animateNew={
+                view !== 'saved' && newReportUrls.has(article.canonicalUrl ?? article.url)
+              }
               saved={savedUrls.has(article.url)}
               onSelect={() => setSelected(article)}
               onToggleSave={() => onToggleBookmark(article)}

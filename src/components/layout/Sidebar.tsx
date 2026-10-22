@@ -69,9 +69,7 @@ export function Sidebar({ view, expanded, onToggle, onSelect, onSettings }: Side
                   className="signal-sidebar__indicator"
                   aria-hidden="true"
                   transition={
-                    reduced
-                      ? { duration: 0 }
-                      : { type: 'spring', stiffness: 390, damping: 36 }
+                    reduced ? { duration: 0 } : { type: 'spring', stiffness: 390, damping: 36 }
                   }
                 />
               )}

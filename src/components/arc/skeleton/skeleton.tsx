@@ -18,7 +18,10 @@ export function Skeleton({
   loading = true,
 }: SkeletonProps) {
   return (
-    <div className={['signal-arc-skeleton', className].filter(Boolean).join(' ')} aria-busy={loading}>
+    <div
+      className={['signal-arc-skeleton', className].filter(Boolean).join(' ')}
+      aria-busy={loading}
+    >
       {loading ? (
         <div className="signal-arc-skeleton__lines" role="status" aria-label={label}>
           {Array.from({ length: Math.min(6, Math.max(1, lines)) }, (_, index) => (

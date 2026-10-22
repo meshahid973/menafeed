@@ -29,11 +29,20 @@ describe('resizable workspace', () => {
 
   it('updates the divider during dragging and saves the settled width on release', () => {
     window.localStorage.removeItem('signal:feed-width');
-    const { container } = render(<WorkspaceSplit map={<span>Map</span>} feed={<span>News</span>} />);
+    const { container } = render(
+      <WorkspaceSplit map={<span>Map</span>} feed={<span>News</span>} />,
+    );
     const split = container.querySelector('.signal-split') as HTMLDivElement;
     vi.spyOn(split, 'getBoundingClientRect').mockReturnValue({
-      left: 0, top: 0, right: 1200, bottom: 600, width: 1200,
-      height: 600, x: 0, y: 0, toJSON: () => ({}),
+      left: 0,
+      top: 0,
+      right: 1200,
+      bottom: 600,
+      width: 1200,
+      height: 600,
+      x: 0,
+      y: 0,
+      toJSON: () => ({}),
     });
     const handle = screen.getByRole('separator', { name: 'Resize map and news panels' });
     const setCapture = vi.fn();
@@ -47,5 +56,4 @@ describe('resizable workspace', () => {
     fireEvent.pointerUp(handle, { pointerId: 1 });
     expect(window.localStorage.getItem('signal:feed-width')).toBe('50');
   });
-
 });

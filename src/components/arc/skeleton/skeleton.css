@@ -19,8 +19,12 @@
   width: 63%;
 }
 @keyframes signal-arc-skeleton-pulse {
-  from { background-position: 100% 0; }
-  to { background-position: -100% 0; }
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   .signal-arc-skeleton__lines > span {

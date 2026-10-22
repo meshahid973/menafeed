@@ -21,10 +21,6 @@ jobs:
         run: npm install --global npm@11.6.3
       - name: Install dependencies
         run: npm ci --no-audit
-      - name: Diagnose Phase 2 formatting
-        run: |
-          npx prettier --write src/components/arc/skeleton/skeleton.css src/components/arc/skeleton/skeleton.tsx src/components/layout/Sidebar.tsx src/components/layout/WorkspaceSplit.test.tsx src/features/news/NewsFeed.tsx src/features/news/StoryCard.tsx
-          git diff -- src/components/arc/skeleton/skeleton.css src/components/arc/skeleton/skeleton.tsx src/components/layout/Sidebar.tsx src/components/layout/WorkspaceSplit.test.tsx src/features/news/NewsFeed.tsx src/features/news/StoryCard.tsx
       - name: Typecheck, lint, format, tests, build
         run: npm run check
 
