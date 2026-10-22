@@ -27,6 +27,7 @@ export function WorkspaceSplit({ map, feed }: { map: ReactNode; feed: ReactNode 
   const [feedWidth, setFeedWidth] = useState(initialWidth);
   const container = useRef<HTMLDivElement>(null);
   const dragging = useRef<number | null>(null);
+  const pendingWidth = useRef(feedWidth);
 
   useEffect(() => {
     try {
@@ -44,12 +45,18 @@ export function WorkspaceSplit({ map, feed }: { map: ReactNode; feed: ReactNode 
 
   function move(event: PointerEvent<HTMLDivElement>) {
     if (dragging.current !== event.pointerId) return;
-    setFeedWidth(widthFromPointer(event.clientX));
+    // Keep drag response on the compositor/CSS side; React (and the globe) only
+    // rerender when the user releases the divider.
+    const next = widthFromPointer(event.clientX);
+    pendingWidth.current = next;
+    container.current?.style.setProperty('--signal-feed-width', `${next}%`);
+    event.currentTarget.setAttribute('aria-valuenow', String(Math.round(next)));
   }
 
   function finish(event: PointerEvent<HTMLDivElement>) {
     if (dragging.current !== event.pointerId) return;
     dragging.current = null;
+    setFeedWidth(pendingWidth.current);
     if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
@@ -95,6 +102,7 @@ export function WorkspaceSplit({ map, feed }: { map: ReactNode; feed: ReactNode 
         onPointerDown={(event) => {
           if (event.button !== 0) return;
           dragging.current = event.pointerId;
+          pendingWidth.current = feedWidth;
           event.currentTarget.setPointerCapture(event.pointerId);
           event.preventDefault();
         }}
@@ -102,7 +110,10 @@ export function WorkspaceSplit({ map, feed }: { map: ReactNode; feed: ReactNode 
         onPointerUp={finish}
         onPointerCancel={finish}
         onLostPointerCapture={() => {
-          dragging.current = null;
+          if (dragging.current !== null) {
+            dragging.current = null;
+            setFeedWidth(pendingWidth.current);
+          }
         }}
         onKeyDown={handleKey}
       >

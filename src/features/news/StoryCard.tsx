@@ -1,9 +1,11 @@
 import { Bookmark } from 'lucide-react';
+import { motion, useReducedMotion } from 'motion/react';
 import type { FeedArticle } from './contracts';
 
 interface Props {
   article: FeedArticle;
   featured?: boolean;
+  animateNew?: boolean;
   saved: boolean;
   onSelect: () => void;
   onToggleSave: () => void;
@@ -19,9 +21,18 @@ export function storyDate(value: string | null): string {
   }).format(new Date(value));
 }
 
-export function StoryCard({ article, featured = false, saved, onSelect, onToggleSave }: Props) {
+export function StoryCard({
+  article, featured = false, animateNew = false, saved, onSelect, onToggleSave,
+}: Props) {
+  const reduced = useReducedMotion() ?? false;
   return (
-    <article className={`signal-story${featured ? ' signal-story--featured' : ''}`}>
+    <motion.article
+      className={`signal-story${featured ? ' signal-story--featured' : ''}`}
+      data-new-report={animateNew || undefined}
+      initial={animateNew && !reduced ? { opacity: 0, y: 8 } : false}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: reduced ? 0 : 0.2, ease: 'easeOut' }}
+    >
       <button type="button" className="signal-story__headline" onClick={onSelect}>
         <span className="signal-story__meta">
           <span>{article.sourceName}</span>
@@ -47,6 +58,6 @@ export function StoryCard({ article, featured = false, saved, onSelect, onToggle
           strokeWidth={1.8}
         />
       </button>
-    </article>
+    </motion.article>
   );
 }

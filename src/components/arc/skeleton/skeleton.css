@@ -1,0 +1,29 @@
+.signal-arc-skeleton__lines {
+  display: grid;
+  gap: 11px;
+}
+.signal-arc-skeleton__lines > span {
+  display: block;
+  height: 11px;
+  width: 35%;
+  border-radius: 3px;
+  background: linear-gradient(95deg, #181818 12%, #242424 50%, #181818 88%);
+  background-size: 200% 100%;
+  animation: signal-arc-skeleton-pulse 1.6s ease-in-out infinite;
+}
+.signal-arc-skeleton__lines > span:last-child {
+  width: 76%;
+  height: 19px;
+}
+.signal-arc-skeleton:nth-child(even) .signal-arc-skeleton__lines > span:last-child {
+  width: 63%;
+}
+@keyframes signal-arc-skeleton-pulse {
+  from { background-position: 100% 0; }
+  to { background-position: -100% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .signal-arc-skeleton__lines > span {
+    animation: none;
+  }
+}
