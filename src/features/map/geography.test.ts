@@ -2,12 +2,14 @@ import { describe, expect, it } from 'vitest';
 import rawCountryData from './data/world-countries.geojson?raw';
 import { MENA_COUNTRIES } from './data/coverage';
 import {
+  getCountryFocus,
   getCountryPath,
   isInsideMap,
   isValidGeoCoordinate,
   markerPosition,
   projectCoordinate,
   type CountryCollection,
+  type CountryFeature,
 } from './geography';
 
 const dataset = JSON.parse(rawCountryData) as CountryCollection;
@@ -81,6 +83,19 @@ describe('geographic coordinates', () => {
 
     expect(point).not.toBeNull();
     expect(isInsideMap(point!)).toBe(true);
+  });
+
+  it.each([
+    ['Egypt', 'EG'],
+    ['Saudi Arabia', 'SA'],
+    ['Morocco', 'MA'],
+  ])('retains finite MENA focus geometry for %s', (_, code) => {
+    const feature = dataset.features.find((item) => item.properties.code === code);
+    expect(feature).toBeDefined();
+    const focus = getCountryFocus(feature as CountryFeature);
+    expect(focus).not.toBeNull();
+    expect(focus!.width).toBeGreaterThan(0);
+    expect(focus!.height).toBeGreaterThan(0);
   });
 
   it('does not project invalid marker coordinates', () => {

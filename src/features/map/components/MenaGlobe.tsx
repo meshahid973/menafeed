@@ -1,6 +1,6 @@
-import { geoDistance, geoGraticule, geoOrthographic, geoPath } from 'd3-geo';
+import { geoCentroid, geoDistance, geoGraticule, geoOrthographic, geoPath } from 'd3-geo';
 import { RotateCcw, ZoomIn, ZoomOut } from 'lucide-react';
-import { useCallback, useId, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent, PointerEvent, WheelEvent } from 'react';
 import rawCountryData from '../data/world-countries.geojson?raw';
 import { MENA_COUNTRIES, MENA_COUNTRY_CODES } from '../data/coverage';
@@ -134,11 +134,32 @@ export function MenaGlobe({
 
   const selectCountry = useCallback(
     (country: MenaCountryCode | null) => {
-      if (!isControlled) setInternalSelection(country);
-      onCountrySelect?.(country);
+      // Preserve the existing navigation contract: selecting an active country
+      // again clears it, including in the externally controlled mode.
+      const next = country === activeCountry ? null : country;
+      if (!isControlled) setInternalSelection(next);
+      onCountrySelect?.(next);
     },
-    [isControlled, onCountrySelect],
+    [activeCountry, isControlled, onCountrySelect],
   );
+
+  useEffect(() => {
+    // Keep the selected country near the globe centre; this works for both
+    // controlled selection and the internal selection list.
+    if (!activeCountry) {
+      setView(INITIAL_VIEW);
+      return;
+    }
+    const feature = COUNTRY_FEATURES.find((item) => item.properties.code === activeCountry);
+    if (!feature) return;
+    const [longitude, latitude] = geoCentroid(feature);
+    if (!isValidGeoCoordinate(longitude, latitude)) return;
+    setView((current) => ({
+      longitude: normalizeLongitude(longitude),
+      latitude: clampLatitude(latitude),
+      zoom: Math.max(current.zoom, 1.14),
+    }));
+  }, [activeCountry]);
 
   const currentCountry = MENA_COUNTRIES.find(({ code }) => code === activeCountry);
   const hoveredFeature = hoveredCountry

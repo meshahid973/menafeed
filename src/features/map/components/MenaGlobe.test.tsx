@@ -36,6 +36,78 @@ describe('MenaGlobe', () => {
     expect(within(selection!).getByText('No country selected')).toBeInTheDocument();
   });
 
+  it('resets the globe when the selected country is clicked again', () => {
+    render(<MenaGlobe />);
+    const selection = screen.getByText('ACTIVE TERRITORY').parentElement!;
+    const egypt = screen.getByRole('button', { name: 'Select Egypt' });
+    const initialPath = egypt.getAttribute('d');
+
+    fireEvent.click(egypt);
+    expect(within(selection).getByText('Egypt')).toBeInTheDocument();
+    expect(egypt.getAttribute('d')).not.toBe(initialPath);
+
+    fireEvent.click(egypt);
+    expect(within(selection).getByText('No country selected')).toBeInTheDocument();
+    expect(egypt.getAttribute('d')).toBe(initialPath);
+  });
+
+  it('toggles the current country off using keyboard activation', () => {
+    render(<ControlledMap />);
+    const qatar = screen.getByRole('button', { name: 'Select Qatar' });
+    fireEvent.keyDown(qatar, { key: 'Enter' });
+    expect(screen.getByText('Qatar')).toBeInTheDocument();
+    fireEvent.keyDown(qatar, { key: 'Enter' });
+    const selection = screen.getByText('ACTIVE TERRITORY').parentElement!;
+    expect(within(selection).getByText('No country selected')).toBeInTheDocument();
+  });
+
+  it('toggles the current country off from the country list', () => {
+    render(<ControlledMap />);
+    const list = screen.getByLabelText('Choose a MENA country');
+    const morocco = within(list).getByRole('button', { name: /Morocco/ });
+    fireEvent.click(morocco);
+    expect(morocco).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(morocco);
+    expect(morocco).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it.each([
+    ['Egypt', 'EG'],
+    ['Saudi Arabia', 'SA'],
+    ['Morocco', 'MA'],
+  ])('focuses %s on the globe when selected', (name, code) => {
+    render(<MenaGlobe />);
+    const country = screen.getByRole('button', { name: `Select ${name}` });
+    const initialPath = country.getAttribute('d');
+    fireEvent.click(country);
+    expect(country).toHaveAttribute('data-country-code', code);
+    expect(country).toHaveAttribute('aria-pressed', 'true');
+    expect(country.getAttribute('d')).not.toBe(initialPath);
+  });
+
+  it('rotates from a country shape without accidentally selecting it', () => {
+    const onCountrySelect = vi.fn();
+    render(<MenaGlobe onCountrySelect={onCountrySelect} />);
+    const svg = screen.getByTestId('mena-map');
+    const egypt = screen.getByRole('button', { name: 'Select Egypt' });
+    const initialPath = egypt.getAttribute('d');
+    fireEvent.pointerDown(egypt, { pointerId: 7, button: 0, clientX: 400, clientY: 200 });
+    fireEvent.pointerMove(svg, { pointerId: 7, clientX: 450, clientY: 225 });
+    fireEvent.pointerUp(svg, { pointerId: 7, clientX: 450, clientY: 225 });
+    expect(egypt.getAttribute('d')).not.toBe(initialPath);
+    fireEvent.click(egypt);
+    expect(onCountrySelect).not.toHaveBeenCalled();
+  });
+
+  it('keeps the camera stable when hover state rerenders the globe', () => {
+    render(<MenaGlobe />);
+    const egypt = screen.getByRole('button', { name: 'Select Egypt' });
+    fireEvent.click(egypt);
+    const focusedPath = egypt.getAttribute('d');
+    fireEvent.mouseEnter(egypt);
+    expect(egypt.getAttribute('d')).toBe(focusedPath);
+  });
+
   it('renders coordinate-backed markers and reports marker selection', () => {
     const onMarkerSelect = vi.fn();
     const manama: MenaMarker = {
