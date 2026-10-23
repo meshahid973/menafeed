@@ -18,16 +18,14 @@ describe('workspace', () => {
   it('renders the offline geographic map with collapsed navigation', async () => {
     render(<App />);
     expect(screen.getByRole('button', { name: 'Expand sidebar' })).toBeInTheDocument();
-    const maps = screen.getAllByRole('region', { name: /Interactive world globe/ });
+    const maps = screen.getAllByRole('region', { name: /Interactive map/ });
     expect(maps.length).toBeGreaterThan(0);
     expect(await screen.findByText('Open the desktop app to read live RSS.')).toBeInTheDocument();
   });
 
   it('selects a country without inventing geographic news and clears it', async () => {
     render(<App />);
-    fireEvent.change(screen.getByRole('combobox', { name: 'Select any country' }), {
-      target: { value: 'BH' },
-    });
+    fireEvent.click(screen.getByRole('button', { name: 'Select Bahrain' }));
     expect(screen.getByRole('heading', { name: 'Bahrain', level: 1 })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /All countries/ })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /All countries/ }));

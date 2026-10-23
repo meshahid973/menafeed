@@ -4,4 +4,3 @@ coverage
 src-tauri/target
 src-tauri/Cargo.lock
 package-lock.json
-*.topojson
