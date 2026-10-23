@@ -55,9 +55,9 @@ describe('MenaGlobe', () => {
     render(<ControlledMap />);
     const qatar = screen.getByRole('button', { name: 'Select Qatar' });
     fireEvent.keyDown(qatar, { key: 'Enter' });
-    expect(screen.getByText('Qatar')).toBeInTheDocument();
-    fireEvent.keyDown(qatar, { key: 'Enter' });
     const selection = screen.getByText('ACTIVE TERRITORY').parentElement!;
+    expect(within(selection).getByText('Qatar')).toBeInTheDocument();
+    fireEvent.keyDown(qatar, { key: 'Enter' });
     expect(within(selection).getByText('No country selected')).toBeInTheDocument();
   });
 
