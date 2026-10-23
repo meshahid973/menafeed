@@ -9,18 +9,12 @@ function ControlledMap() {
   return <MenaGlobe selectedCountry={selectedCountry} onCountrySelect={setSelectedCountry} />;
 }
 
-function chooseCountry(code: string) {
-  fireEvent.change(screen.getByRole('combobox', { name: 'Select any country' }), {
-    target: { value: code },
-  });
-}
-
 describe('MenaGlobe', () => {
-  it('selects a country and reports it to the parent', () => {
+  it('selects a country through its geographic shape and reports it to the parent', () => {
     const onCountrySelect = vi.fn();
     render(<MenaGlobe onCountrySelect={onCountrySelect} />);
 
-    chooseCountry('BH');
+    fireEvent.click(screen.getByRole('button', { name: 'Select Bahrain' }));
 
     expect(onCountrySelect).toHaveBeenCalledWith('BH');
     const selection = screen.getByText('ACTIVE TERRITORY').parentElement;
@@ -28,10 +22,12 @@ describe('MenaGlobe', () => {
     expect(within(selection!).getByText('Bahrain')).toBeInTheDocument();
   });
 
-  it('supports MENA shortcut selection and a clear-selection action', () => {
+  it('supports keyboard country selection and a clear-selection action', () => {
     render(<ControlledMap />);
 
-    fireEvent.click(screen.getByRole('button', { name: /Qatar/ }));
+    fireEvent.keyDown(screen.getByRole('button', { name: 'Select Qatar' }), {
+      key: 'Enter',
+    });
     const selection = screen.getByText('ACTIVE TERRITORY').parentElement;
     expect(selection).not.toBeNull();
     expect(within(selection!).getByText('Qatar')).toBeInTheDocument();
@@ -68,49 +64,29 @@ describe('MenaGlobe', () => {
     const onCountrySelect = vi.fn();
     render(<MenaGlobe selectedCountry="SA" onCountrySelect={onCountrySelect} />);
 
-    chooseCountry('BH');
+    fireEvent.click(screen.getByRole('button', { name: 'Select Bahrain' }));
 
     expect(onCountrySelect).toHaveBeenCalledWith('BH');
     const selection = screen.getByText('ACTIVE TERRITORY').parentElement;
     expect(selection).not.toBeNull();
     expect(within(selection!).getByText('Saudi Arabia')).toBeInTheDocument();
   });
-
-  it('does not render country names or cities on the default globe', () => {
+  it('shows country labels without rendering every city on the default globe', () => {
     render(<MenaGlobe />);
-    expect(screen.queryByTestId('country-label-layer')).not.toBeInTheDocument();
-    expect(screen.getByTestId('globe-canvas')).toHaveAttribute('data-city-count', '0');
+    expect(screen.getByTestId('country-label-layer')).toBeInTheDocument();
+    expect(screen.queryByTestId('city-layer')).not.toBeInTheDocument();
   });
 
-  it('shows the selected country name and its city geometry only', () => {
+  it('shows cities only for the selected country', () => {
     render(<MenaGlobe selectedCountry="IN" />);
-    const label = screen.getByTestId('country-label-layer');
-    expect(within(label).getByText('India')).toBeInTheDocument();
-    expect(
-      Number(screen.getByTestId('globe-canvas').getAttribute('data-city-count')),
-    ).toBeGreaterThan(0);
-    expect(
-      Number(screen.getByTestId('globe-canvas').getAttribute('data-urban-area-count')),
-    ).toBeGreaterThan(0);
+    expect(screen.getByTestId('city-layer')).toBeInTheDocument();
     expect(screen.queryByText('Tokyo')).not.toBeInTheDocument();
   });
 
-  it('keeps only the newly selected country label when switching countries', () => {
-    render(<ControlledMap />);
-    chooseCountry('IN');
-    expect(within(screen.getByTestId('country-label-layer')).getByText('India')).toBeVisible();
-
-    chooseCountry('BH');
-    const labels = screen.getAllByTestId('country-label-layer');
-    expect(labels).toHaveLength(1);
-    expect(within(labels[0]!).getByText('Bahrain')).toBeInTheDocument();
-    expect(within(labels[0]!).queryByText('India')).not.toBeInTheDocument();
-  });
-
-  it('selects countries outside MENA', () => {
+  it('selects countries outside MENA through their geographic shapes', () => {
     const onCountrySelect = vi.fn();
     render(<MenaGlobe onCountrySelect={onCountrySelect} />);
-    chooseCountry('IN');
+    fireEvent.click(screen.getByRole('button', { name: 'Select India' }));
     expect(onCountrySelect).toHaveBeenCalledWith('IN');
     const selection = screen.getByText('ACTIVE TERRITORY').parentElement;
     expect(selection).not.toBeNull();

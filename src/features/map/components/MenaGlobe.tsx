@@ -1,30 +1,26 @@
-import { geoDistance, geoInterpolate } from 'd3-geo';
+import { geoCentroid, geoDistance, geoGraticule, geoOrthographic, geoPath } from 'd3-geo';
 import { RotateCcw, ZoomIn, ZoomOut } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { KeyboardEvent, MouseEvent, PointerEvent, WheelEvent } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import type { KeyboardEvent, PointerEvent, WheelEvent } from 'react';
+import rawCountryData from '../data/world-countries.geojson?raw';
+import rawCityData from '../data/world-cities.geojson?raw';
 import { MENA_COUNTRIES } from '../data/coverage';
-import { MAP_HEIGHT, MAP_WIDTH } from '../geography';
+import { WORLD_COUNTRIES } from '../worldCountries';
 import {
-  CITIES_BY_COUNTRY,
-  COUNTRY_BY_CODE,
-  isCountryCode,
-  SELECTABLE_COUNTRIES,
-} from '../mapData';
-import { drawGlobe, findHighlightedCityIds, validMarker, type GlobeFrame } from '../globeRenderer';
-import {
-  clampLatitude,
-  clampZoom,
-  createGlobeProjection,
-  findCountryAtPoint,
-  getCountryView,
-  GLOBE_RADIUS,
-  getMapViewport,
-  INITIAL_VIEW,
-  normalizeLongitude,
-  type GlobeView,
-} from '../globeView';
-import type { MenaGlobeProps } from '../types';
+  isValidGeoCoordinate,
+  MAP_HEIGHT,
+  MAP_WIDTH,
+  type CountryCollection,
+  type CountryFeature,
+} from '../geography';
+import type { MenaGlobeProps, MenaMarker } from '../types';
 import './MenaGlobe.css';
+
+interface GlobeView {
+  longitude: number;
+  latitude: number;
+  zoom: number;
+}
 
 interface DragStart {
   pointerId: number;
@@ -33,20 +29,67 @@ interface DragStart {
   longitude: number;
   latitude: number;
   zoom: number;
-  unitsPerPixel: number;
 }
 
-const INITIAL_PROJECTION = createGlobeProjection(INITIAL_VIEW);
-
-function requestFrame(callback: FrameRequestCallback): number {
-  return typeof window.requestAnimationFrame === 'function'
-    ? window.requestAnimationFrame(callback)
-    : window.setTimeout(() => callback(performance.now()), 16);
+const INITIAL_VIEW: GlobeView = { longitude: 24, latitude: 27, zoom: 1 };
+const MIN_ZOOM = 0.02;
+const GLOBE_RADIUS = 284;
+const CITY_LABEL_ZOOM = 1.25;
+const CENTER_X = MAP_WIDTH / 2;
+const CENTER_Y = MAP_HEIGHT / 2;
+const WORLD_FEATURES = JSON.parse(rawCountryData) as CountryCollection;
+const COUNTRY_FEATURES = WORLD_FEATURES.features as CountryFeature[];
+interface CityFeature {
+  type: 'Feature';
+  properties: {
+    name: string;
+    countryName: string;
+    countryCode: string;
+    population: number;
+    capital: boolean;
+  };
+  geometry: { type: 'Point'; coordinates: [number, number] };
 }
 
-function cancelFrame(frame: number): void {
-  if (typeof window.cancelAnimationFrame === 'function') window.cancelAnimationFrame(frame);
-  else window.clearTimeout(frame);
+interface CityCollection {
+  type: 'FeatureCollection';
+  features: CityFeature[];
+}
+const CITY_FEATURES = (JSON.parse(rawCityData) as CityCollection).features;
+const COUNTRY_LABELS = COUNTRY_FEATURES.map((feature) => {
+  const [longitude, latitude] = geoCentroid(feature);
+  return {
+    code: feature.properties.code,
+    name: feature.properties.name,
+    longitude,
+    latitude,
+  };
+}).filter(
+  ({ longitude, latitude }) => Number.isFinite(longitude) && Number.isFinite(latitude),
+);
+const COUNTRY_LOCATIONS = new Map<string, { longitude: number; latitude: number }>(
+  COUNTRY_LABELS.map(({ code, longitude, latitude }) => [
+    code,
+    { longitude, latitude },
+  ]),
+);
+const VIEW_UPDATE_INTERVAL = 1000 / 30;
+const GRATICULE = geoGraticule().step([15, 15])();
+
+function createGlobeProjection(view: GlobeView) {
+  return geoOrthographic()
+    .translate([CENTER_X, CENTER_Y])
+    .scale(GLOBE_RADIUS * view.zoom)
+    .rotate([-view.longitude, -view.latitude, 0])
+    .clipAngle(90);
+}
+
+function normalizeLongitude(value: number): number {
+  return ((value + 180) % 360 + 360) % 360 - 180;
+}
+
+function clampLatitude(value: number): number {
+  return Math.max(-78, Math.min(78, value));
 }
 
 function formatCoordinate(value: number, axis: 'latitude' | 'longitude'): string {
@@ -54,205 +97,122 @@ function formatCoordinate(value: number, axis: 'latitude' | 'longitude'): string
   return Math.abs(value).toFixed(2) + '° ' + hemisphere;
 }
 
-function reducedMotionRequested(): boolean {
-  return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+function isCountryCode(value: string): boolean {
+  return /^[A-Z]{2}$/.test(value);
 }
 
-/** Offline Natural Earth geography with a canvas renderer and accessible HTML controls. */
+function validMarker(marker: MenaMarker): boolean {
+  return (
+    marker.id.trim().length > 0 &&
+    marker.label.trim().length > 0 &&
+    isValidGeoCoordinate(marker.longitude, marker.latitude)
+  );
+}
+
+function isFacingCamera(longitude: number, latitude: number, view: GlobeView): boolean {
+  return (
+    geoDistance([longitude, latitude], [view.longitude, view.latitude]) <=
+    Math.PI / 2 + 0.000001
+  );
+}
+
+/**
+ * An offline-first orthographic globe with world-wide country selection.
+ * City data is bundled locally, so the globe makes no map-tile requests.
+ */
 export function MenaGlobe({
   selectedCountry,
   onCountrySelect,
   markers = [],
   onMarkerSelect,
   className,
-  ariaLabel = 'Interactive world globe with selectable countries and city boundaries',
+  ariaLabel = 'Interactive world globe with selectable countries and major cities',
 }: MenaGlobeProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const countryLabelRef = useRef<SVGTextElement>(null);
-  const markerElementsRef = useRef(new Map<string, SVGGElement>());
+  const instanceId = useId().replace(/:/g, '');
+  const sphereGradientId = 'signal-globe-sphere-' + instanceId;
+  const highlightGradientId = 'signal-globe-highlight-' + instanceId;
+  const glowGradientId = 'signal-globe-glow-' + instanceId;
+  const clipId = 'signal-globe-clip-' + instanceId;
   const [internalSelection, setInternalSelection] = useState<string | null>(null);
-  const isControlled = selectedCountry !== undefined;
-  const activeCountry = isControlled ? selectedCountry : internalSelection;
-  const viewRef = useRef<GlobeView>({ ...INITIAL_VIEW });
+  const [hoveredCountry, setHoveredCountry] = useState<string | null>(null);
+  const [view, setView] = useState<GlobeView>(INITIAL_VIEW);
   const dragStartRef = useRef<DragStart | null>(null);
   const didDragRef = useRef(false);
-  const drawFrameRef = useRef<number | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const wheelFrameRef = useRef<number | null>(null);
-  const settleTimerRef = useRef<number | null>(null);
-  const interactiveRef = useRef(false);
   const accumulatedWheelDeltaRef = useRef(0);
-  const previousCountryRef = useRef<string | null>(null);
-  const handledSelectionRef = useRef<string | null | undefined>(undefined);
+  const lastViewUpdateRef = useRef(0);
 
-  const validMarkers = useMemo(() => markers.filter(validMarker), [markers]);
-  const activeCities = useMemo(
-    () => (activeCountry ? (CITIES_BY_COUNTRY.get(activeCountry) ?? []) : []),
-    [activeCountry],
-  );
-  const highlightedCityIds = useMemo(
+  const isControlled = selectedCountry !== undefined;
+  const activeCountry = isControlled ? selectedCountry : internalSelection;
+  const radius = GLOBE_RADIUS * view.zoom;
+
+  const projection = useMemo(() => createGlobeProjection(view), [view]);
+  const paths = useMemo(() => {
+    const pathGenerator = geoPath(projection);
+    return COUNTRY_FEATURES.map((feature) => ({
+      feature,
+      path: pathGenerator(feature) ?? '',
+    })).filter(({ path }) => path.length > 0);
+  }, [projection]);
+  const graticulePath = useMemo(() => geoPath(projection)(GRATICULE) ?? '', [projection]);
+  const visibleMarkers = useMemo(
     () =>
-      activeCountry
-        ? findHighlightedCityIds(activeCities, validMarkers, activeCountry)
-        : new Set<string>(),
-    [activeCountry, activeCities, validMarkers],
+      markers
+        .filter(validMarker)
+        .filter((marker) => isFacingCamera(marker.longitude, marker.latitude, view))
+        .map((marker) => ({ marker, position: projection([marker.longitude, marker.latitude]) }))
+        .filter(
+          (entry): entry is { marker: MenaMarker; position: [number, number] } =>
+            entry.position !== null && entry.position.every(Number.isFinite),
+        ),
+    [markers, projection, view],
   );
-  const currentCountry = activeCountry ? COUNTRY_BY_CODE.get(activeCountry) : undefined;
-  const urbanAreaCount = activeCities.filter((city) => city.geometry.type !== 'Point').length;
-  const mapClassName = ['signal-map', className].filter(Boolean).join(' ');
-
-  const updateOverlay = useCallback(
-    (frame: GlobeFrame) => {
-      const label = countryLabelRef.current;
-      if (label) {
-        if (frame.countryLabel) {
-          label.setAttribute(
-            'transform',
-            `translate(${frame.countryLabel[0]} ${frame.countryLabel[1]})`,
-          );
-          label.style.display = '';
-        } else {
-          label.style.display = 'none';
-        }
-      }
-      for (const marker of validMarkers) {
-        const element = markerElementsRef.current.get(marker.id);
-        if (!element) continue;
-        const position = frame.markerPositions.get(marker.id);
-        element.style.display = position ? '' : 'none';
-        if (position) element.setAttribute('transform', `translate(${position[0]} ${position[1]})`);
-      }
-    },
-    [validMarkers],
-  );
-
-  const draw = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const frame = drawGlobe(
-      canvas,
-      viewRef.current,
-      activeCountry,
-      validMarkers,
-      highlightedCityIds,
-      interactiveRef.current,
-    );
-    updateOverlay(frame);
-  }, [activeCountry, highlightedCityIds, updateOverlay, validMarkers]);
-  const drawRef = useRef(draw);
-  drawRef.current = draw;
-
-  const drawNow = useCallback(() => {
-    if (drawFrameRef.current !== null) {
-      cancelFrame(drawFrameRef.current);
-      drawFrameRef.current = null;
-    }
-    drawRef.current();
-  }, []);
-
-  const scheduleDraw = useCallback(() => {
-    if (drawFrameRef.current !== null) return;
-    drawFrameRef.current = requestFrame(() => {
-      drawFrameRef.current = null;
-      drawRef.current();
+  const visibleCities = useMemo(() => {
+    if (!activeCountry) return [];
+    return CITY_FEATURES.flatMap((feature) => {
+      if (feature.properties.countryCode !== activeCountry) return [];
+      const [longitude, latitude] = feature.geometry.coordinates;
+      if (!isFacingCamera(longitude, latitude, view)) return [];
+      const position = projection([longitude, latitude]);
+      return position && position.every(Number.isFinite) ? [{ feature, position }] : [];
     });
-  }, []);
+  }, [activeCountry, projection, view]);
 
-  const beginInteraction = useCallback(() => {
-    if (settleTimerRef.current !== null) window.clearTimeout(settleTimerRef.current);
-    settleTimerRef.current = null;
-    interactiveRef.current = true;
-  }, []);
+  const visibleCountryLabels = useMemo(() => {
+    if (view.zoom < 0.88) return [];
+    const minimumDistance =
+      view.zoom < 1.18 ? 66 : view.zoom < 1.7 ? 43 : view.zoom < 2.5 ? 28 : 16;
+    const candidates = COUNTRY_LABELS.flatMap((country) => {
+      if (!isFacingCamera(country.longitude, country.latitude, view)) return [];
+      const position = projection([country.longitude, country.latitude]);
+      if (!position || !position.every(Number.isFinite)) return [];
+      return [
+        {
+          ...country,
+          x: position[0],
+          y: position[1],
+          width: Math.max(22, country.name.length * 4.7),
+        },
+      ];
+    }).sort((a, b) => {
+      if (a.code === activeCountry) return -1;
+      if (b.code === activeCountry) return 1;
+      const aDistance = Math.hypot(a.x - CENTER_X, a.y - CENTER_Y);
+      const bDistance = Math.hypot(b.x - CENTER_X, b.y - CENTER_Y);
+      return aDistance - bDistance;
+    });
 
-  const showDetailedView = useCallback(() => {
-    if (settleTimerRef.current !== null) window.clearTimeout(settleTimerRef.current);
-    settleTimerRef.current = null;
-    const shouldDraw = interactiveRef.current;
-    interactiveRef.current = false;
-    if (shouldDraw) drawNow();
-  }, [drawNow]);
-
-  const scheduleDetailedView = useCallback(
-    (delay = 120) => {
-      if (settleTimerRef.current !== null) window.clearTimeout(settleTimerRef.current);
-      settleTimerRef.current = window.setTimeout(() => {
-        settleTimerRef.current = null;
-        interactiveRef.current = false;
-        drawNow();
-      }, delay);
-    },
-    [drawNow],
-  );
-
-  const cancelViewAnimation = useCallback(() => {
-    if (animationFrameRef.current !== null) cancelFrame(animationFrameRef.current);
-    animationFrameRef.current = null;
-  }, []);
-
-  const animateViewTo = useCallback(
-    (target: GlobeView, duration = 900) => {
-      cancelViewAnimation();
-      beginInteraction();
-      const start = { ...viewRef.current };
-      const end = {
-        longitude: normalizeLongitude(target.longitude),
-        latitude: clampLatitude(target.latitude),
-        zoom: clampZoom(target.zoom),
-      };
-      if (reducedMotionRequested()) {
-        viewRef.current = end;
-        showDetailedView();
-        return;
-      }
-
-      const interpolate = geoInterpolate(
-        [start.longitude, start.latitude],
-        [end.longitude, end.latitude],
+    const placed: typeof candidates = [];
+    for (const candidate of candidates) {
+      const overlaps = placed.some((other) =>
+        Math.abs(candidate.x - other.x) < (candidate.width + other.width) / 2 + 7 &&
+        Math.abs(candidate.y - other.y) < minimumDistance * 0.28 + 6,
       );
-      const travel = geoDistance([start.longitude, start.latitude], [end.longitude, end.latitude]);
-      const arc = Math.min(0.16, travel * 0.055);
-      const startTime = performance.now();
-      const animate = (now: number) => {
-        const progress = Math.min(1, (now - startTime) / duration);
-        const eased =
-          progress < 0.5
-            ? 4 * progress * progress * progress
-            : 1 - Math.pow(-2 * progress + 2, 3) / 2;
-        const coordinate = interpolate(eased);
-        const baseZoom = Math.exp(
-          Math.log(start.zoom) + (Math.log(end.zoom) - Math.log(start.zoom)) * eased,
-        );
-        viewRef.current = {
-          longitude: normalizeLongitude(coordinate[0]),
-          latitude: clampLatitude(coordinate[1]),
-          zoom: clampZoom(baseZoom * (1 - arc * Math.sin(Math.PI * progress))),
-        };
-        if (progress < 1) {
-          drawNow();
-          animationFrameRef.current = requestFrame(animate);
-        } else {
-          viewRef.current = end;
-          animationFrameRef.current = null;
-          scheduleDetailedView(40);
-        }
-      };
-      animationFrameRef.current = requestFrame(animate);
-    },
-    [beginInteraction, cancelViewAnimation, drawNow, scheduleDetailedView, showDetailedView],
-  );
-
-  const animateToCountry = useCallback(
-    (code: string) => {
-      const country = COUNTRY_BY_CODE.get(code);
-      if (!country) return;
-      animateViewTo(getCountryView(country), 920);
-    },
-    [animateViewTo],
-  );
-
-  const resetGlobe = useCallback(() => {
-    animateViewTo(INITIAL_VIEW, 1000);
-  }, [animateViewTo]);
+      if (!overlaps) placed.push(candidate);
+    }
+    return placed;
+  }, [activeCountry, projection, view]);
 
   const selectCountry = useCallback(
     (country: string | null) => {
@@ -262,240 +222,232 @@ export function MenaGlobe({
     [isControlled, onCountrySelect],
   );
 
-  const activateCountry = useCallback(
-    (code: string) => {
-      handledSelectionRef.current = code;
-      selectCountry(code);
-      animateToCountry(code);
-    },
-    [animateToCountry, selectCountry],
-  );
-
-  const clearSelection = useCallback(() => {
-    handledSelectionRef.current = null;
-    selectCountry(null);
-    resetGlobe();
-  }, [resetGlobe, selectCountry]);
-
-  // Controlled selections changed elsewhere in the app receive the same transition.
-  useEffect(() => {
-    if (previousCountryRef.current === activeCountry) return;
-    previousCountryRef.current = activeCountry;
-    if (
-      handledSelectionRef.current !== undefined &&
-      handledSelectionRef.current === activeCountry
-    ) {
-      handledSelectionRef.current = undefined;
-      return;
-    }
-    if (activeCountry) animateToCountry(activeCountry);
-    else resetGlobe();
-  }, [activeCountry, animateToCountry, resetGlobe]);
-
-  useEffect(() => {
-    scheduleDraw();
-  }, [activeCountry, highlightedCityIds, scheduleDraw, validMarkers]);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const resize = () => {
-      const bounds = canvas.getBoundingClientRect();
-      const ratio = Math.min(2, window.devicePixelRatio || 1);
-      const width = Math.max(1, Math.round((bounds.width || MAP_WIDTH) * ratio));
-      const height = Math.max(1, Math.round((bounds.height || MAP_HEIGHT) * ratio));
-      if (canvas.width !== width || canvas.height !== height) {
-        canvas.width = width;
-        canvas.height = height;
-      }
-      scheduleDraw();
-    };
-    resize();
-    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(resize);
-    observer?.observe(canvas);
-    window.addEventListener('resize', resize);
-    return () => {
-      observer?.disconnect();
-      window.removeEventListener('resize', resize);
-    };
-  }, [scheduleDraw]);
-
-  useEffect(
-    () => () => {
-      if (drawFrameRef.current !== null) cancelFrame(drawFrameRef.current);
-      if (animationFrameRef.current !== null) cancelFrame(animationFrameRef.current);
-      if (wheelFrameRef.current !== null) cancelFrame(wheelFrameRef.current);
-      if (settleTimerRef.current !== null) window.clearTimeout(settleTimerRef.current);
-    },
-    [],
-  );
-
-  const zoomAt = useCallback(
-    (factor: number) => {
-      const current = viewRef.current;
-      animateViewTo({ ...current, zoom: clampZoom(current.zoom * factor) }, 240);
-    },
-    [animateViewTo],
-  );
+  const currentCountry = WORLD_COUNTRIES.find(({ code }) => code === activeCountry);
+  const hoveredFeature = hoveredCountry
+    ? COUNTRY_FEATURES.find(({ properties }) => properties.code === hoveredCountry)
+    : undefined;
+  const mapClassName = ['signal-map', className].filter(Boolean).join(' ');
 
   const startPan = useCallback(
-    (event: PointerEvent<HTMLDivElement>) => {
+    (event: PointerEvent<SVGSVGElement>) => {
       if (event.button !== 0) return;
-      cancelViewAnimation();
-      const bounds = event.currentTarget.getBoundingClientRect();
+      if (animationFrameRef.current !== null) cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+
       dragStartRef.current = {
         pointerId: event.pointerId,
         clientX: event.clientX,
         clientY: event.clientY,
-        longitude: viewRef.current.longitude,
-        latitude: viewRef.current.latitude,
-        zoom: viewRef.current.zoom,
-        unitsPerPixel:
-          bounds.width > 0 && bounds.height > 0
-            ? 1 / getMapViewport(bounds.width, bounds.height).scale
-            : 1,
+        longitude: view.longitude,
+        latitude: view.latitude,
+        zoom: view.zoom,
       };
       didDragRef.current = false;
     },
-    [cancelViewAnimation],
+    [view.latitude, view.longitude, view.zoom],
   );
 
-  const movePan = useCallback(
-    (event: PointerEvent<HTMLDivElement>) => {
-      const start = dragStartRef.current;
-      if (!start || start.pointerId !== event.pointerId) return;
-      const deltaX = event.clientX - start.clientX;
-      const deltaY = event.clientY - start.clientY;
-      if (!didDragRef.current && Math.hypot(deltaX, deltaY) > 4) {
-        didDragRef.current = true;
-        beginInteraction();
-        event.currentTarget.setPointerCapture?.(event.pointerId);
-      }
-      if (!didDragRef.current) return;
-      const degreesPerPixel = (90 / (GLOBE_RADIUS * start.zoom)) * start.unitsPerPixel;
-      viewRef.current = {
+  const movePan = useCallback((event: PointerEvent<SVGSVGElement>) => {
+    const start = dragStartRef.current;
+    if (!start || start.pointerId !== event.pointerId) return;
+
+    const deltaX = event.clientX - start.clientX;
+    const deltaY = event.clientY - start.clientY;
+    if (!didDragRef.current && Math.hypot(deltaX, deltaY) > 4) {
+      didDragRef.current = true;
+      event.currentTarget.setPointerCapture?.(event.pointerId);
+    }
+    if (!didDragRef.current) return;
+
+    const now = performance.now();
+    if (now - lastViewUpdateRef.current < VIEW_UPDATE_INTERVAL) return;
+    lastViewUpdateRef.current = now;
+    const degreesPerPixel = 90 / (GLOBE_RADIUS * start.zoom);
+    setView({
+      longitude: normalizeLongitude(start.longitude - deltaX * degreesPerPixel),
+      latitude: clampLatitude(start.latitude + deltaY * degreesPerPixel),
+      zoom: start.zoom,
+    });
+  }, []);
+
+  const endPan = useCallback((event: PointerEvent<SVGSVGElement>) => {
+    const start = dragStartRef.current;
+    if (!start || start.pointerId !== event.pointerId) return;
+
+    const deltaX = event.clientX - start.clientX;
+    const deltaY = event.clientY - start.clientY;
+    if (Math.hypot(deltaX, deltaY) > 4) {
+      didDragRef.current = true;
+      const degreesPerPixel = 90 / (GLOBE_RADIUS * start.zoom);
+      setView({
         longitude: normalizeLongitude(start.longitude - deltaX * degreesPerPixel),
         latitude: clampLatitude(start.latitude + deltaY * degreesPerPixel),
         zoom: start.zoom,
-      };
-      scheduleDraw();
-    },
-    [beginInteraction, scheduleDraw],
-  );
+      });
+    }
 
-  const endPan = useCallback(
-    (event: PointerEvent<HTMLDivElement>) => {
-      const start = dragStartRef.current;
-      if (!start || start.pointerId !== event.pointerId) return;
-      if (didDragRef.current) {
-        const deltaX = event.clientX - start.clientX;
-        const deltaY = event.clientY - start.clientY;
-        const degreesPerPixel = (90 / (GLOBE_RADIUS * start.zoom)) * start.unitsPerPixel;
-        viewRef.current = {
-          longitude: normalizeLongitude(start.longitude - deltaX * degreesPerPixel),
-          latitude: clampLatitude(start.latitude + deltaY * degreesPerPixel),
-          zoom: start.zoom,
-        };
-      }
-      dragStartRef.current = null;
-      if (interactiveRef.current) {
-        scheduleDraw();
-        scheduleDetailedView(60);
-      }
-      if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
-        event.currentTarget.releasePointerCapture(event.pointerId);
-      }
-      if (didDragRef.current) {
-        window.setTimeout(() => {
-          didDragRef.current = false;
-        }, 0);
-      }
-    },
-    [scheduleDetailedView, scheduleDraw],
-  );
+    dragStartRef.current = null;
+    if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    if (didDragRef.current) window.setTimeout(() => { didDragRef.current = false; }, 0);
+  }, []);
 
-  const handleMapClick = useCallback(
-    (event: MouseEvent<HTMLDivElement>) => {
-      if (didDragRef.current) return;
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      const bounds = canvas.getBoundingClientRect();
-      if (bounds.width <= 0 || bounds.height <= 0) return;
-      const viewport = getMapViewport(bounds.width, bounds.height);
-      const point: [number, number] = [
-        (event.clientX - bounds.left - viewport.offsetX) / viewport.scale,
-        (event.clientY - bounds.top - viewport.offsetY) / viewport.scale,
-      ];
-      const country = findCountryAtPoint(point, viewRef.current);
-      if (country && isCountryCode(country.code)) activateCountry(country.code);
-    },
-    [activateCountry],
-  );
+  const zoomAt = useCallback((factor: number) => {
+    if (animationFrameRef.current !== null) cancelAnimationFrame(animationFrameRef.current);
+    animationFrameRef.current = null;
+    setView((current) => ({ ...current, zoom: Math.max(MIN_ZOOM, current.zoom * factor) }));
+  }, []);
+
+  const animateViewTo = useCallback((target: GlobeView, duration = 900) => {
+    if (animationFrameRef.current !== null) cancelAnimationFrame(animationFrameRef.current);
+    const start = view;
+    const longitudeDelta = normalizeLongitude(target.longitude - start.longitude);
+    const startTime = performance.now();
+    const motionDuration = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      ? 1
+      : duration;
+    const animate = (now: number) => {
+      const progress = Math.min(1, (now - startTime) / motionDuration);
+      const eased =
+        progress < 0.5
+          ? 4 * progress * progress * progress
+          : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+      const zoomBase = start.zoom + (target.zoom - start.zoom) * eased;
+      const zoom = zoomBase * (1 - 0.12 * Math.sin(Math.PI * progress));
+      if (progress >= 1 || now - lastViewUpdateRef.current >= VIEW_UPDATE_INTERVAL) {
+        lastViewUpdateRef.current = now;
+        setView(
+          progress >= 1
+            ? target
+            : {
+                longitude: normalizeLongitude(start.longitude + longitudeDelta * eased),
+                latitude: start.latitude + (target.latitude - start.latitude) * eased,
+                zoom: Math.max(MIN_ZOOM, zoom),
+              },
+        );
+      }
+      if (progress < 1) {
+        animationFrameRef.current = requestAnimationFrame(animate);
+      } else {
+        animationFrameRef.current = null;
+      }
+    };
+    animationFrameRef.current = requestAnimationFrame(animate);
+  }, [view]);
+
+  const animateToCountry = useCallback((code: string) => {
+    const location = COUNTRY_LOCATIONS.get(code);
+    if (!location) return;
+    animateViewTo(
+      {
+        longitude: location.longitude,
+        latitude: clampLatitude(location.latitude),
+        zoom: 2.55,
+      },
+      920,
+    );
+  }, [animateViewTo]);
+
+  const resetGlobe = useCallback(() => {
+    if (animationFrameRef.current !== null) cancelAnimationFrame(animationFrameRef.current);
+    const start = view;
+    const longitudeTravel = normalizeLongitude(INITIAL_VIEW.longitude - start.longitude) + 360;
+    const startTime = performance.now();
+    const duration = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 1 : 1150;
+    const animate = (now: number) => {
+      const progress = Math.min(1, (now - startTime) / duration);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const interpolatedZoom = start.zoom + (INITIAL_VIEW.zoom - start.zoom) * eased;
+      const zoom = interpolatedZoom * (1 - 0.28 * Math.sin(Math.PI * progress));
+      if (progress >= 1 || now - lastViewUpdateRef.current >= VIEW_UPDATE_INTERVAL) {
+        lastViewUpdateRef.current = now;
+        setView(
+          progress >= 1
+            ? INITIAL_VIEW
+            : {
+                longitude: normalizeLongitude(start.longitude + longitudeTravel * eased),
+                latitude: start.latitude + (INITIAL_VIEW.latitude - start.latitude) * eased,
+                zoom: Math.max(MIN_ZOOM, zoom),
+              },
+        );
+      }
+      if (progress < 1) {
+        animationFrameRef.current = requestAnimationFrame(animate);
+      } else {
+        animationFrameRef.current = null;
+      }
+    };
+    animationFrameRef.current = requestAnimationFrame(animate);
+  }, [view]);
+
+  useEffect(() => () => {
+    if (animationFrameRef.current !== null) cancelAnimationFrame(animationFrameRef.current);
+    if (wheelFrameRef.current !== null) cancelAnimationFrame(wheelFrameRef.current);
+  }, []);
 
   const handleWheel = useCallback(
-    (event: WheelEvent<HTMLDivElement>) => {
+    (event: WheelEvent<SVGSVGElement>) => {
       event.preventDefault();
-      cancelViewAnimation();
-      beginInteraction();
       accumulatedWheelDeltaRef.current += event.deltaY;
       if (wheelFrameRef.current !== null) return;
-      wheelFrameRef.current = requestFrame(() => {
+
+      const flushWheelZoom = (now: number) => {
+        if (now - lastViewUpdateRef.current < VIEW_UPDATE_INTERVAL) {
+          wheelFrameRef.current = requestAnimationFrame(flushWheelZoom);
+          return;
+        }
         const delta = accumulatedWheelDeltaRef.current;
         accumulatedWheelDeltaRef.current = 0;
         wheelFrameRef.current = null;
-        viewRef.current = {
-          ...viewRef.current,
-          zoom: clampZoom(viewRef.current.zoom * Math.exp(-delta * 0.0012)),
-        };
-        drawNow();
-        scheduleDetailedView();
-      });
+        lastViewUpdateRef.current = now;
+        setView((current) => ({
+          ...current,
+          zoom: Math.max(MIN_ZOOM, current.zoom * Math.exp(-delta * 0.0012)),
+        }));
+      };
+      wheelFrameRef.current = requestAnimationFrame(flushWheelZoom);
     },
-    [beginInteraction, cancelViewAnimation, drawNow, scheduleDetailedView],
+    [],
   );
 
   const handleMapKeyDown = useCallback(
-    (event: KeyboardEvent<HTMLDivElement>) => {
+    (event: KeyboardEvent<SVGSVGElement>) => {
       if (event.key === 'Escape') {
-        clearSelection();
+        selectCountry(null);
       } else if (event.key === '+' || event.key === '=') {
         event.preventDefault();
         zoomAt(1.2);
       } else if (event.key === '-') {
         event.preventDefault();
         zoomAt(1 / 1.2);
-      } else if (event.key.startsWith('Arrow')) {
+      } else if (event.key === 'ArrowLeft') {
         event.preventDefault();
-        cancelViewAnimation();
-        beginInteraction();
-        const current = viewRef.current;
-        viewRef.current = {
+        setView((current) => ({
           ...current,
-          longitude:
-            event.key === 'ArrowLeft'
-              ? normalizeLongitude(current.longitude - 10)
-              : event.key === 'ArrowRight'
-                ? normalizeLongitude(current.longitude + 10)
-                : current.longitude,
-          latitude:
-            event.key === 'ArrowUp'
-              ? clampLatitude(current.latitude + 10)
-              : event.key === 'ArrowDown'
-                ? clampLatitude(current.latitude - 10)
-                : current.latitude,
-        };
-        scheduleDraw();
-        scheduleDetailedView();
+          longitude: normalizeLongitude(current.longitude - 10),
+        }));
+      } else if (event.key === 'ArrowRight') {
+        event.preventDefault();
+        setView((current) => ({
+          ...current,
+          longitude: normalizeLongitude(current.longitude + 10),
+        }));
+      } else if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        setView((current) => ({
+          ...current,
+          latitude: clampLatitude(current.latitude + 10),
+        }));
+      } else if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        setView((current) => ({
+          ...current,
+          latitude: clampLatitude(current.latitude - 10),
+        }));
       }
     },
-    [
-      beginInteraction,
-      cancelViewAnimation,
-      clearSelection,
-      scheduleDetailedView,
-      scheduleDraw,
-      zoomAt,
-    ],
+    [selectCountry, zoomAt],
   );
 
   return (
@@ -507,12 +459,12 @@ export function MenaGlobe({
         </div>
         <div className="signal-map__header-actions">
           <span className="signal-map__coverage-count">
-            {SELECTABLE_COUNTRIES.length} COUNTRY &amp; TERRITORY BOUNDARIES
+            {COUNTRY_FEATURES.length} COUNTRY &amp; TERRITORY BOUNDARIES
           </span>
           <button
             className="signal-map__clear"
             type="button"
-            onClick={clearSelection}
+            onClick={() => selectCountry(null)}
             disabled={activeCountry === null}
           >
             Clear selection <span aria-hidden="true">×</span>
@@ -523,26 +475,11 @@ export function MenaGlobe({
       <div className="signal-map__stage">
         <div className="signal-map__stage-meta" aria-hidden="true">
           <span>ORTHOGRAPHIC / WGS84</span>
-          <span>{currentCountry?.name ?? 'WORLD / COUNTRY BOUNDARIES'}</span>
+          <span>{hoveredFeature?.properties.name ?? 'WORLD / COUNTRY BOUNDARIES'}</span>
         </div>
-        <select
-          className="signal-map__country-select signal-map__map-country-select"
-          aria-label="Select any country"
-          value={activeCountry ?? ''}
-          onChange={(event) => {
-            if (event.target.value) activateCountry(event.target.value);
-            else clearSelection();
-          }}
-        >
-          <option value="">Choose a country…</option>
-          {SELECTABLE_COUNTRIES.map(({ code, name }) => (
-            <option key={code} value={code}>
-              {name}
-            </option>
-          ))}
-        </select>
-        <div
-          className="signal-map__interaction"
+        <svg
+          className="signal-map__svg"
+          viewBox={'0 0 ' + MAP_WIDTH + ' ' + MAP_HEIGHT}
           role="region"
           aria-label={ariaLabel}
           tabIndex={0}
@@ -551,108 +488,227 @@ export function MenaGlobe({
           onPointerUp={endPan}
           onPointerCancel={endPan}
           onWheel={handleWheel}
-          onClick={handleMapClick}
           onKeyDown={handleMapKeyDown}
           data-testid="mena-map"
         >
-          <canvas
-            ref={canvasRef}
-            className="signal-map__canvas"
+          <defs>
+            <radialGradient id={sphereGradientId} cx="31%" cy="24%" r="79%">
+              <stop offset="0%" stopColor="#183033" />
+              <stop offset="54%" stopColor="#0b171a" />
+              <stop offset="100%" stopColor="#030708" />
+            </radialGradient>
+            <radialGradient id={highlightGradientId} cx="27%" cy="17%" r="75%">
+              <stop offset="0%" stopColor="#b5e6b2" stopOpacity="0.16" />
+              <stop offset="56%" stopColor="#a5d4bd" stopOpacity="0.035" />
+              <stop offset="100%" stopColor="#a5d4bd" stopOpacity="0" />
+            </radialGradient>
+            <radialGradient id={glowGradientId} cx="50%" cy="50%" r="50%">
+              <stop offset="65%" stopColor="#5c9e7c" stopOpacity="0.13" />
+              <stop offset="100%" stopColor="#5c9e7c" stopOpacity="0" />
+            </radialGradient>
+            <clipPath id={clipId}>
+              <circle cx={CENTER_X} cy={CENTER_Y} r={radius} />
+            </clipPath>
+          </defs>
+
+          <rect
+            className="signal-map__background"
+            x="0"
+            y="0"
             width={MAP_WIDTH}
             height={MAP_HEIGHT}
-            aria-hidden="true"
-            data-testid="globe-canvas"
-            data-city-count={activeCities.length}
-            data-urban-area-count={urbanAreaCount}
           />
-          <svg className="signal-map__overlay" viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`}>
-            {currentCountry && (
-              <g data-testid="country-label-layer" aria-hidden="true">
-                <text
-                  ref={countryLabelRef}
-                  className="signal-map__selected-country-label"
-                  textAnchor="middle"
-                >
-                  {currentCountry.name}
-                </text>
-              </g>
-            )}
-            <g data-testid="marker-layer">
-              {validMarkers.map((marker) => {
-                const initialPosition = INITIAL_PROJECTION([marker.longitude, marker.latitude]);
+          <circle
+            className="signal-map__sphere-glow"
+            cx={CENTER_X}
+            cy={CENTER_Y}
+            r={radius + 34}
+            fill={'url(#' + glowGradientId + ')'}
+          />
+          <circle
+            className="signal-map__sphere-base"
+            cx={CENTER_X}
+            cy={CENTER_Y}
+            r={radius}
+            fill={'url(#' + sphereGradientId + ')'}
+          />
+          <circle
+            className="signal-map__sphere-highlight"
+            cx={CENTER_X}
+            cy={CENTER_Y}
+            r={radius}
+            fill={'url(#' + highlightGradientId + ')'}
+          />
+
+          <g clipPath={'url(#' + clipId + ')'}>
+            <path className="signal-map__graticule" d={graticulePath} aria-hidden="true" />
+            <g data-testid="map-layer">
+              {paths.map(({ feature, path }) => {
+                const { code, name } = feature.properties;
+                const countryCode =
+                  isCountryCode(code) && feature.geometry.type !== 'Point' ? code : null;
+                const canSelect = countryCode !== null;
+                const selected = canSelect && activeCountry === countryCode;
+                const hovered = hoveredCountry === code;
+
                 return (
-                  <g
-                    key={marker.id}
-                    ref={(element) => {
-                      if (element) markerElementsRef.current.set(marker.id, element);
-                      else markerElementsRef.current.delete(marker.id);
-                    }}
-                    className="signal-map__marker"
-                    transform={
-                      initialPosition
-                        ? `translate(${initialPosition[0]} ${initialPosition[1]})`
+                  <path
+                    key={code}
+                    d={path}
+                    className={[
+                      'signal-map__country',
+                      canSelect
+                        ? 'signal-map__country--selectable'
+                        : 'signal-map__country--context',
+                      selected ? 'signal-map__country--selected' : '',
+                      hovered ? 'signal-map__country--hovered' : '',
+                    ]
+                      .filter(Boolean)
+                      .join(' ')}
+                    data-country-code={code}
+                    role={canSelect ? 'button' : undefined}
+                    tabIndex={canSelect ? 0 : undefined}
+                    aria-label={canSelect ? 'Select ' + name : undefined}
+                    aria-pressed={canSelect ? selected : undefined}
+                    onClick={
+                      canSelect && countryCode
+                        ? () => {
+                            if (didDragRef.current) {
+                              didDragRef.current = false;
+                              return;
+                            }
+                            selectCountry(countryCode);
+                            animateToCountry(countryCode);
+                          }
                         : undefined
                     }
-                    data-marker-id={marker.id}
-                    role={onMarkerSelect ? 'button' : 'img'}
-                    tabIndex={onMarkerSelect ? 0 : undefined}
-                    aria-label={
-                      marker.label +
-                      ', ' +
-                      formatCoordinate(marker.latitude, 'latitude') +
-                      ', ' +
-                      formatCoordinate(marker.longitude, 'longitude')
+                    onKeyDown={
+                      canSelect && countryCode
+                        ? (event) => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              event.preventDefault();
+                              selectCountry(countryCode);
+                              animateToCountry(countryCode);
+                            }
+                          }
+                        : undefined
                     }
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      if (didDragRef.current || !onMarkerSelect) return;
-                      onMarkerSelect(marker);
-                    }}
-                    onKeyDown={(event) => {
-                      if (onMarkerSelect && (event.key === 'Enter' || event.key === ' ')) {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        onMarkerSelect(marker);
-                      }
-                    }}
+                    onMouseEnter={() => setHoveredCountry(code)}
+                    onMouseLeave={() => setHoveredCountry(null)}
+                    onFocus={() => setHoveredCountry(code)}
+                    onBlur={() => setHoveredCountry(null)}
                   >
-                    <circle r="12" className="signal-map__marker-halo" />
-                    <circle r="3.5" className="signal-map__marker-dot" />
-                    <title>
-                      {marker.label} · {formatCoordinate(marker.latitude, 'latitude')},{' '}
-                      {formatCoordinate(marker.longitude, 'longitude')}
-                      {marker.detail ? ' · ' + marker.detail : ''}
-                    </title>
-                  </g>
+                    <title>{canSelect ? name + ' · select country' : name}</title>
+                  </path>
                 );
               })}
+              {visibleCountryLabels.length > 0 && (
+                <g
+                  className="signal-map__country-labels"
+                  data-testid="country-label-layer"
+                  aria-hidden="true"
+                >
+                  {visibleCountryLabels.map((country) => (
+                    <text key={country.code} x={country.x} y={country.y} textAnchor="middle">
+                      {country.name}
+                    </text>
+                  ))}
+                </g>
+              )}
+              {visibleCities.length > 0 && (
+                <g data-testid="city-layer">
+                  {visibleCities.map(({ feature, position }) => (
+                    <g
+                      className="signal-map__city"
+                      key={feature.properties.name}
+                      aria-hidden="true"
+                    >
+                      <circle cx={position[0]} cy={position[1]} r="2.1" />
+                      {view.zoom >= CITY_LABEL_ZOOM &&
+                        (feature.properties.capital ||
+                          feature.properties.population >= 1_500_000) && (
+                          <text x={position[0] + 5} y={position[1] - 5}>
+                            {feature.properties.name}
+                          </text>
+                        )}
+                      <title>
+                        {feature.properties.name}
+                        {feature.properties.countryName ? ', ' + feature.properties.countryName : ''}
+                      </title>
+                    </g>
+                  ))}
+                </g>
+              )}
+              {visibleMarkers.map(({ marker, position }) => (
+                <g
+                  key={marker.id}
+                  className="signal-map__marker"
+                  data-marker-id={marker.id}
+                  role={onMarkerSelect ? 'button' : 'img'}
+                  tabIndex={onMarkerSelect ? 0 : undefined}
+                  aria-label={
+                    marker.label +
+                    ', ' +
+                    formatCoordinate(marker.latitude, 'latitude') +
+                    ', ' +
+                    formatCoordinate(marker.longitude, 'longitude')
+                  }
+                  onClick={() => {
+                    if (didDragRef.current) {
+                      didDragRef.current = false;
+                      return;
+                    }
+                    onMarkerSelect?.(marker);
+                  }}
+                  onKeyDown={(event) => {
+                    if (onMarkerSelect && (event.key === 'Enter' || event.key === ' ')) {
+                      event.preventDefault();
+                      onMarkerSelect(marker);
+                    }
+                  }}
+                >
+                  <circle
+                    cx={position[0]}
+                    cy={position[1]}
+                    r="12"
+                    className="signal-map__marker-halo"
+                  />
+                  <circle
+                    cx={position[0]}
+                    cy={position[1]}
+                    r="3.5"
+                    className="signal-map__marker-dot"
+                  />
+                  <title>
+                    {marker.label} · {formatCoordinate(marker.latitude, 'latitude')},{' '}
+                    {formatCoordinate(marker.longitude, 'longitude')}
+                    {marker.detail ? ' · ' + marker.detail : ''}
+                  </title>
+                </g>
+              ))}
             </g>
-            <text x="28" y="34" className="signal-map__corner-label" aria-hidden="true">
-              WORLD / NATURAL EARTH
-            </text>
-            <text
-              x="972"
-              y="34"
-              textAnchor="end"
-              className="signal-map__corner-label"
-              aria-hidden="true"
-            >
-              DRAG TO ROTATE
-            </text>
-            <text x="28" y="617" className="signal-map__coordinate-label" aria-hidden="true">
-              GLOBAL / 50M + 10M DETAIL
-            </text>
-            <text
-              x="972"
-              y="617"
-              textAnchor="end"
-              className="signal-map__coordinate-label"
-              aria-hidden="true"
-            >
-              {activeCountry ? `${urbanAreaCount} URBAN FOOTPRINTS` : 'GLOBAL COUNTRY COVERAGE'}
-            </text>
-          </svg>
-        </div>
+          </g>
+
+          <circle
+            className="signal-map__sphere-outline"
+            cx={CENTER_X}
+            cy={CENTER_Y}
+            r={radius}
+            aria-hidden="true"
+          />
+          <text x="28" y="34" className="signal-map__corner-label">
+            WORLD / NATURAL EARTH
+          </text>
+          <text x="972" y="34" textAnchor="end" className="signal-map__corner-label">
+            DRAG TO ROTATE
+          </text>
+          <text x="28" y="617" className="signal-map__coordinate-label">
+            GLOBAL / 110M REFERENCE
+          </text>
+          <text x="972" y="617" textAnchor="end" className="signal-map__coordinate-label">
+            GLOBAL COUNTRY COVERAGE
+          </text>
+        </svg>
 
         <div className="signal-map__zoom-controls" aria-label="Globe navigation controls">
           <button type="button" onClick={() => zoomAt(1.2)} aria-label="Zoom in">
@@ -662,7 +718,11 @@ export function MenaGlobe({
             <ZoomOut size={18} aria-hidden="true" />
           </button>
           <span aria-hidden="true" />
-          <button type="button" onClick={resetGlobe} aria-label="Animate reset globe view">
+          <button
+            type="button"
+            onClick={resetGlobe}
+            aria-label="Animate reset globe view"
+          >
             <RotateCcw size={17} aria-hidden="true" />
           </button>
         </div>
@@ -675,14 +735,8 @@ export function MenaGlobe({
         <div>
           <span className="signal-map__selection-label">ACTIVE TERRITORY</span>
           <span className="signal-map__selection-value">
-            {currentCountry?.name ?? activeCountry ?? 'No country selected'}
+            {currentCountry ? currentCountry.name : 'No country selected'}
           </span>
-          {activeCountry && (
-            <span className="signal-map__selection-detail">
-              {urbanAreaCount} urban footprints · {activeCities.length - urbanAreaCount} reference
-              places
-            </span>
-          )}
         </div>
         {activeCountry && <span className="signal-map__country-code">{activeCountry}</span>}
       </div>
@@ -704,7 +758,10 @@ export function MenaGlobe({
                 .filter(Boolean)
                 .join(' ')}
               aria-pressed={activeCountry === code}
-              onClick={() => activateCountry(code)}
+              onClick={() => {
+                selectCountry(code);
+                animateToCountry(code);
+              }}
             >
               <span>{name}</span>
               <span className="signal-map__country-option-code">{code}</span>
@@ -715,9 +772,9 @@ export function MenaGlobe({
 
       <footer className="signal-map__footer">
         <span>
-          <i aria-hidden="true" /> NATURAL EARTH / COUNTRIES + URBAN FOOTPRINTS
+          <i aria-hidden="true" /> WORLD COUNTRY BOUNDARIES / NATURAL EARTH 1:110M
         </span>
-        <span>HIGH-DETAIL GEOGRAPHIC DATA BUNDLED OFFLINE</span>
+        <span>GEOGRAPHIC DATA BUNDLED OFFLINE</span>
       </footer>
     </section>
   );

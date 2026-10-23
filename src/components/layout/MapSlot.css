@@ -29,17 +29,32 @@
   border: 0;
   background: radial-gradient(ellipse at 50% 48%, #0b1516 0%, #050909 54%, #020303 100%);
 }
-.signal-map--embedded .signal-map__interaction,
-.signal-map--embedded .signal-map__canvas {
+.signal-map--embedded .signal-map__svg {
   width: 100%;
   height: 100%;
   min-height: 0;
   max-height: none;
   aspect-ratio: auto;
+  object-fit: contain;
 }
-.signal-map--embedded .signal-map__map-country-select {
-  top: 18px;
-  left: 18px;
+.signal-map--embedded .signal-map__background {
+  fill: #020303;
+}
+.signal-map--embedded .signal-map__graticule {
+  stroke-opacity: 0.38;
+}
+.signal-map--embedded .signal-map__country--context {
+  fill: #10191b;
+  stroke: #293b3e;
+  pointer-events: visiblePainted;
+}
+.signal-map--embedded .signal-map__country--selectable {
+  fill: #1c2d25;
+  stroke: #526b5d;
+}
+.signal-map--embedded .signal-map__country--selected {
+  fill: #94b76a;
+  stroke: var(--signal-accent);
 }
 .signal-map--embedded .signal-map__zoom-controls {
   bottom: 18px;
