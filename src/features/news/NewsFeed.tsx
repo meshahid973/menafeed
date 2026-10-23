@@ -127,10 +127,7 @@ export function NewsFeed({
         if (location.precision !== 'unknown') {
           if (location.countryCode !== selectedCountry) return false;
         } else if (
-          !articleMentionsCountry(
-            `${article.title} ${article.summary ?? ''}`,
-            selectedCountry,
-          )
+          !articleMentionsCountry(`${article.title} ${article.summary ?? ''}`, selectedCountry)
         ) {
           return false;
         }
@@ -196,7 +193,7 @@ export function NewsFeed({
               : view === 'news'
                 ? 'The briefing'
                 : selectedCountry
-                  ? getWorldCountryName(selectedCountry) ?? selectedCountry
+                  ? (getWorldCountryName(selectedCountry) ?? selectedCountry)
                   : 'Latest'}
           </h2>
           {view !== 'saved' && (
@@ -309,7 +306,7 @@ export function NewsFeed({
               {view === 'saved'
                 ? 'No saved stories yet. Bookmark a report to see it here.'
                 : selectedCountry
-                  ? 'No matching headlines mention this country yet. Mentions are not event-location verification.'
+                  ? 'No location-verified reports or matching headlines for this country yet. Text mentions are not event-location verification.'
                   : query || source !== 'all'
                     ? 'No matching stories.'
                     : 'No reports available.'}
