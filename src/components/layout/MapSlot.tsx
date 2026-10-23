@@ -1,10 +1,10 @@
 import { MenaGlobe } from '../../features/map';
-import type { MenaMarker } from '../../features/map';
+import type { MenaCountryCode, MenaMarker } from '../../features/map';
 import './MapSlot.css';
 
 interface Props {
-  selectedCountry: string | null;
-  onCountrySelect: (country: string | null) => void;
+  selectedCountry: MenaCountryCode | null;
+  onCountrySelect: (country: MenaCountryCode | null) => void;
   markers?: readonly MenaMarker[];
   onMarkerSelect?: (marker: MenaMarker) => void;
 }

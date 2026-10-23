@@ -8,8 +8,8 @@ import { ArticleReader } from './ArticleReader';
 import type { FeedArticle } from './contracts';
 import { StoryCard } from './StoryCard';
 import type { useNewsFeed } from './useNewsFeed';
-import { getWorldCountryName } from '../map';
-import { articleMentionsCountry } from './countryMentions';
+import { getMenaCountryName } from '../map';
+import type { MenaCountryCode } from '../map';
 import { RefreshCw, Search } from 'lucide-react';
 import './NewsFeed.css';
 
@@ -20,7 +20,7 @@ interface Props {
   onToggleBookmark?: (article: FeedArticle) => void;
   searchRequest?: number;
   feed: ReturnType<typeof useNewsFeed>;
-  selectedCountry?: string | null;
+  selectedCountry?: MenaCountryCode | null;
   onClearCountry?: () => void;
   selectedArticleId?: string | null;
   onStoryHandled?: () => void;
@@ -124,16 +124,8 @@ export function NewsFeed({
       if (view !== 'saved' && source !== 'all' && article.sourceId !== source) return false;
       if (view === 'explore' && selectedCountry) {
         const location = article.location;
-        if (location.precision !== 'unknown') {
-          if (location.countryCode !== selectedCountry) return false;
-        } else if (
-          !articleMentionsCountry(
-            `${article.title} ${article.summary ?? ''}`,
-            selectedCountry,
-          )
-        ) {
+        if (location.precision === 'unknown' || location.countryCode !== selectedCountry)
           return false;
-        }
       }
       return (
         !deferredQuery ||
@@ -196,7 +188,7 @@ export function NewsFeed({
               : view === 'news'
                 ? 'The briefing'
                 : selectedCountry
-                  ? getWorldCountryName(selectedCountry) ?? selectedCountry
+                  ? getMenaCountryName(selectedCountry)
                   : 'Latest'}
           </h2>
           {view !== 'saved' && (
@@ -309,13 +301,13 @@ export function NewsFeed({
               {view === 'saved'
                 ? 'No saved stories yet. Bookmark a report to see it here.'
                 : selectedCountry
-                  ? 'No matching headlines mention this country yet. Mentions are not event-location verification.'
+                  ? 'No location-verified reports for this country yet. RSS stories are not automatically geotagged.'
                   : query || source !== 'all'
                     ? 'No matching stories.'
                     : 'No reports available.'}
               {selectedCountry && (
                 <button className="signal-feed__clear" type="button" onClick={onClearCountry}>
-                  All world news
+                  All regional stories
                 </button>
               )}
             </div>

@@ -1,5 +1,4 @@
 export { MenaGlobe } from './components/MenaGlobe';
-export { getWorldCountryName, WORLD_COUNTRIES } from './worldCountries';
 export { MenaGlobeDemo } from './components/MenaGlobeDemo';
 export { MENA_COUNTRIES, getMenaCountryName } from './data/coverage';
 export {

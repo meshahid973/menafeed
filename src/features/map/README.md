@@ -1,35 +1,35 @@
 # SIGNAL geographic feature
 
-A self-contained, offline-first **orthographic world globe** built with D3 Geo and SVG. Global country boundaries are bundled locally using Natural Earth geometry, with the existing higher-detail MENA geometry preserved, including Bahrain.
+A self-contained, offline-first **orthographic world globe** built with D3 Geo and SVG. Country and territorial-unit borders use Natural Earth world-scale polygons, supplemented by Natural Earth's tiny-country point layer for very small map units that cannot be drawn legibly as borders at this scale. A more detailed Bahrain geometry is preserved from the existing MENA dataset. The default camera is centered on MENA because this application focuses on regional news.
 
-## Globe interaction
+## Globe renderer
 
-The circular horizon, radial shading and graticule create a spherical view without a WebGL dependency or a permanently running animation loop. Drag to rotate, scroll or use the controls to zoom without an arbitrary upper zoom ceiling. Reset animates a full spin and an eased zoom back to the default MENA-centered view. Keyboard arrows rotate the focused globe; plus and minus zoom.
+The globe uses D3 Geo's orthographic projection and bundled GeoJSON. The circular horizon, radial shading, graticule, and clipped country paths create a spherical view without requiring a WebGL context or a permanently running animation loop. Drag to rotate the sphere, scroll or use the controls to zoom, and use the arrow keys while the globe is focused to rotate the view. The map remains offline after installation.
 
-Country polygons are selectable across the world, not just inside the MENA region. The existing MENA country picker remains as a shortcut list. Tiny-country locator dots have been removed from the boundary layer; when a country's outline is too small to see at world scale, zoom in to inspect the available map geometry.
-
-## Cities and geographic context
-
-Major populated places from Natural Earth's ne_110m_populated_places dataset are bundled offline. City points appear as the globe is zoomed in; country capitals and larger cities receive labels at closer zoom levels. City coordinates are reference locations, not proof that a news event took place there.
-
-## World news and country filtering
-
-The RSS feed pipeline includes BBC World, The Guardian World, NPR World, Al Jazeera English, UN News and Deutsche Welle's world feed, alongside existing regional publishers. On selecting a country, articles with an explicit publisher-supplied location use that metadata. Other RSS articles are matched against country names and configured aliases in headlines/summaries, since standard RSS often does not provide verified event coordinates. A text mention does not create a news marker or imply a verified event location.
+The bundled data contains 178 polygon country/territorial features plus 62 small-area point markers. Tiny countries and dependencies such as Monaco, Vatican City, Liechtenstein, and Singapore are shown by location markers when their borders are too small to distinguish on a whole-world view. Hover or focus these markers to read the place name. These markers are geographic locators, not representations of the microstate's full border geometry. Bahrain retains higher-resolution island geometry. MENA countries remain selectable for the existing news feed; other countries and territories appear as geographic context.
 
 ## Public API
 
-The component exposes controlled or internal country selection, coordinate-backed news markers, and marker activation callbacks. Country selection uses a two-letter code where the geographic dataset provides one, or null when selection is cleared. News markers require a stable identifier, label, longitude and latitude; invalid coordinates and markers on the globe's far hemisphere are omitted.
+The component continues to expose controlled or internal MENA selection, coordinate-backed markers, and marker activation callbacks. The selection callback receives a two-letter editorial MENA coverage code, or null when cleared. Markers require a stable identifier, label, longitude and latitude. Invalid coordinates are rejected; news markers on the globe's far hemisphere are hidden until the globe rotates to face them.
 
-MenaGlobeDemo remains a standalone fixture. Its Manama marker is labelled as example data and is not a news event.
+MenaGlobeDemo remains a standalone integration fixture. Its Manama marker is explicitly labelled as demo data and is not a news event.
 
 ## Geographic data and licensing
 
-- **Country polygons:** [nvkelso/natural-earth-vector — ne_110m_admin_0_countries.geojson](https://github.com/nvkelso/natural-earth-vector/blob/master/geojson/ne_110m_admin_0_countries.geojson). Natural Earth data is public domain and generalized for global-scale use.
-- **City coordinates:** [nvkelso/natural-earth-vector — ne_110m_populated_places.geojson](https://github.com/nvkelso/natural-earth-vector/blob/master/geojson/ne_110m_populated_places.geojson), reduced to major populated places for a compact offline city layer.
-- **MENA regional geometry:** [datasets/geo-boundaries-world-110m](https://github.com/datasets/geo-boundaries-world-110m), Natural Earth-derived data. Bahrain retains a higher-resolution island supplement from [eFrane/admin0](https://github.com/eFrane/admin0), which declares CC0-1.0.
+The main global boundaries use the Natural Earth 1:110m admin-0 country dataset from [nvkelso/natural-earth-vector](https://github.com/nvkelso/natural-earth-vector). The small-area markers use [ne_50m_admin_0_tiny_countries.geojson](https://github.com/nvkelso/natural-earth-vector/blob/master/geojson/ne_50m_admin_0_tiny_countries.geojson). Natural Earth data is public domain and generalized for global-scale use. The MENA coverage geometries retain the project's existing Natural Earth-derived boundaries from [datasets/geo-boundaries-world-110m](https://github.com/datasets/geo-boundaries-world-110m), and Bahrain uses a higher-resolution polygon supplement from [eFrane/admin0](https://github.com/eFrane/admin0), which declares CC0-1.0. See the attribution file.
 
-The MENA picker is an editorial coverage shortcut, not a declaration of sovereignty. Natural Earth boundaries are generalized and contested areas can differ by source or scale. These boundaries are for geographic context and news visualization, not legal or surveying reference.
+The selection manifest contains 27 editorial entries, including Western Sahara, Palestine and Cyprus. Coverage is a product decision, not a declaration of sovereignty. Natural Earth-style cartography is generalized at small scales and represents cartographic administrative lines. Western Sahara, Israel/Palestine, Cyprus, Northern Cyprus, Somaliland and other contested areas may differ by source or scale. These boundaries are for geographic context and news visualization only, not legal, surveying, military, or diplomatic reference.
+
+## Accessibility and interaction
+
+- Drag to rotate; wheel and zoom buttons change scale; reset returns to the default MENA-centered view.
+- Keyboard arrows rotate the focused globe, plus and minus zoom, Escape clears selection, and MENA country shapes remain keyboard-operable. Small-area marker dots are focusable and expose their names.
+- Country boundaries and geographic data are bundled offline. There are no map tiles, runtime geodata downloads, or continuous animation loop.
+- Motion transitions respect prefers-reduced-motion.
+- The feature has no dependency on the news feature or app-shell state; it reuses the existing signal design tokens.
 
 ## Quality checks
 
-Run npm ci followed by npm run check from the project root. The check script runs typecheck, lint, format, tests and the web build. Tauri/Rust code should also be validated by the Windows CI job.
+Run the repository checks from the project root: npm ci, npm run typecheck, npm run lint, npm run format:check, npm run test, npm run build:web, and npm run check.
+
+The Tauri/Rust checks are unaffected by this frontend-only change.

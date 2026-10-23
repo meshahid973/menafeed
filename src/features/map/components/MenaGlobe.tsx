@@ -1,11 +1,9 @@
 import { geoDistance, geoGraticule, geoOrthographic, geoPath } from 'd3-geo';
 import { RotateCcw, ZoomIn, ZoomOut } from 'lucide-react';
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useCallback, useId, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent, PointerEvent, WheelEvent } from 'react';
 import rawCountryData from '../data/world-countries.geojson?raw';
-import rawCityData from '../data/world-cities.geojson?raw';
-import { MENA_COUNTRIES } from '../data/coverage';
-import { WORLD_COUNTRIES } from '../worldCountries';
+import { MENA_COUNTRIES, MENA_COUNTRY_CODES } from '../data/coverage';
 import {
   isValidGeoCoordinate,
   MAP_HEIGHT,
@@ -13,7 +11,7 @@ import {
   type CountryCollection,
   type CountryFeature,
 } from '../geography';
-import type { MenaGlobeProps, MenaMarker } from '../types';
+import type { MenaGlobeProps, MenaMarker, MenaCountryCode } from '../types';
 import './MenaGlobe.css';
 
 interface GlobeView {
@@ -32,30 +30,15 @@ interface DragStart {
 }
 
 const INITIAL_VIEW: GlobeView = { longitude: 24, latitude: 27, zoom: 1 };
-const MIN_ZOOM = 0.02;
+const MIN_ZOOM = 0.82;
+const MAX_ZOOM = 1.62;
 const GLOBE_RADIUS = 284;
-const CITY_LABEL_ZOOM = 1.25;
 const CENTER_X = MAP_WIDTH / 2;
 const CENTER_Y = MAP_HEIGHT / 2;
 const WORLD_FEATURES = JSON.parse(rawCountryData) as CountryCollection;
 const COUNTRY_FEATURES = WORLD_FEATURES.features as CountryFeature[];
-interface CityFeature {
-  type: 'Feature';
-  properties: {
-    name: string;
-    countryName: string;
-    countryCode: string;
-    population: number;
-    capital: boolean;
-  };
-  geometry: { type: 'Point'; coordinates: [number, number] };
-}
-
-interface CityCollection {
-  type: 'FeatureCollection';
-  features: CityFeature[];
-}
-const CITY_FEATURES = (JSON.parse(rawCityData) as CityCollection).features;
+const WORLD_POLYGON_COUNT = COUNTRY_FEATURES.filter(({ geometry }) => geometry.type !== 'Point').length;
+const SMALL_AREA_MARKER_COUNT = COUNTRY_FEATURES.length - WORLD_POLYGON_COUNT;
 const GRATICULE = geoGraticule().step([15, 15])();
 
 function createGlobeProjection(view: GlobeView) {
@@ -79,8 +62,8 @@ function formatCoordinate(value: number, axis: 'latitude' | 'longitude'): string
   return Math.abs(value).toFixed(2) + '° ' + hemisphere;
 }
 
-function isCountryCode(value: string): boolean {
-  return /^[A-Z]{2}$/.test(value);
+function isCountryCode(value: string): value is MenaCountryCode {
+  return MENA_COUNTRY_CODES.has(value);
 }
 
 function validMarker(marker: MenaMarker): boolean {
@@ -91,16 +74,19 @@ function validMarker(marker: MenaMarker): boolean {
   );
 }
 
-function isFacingCamera(longitude: number, latitude: number, view: GlobeView): boolean {
+function isFacingCamera(marker: MenaMarker, view: GlobeView): boolean {
   return (
-    geoDistance([longitude, latitude], [view.longitude, view.latitude]) <=
+    geoDistance(
+      [marker.longitude, marker.latitude],
+      [view.longitude, view.latitude],
+    ) <=
     Math.PI / 2 + 0.000001
   );
 }
 
 /**
- * An offline-first orthographic globe with world-wide country selection.
- * City data is bundled locally, so the globe makes no map-tile requests.
+ * A bundled, offline-first orthographic globe. All world boundaries are rendered;
+ * country selection remains limited to the app's editorial MENA coverage.
  */
 export function MenaGlobe({
   selectedCountry,
@@ -108,19 +94,18 @@ export function MenaGlobe({
   markers = [],
   onMarkerSelect,
   className,
-  ariaLabel = 'Interactive world globe with selectable countries and major cities',
+  ariaLabel = 'Interactive world globe with selectable Middle East and North Africa countries',
 }: MenaGlobeProps) {
   const instanceId = useId().replace(/:/g, '');
   const sphereGradientId = 'signal-globe-sphere-' + instanceId;
   const highlightGradientId = 'signal-globe-highlight-' + instanceId;
   const glowGradientId = 'signal-globe-glow-' + instanceId;
   const clipId = 'signal-globe-clip-' + instanceId;
-  const [internalSelection, setInternalSelection] = useState<string | null>(null);
+  const [internalSelection, setInternalSelection] = useState<MenaCountryCode | null>(null);
   const [hoveredCountry, setHoveredCountry] = useState<string | null>(null);
   const [view, setView] = useState<GlobeView>(INITIAL_VIEW);
   const dragStartRef = useRef<DragStart | null>(null);
   const didDragRef = useRef(false);
-  const animationFrameRef = useRef<number | null>(null);
 
   const isControlled = selectedCountry !== undefined;
   const activeCountry = isControlled ? selectedCountry : internalSelection;
@@ -139,7 +124,7 @@ export function MenaGlobe({
     () =>
       markers
         .filter(validMarker)
-        .filter((marker) => isFacingCamera(marker.longitude, marker.latitude, view))
+        .filter((marker) => isFacingCamera(marker, view))
         .map((marker) => ({ marker, position: projection([marker.longitude, marker.latitude]) }))
         .filter(
           (entry): entry is { marker: MenaMarker; position: [number, number] } =>
@@ -147,25 +132,16 @@ export function MenaGlobe({
         ),
     [markers, projection, view],
   );
-  const visibleCities = useMemo(() => {
-    if (view.zoom < 1.02) return [];
-    return CITY_FEATURES.flatMap((feature) => {
-      const [longitude, latitude] = feature.geometry.coordinates;
-      if (!isFacingCamera(longitude, latitude, view)) return [];
-      const position = projection([longitude, latitude]);
-      return position && position.every(Number.isFinite) ? [{ feature, position }] : [];
-    });
-  }, [projection, view]);
 
   const selectCountry = useCallback(
-    (country: string | null) => {
+    (country: MenaCountryCode | null) => {
       if (!isControlled) setInternalSelection(country);
       onCountrySelect?.(country);
     },
     [isControlled, onCountrySelect],
   );
 
-  const currentCountry = WORLD_COUNTRIES.find(({ code }) => code === activeCountry);
+  const currentCountry = MENA_COUNTRIES.find(({ code }) => code === activeCountry);
   const hoveredFeature = hoveredCountry
     ? COUNTRY_FEATURES.find(({ properties }) => properties.code === hoveredCountry)
     : undefined;
@@ -174,8 +150,7 @@ export function MenaGlobe({
   const startPan = useCallback(
     (event: PointerEvent<SVGSVGElement>) => {
       if (event.button !== 0) return;
-      if (animationFrameRef.current !== null) cancelAnimationFrame(animationFrameRef.current);
-      animationFrameRef.current = null;
+      if ((event.target as Element).closest('[data-marker-id]')) return;
 
       dragStartRef.current = {
         pointerId: event.pointerId,
@@ -186,6 +161,7 @@ export function MenaGlobe({
         zoom: view.zoom,
       };
       didDragRef.current = false;
+      event.currentTarget.setPointerCapture?.(event.pointerId);
     },
     [view.latitude, view.longitude, view.zoom],
   );
@@ -196,10 +172,7 @@ export function MenaGlobe({
 
     const deltaX = event.clientX - start.clientX;
     const deltaY = event.clientY - start.clientY;
-    if (!didDragRef.current && Math.hypot(deltaX, deltaY) > 4) {
-      didDragRef.current = true;
-      event.currentTarget.setPointerCapture?.(event.pointerId);
-    }
+    if (Math.hypot(deltaX, deltaY) > 4) didDragRef.current = true;
     if (!didDragRef.current) return;
 
     const degreesPerPixel = 90 / (GLOBE_RADIUS * start.zoom);
@@ -230,39 +203,13 @@ export function MenaGlobe({
     if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
-    if (didDragRef.current) window.setTimeout(() => { didDragRef.current = false; }, 0);
   }, []);
 
   const zoomAt = useCallback((factor: number) => {
-    if (animationFrameRef.current !== null) cancelAnimationFrame(animationFrameRef.current);
-    animationFrameRef.current = null;
-    setView((current) => ({ ...current, zoom: Math.max(MIN_ZOOM, current.zoom * factor) }));
-  }, []);
-
-  const resetGlobe = useCallback(() => {
-    if (animationFrameRef.current !== null) cancelAnimationFrame(animationFrameRef.current);
-    const start = view;
-    const longitudeTravel = normalizeLongitude(INITIAL_VIEW.longitude - start.longitude) + 360;
-    const startTime = performance.now();
-    const duration = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 1 : 1150;
-    const animate = (now: number) => {
-      const progress = Math.min(1, (now - startTime) / duration);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      const interpolatedZoom = start.zoom + (INITIAL_VIEW.zoom - start.zoom) * eased;
-      const zoom = interpolatedZoom * (1 - 0.28 * Math.sin(Math.PI * progress));
-      setView({
-        longitude: normalizeLongitude(start.longitude + longitudeTravel * eased),
-        latitude: start.latitude + (INITIAL_VIEW.latitude - start.latitude) * eased,
-        zoom: Math.max(MIN_ZOOM, zoom),
-      });
-      if (progress < 1) animationFrameRef.current = requestAnimationFrame(animate);
-      else { animationFrameRef.current = null; setView(INITIAL_VIEW); }
-    };
-    animationFrameRef.current = requestAnimationFrame(animate);
-  }, [view]);
-
-  useEffect(() => () => {
-    if (animationFrameRef.current !== null) cancelAnimationFrame(animationFrameRef.current);
+    setView((current) => ({
+      ...current,
+      zoom: Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, current.zoom * factor)),
+    }));
   }, []);
 
   const handleWheel = useCallback(
@@ -321,7 +268,7 @@ export function MenaGlobe({
         </div>
         <div className="signal-map__header-actions">
           <span className="signal-map__coverage-count">
-            {COUNTRY_FEATURES.length} COUNTRY &amp; TERRITORY BOUNDARIES
+            {WORLD_POLYGON_COUNT} POLYGON FEATURES / {SMALL_AREA_MARKER_COUNT} SMALL-AREA MARKERS
           </span>
           <button
             className="signal-map__clear"
@@ -406,10 +353,9 @@ export function MenaGlobe({
             <path className="signal-map__graticule" d={graticulePath} aria-hidden="true" />
             <g data-testid="map-layer">
               {paths.map(({ feature, path }) => {
-                const { code, name } = feature.properties;
-                const countryCode =
-                  isCountryCode(code) && feature.geometry.type !== 'Point' ? code : null;
-                const canSelect = countryCode !== null;
+                const { code, name, selectable } = feature.properties;
+                const countryCode = isCountryCode(code) ? code : null;
+                const canSelect = selectable && countryCode !== null;
                 const selected = canSelect && activeCountry === countryCode;
                 const hovered = hoveredCountry === code;
 
@@ -424,13 +370,15 @@ export function MenaGlobe({
                         : 'signal-map__country--context',
                       selected ? 'signal-map__country--selected' : '',
                       hovered ? 'signal-map__country--hovered' : '',
+                      feature.geometry.type === 'Point' ? 'signal-map__country--point' : '',
                     ]
                       .filter(Boolean)
                       .join(' ')}
                     data-country-code={code}
-                    role={canSelect ? 'button' : undefined}
-                    tabIndex={canSelect ? 0 : undefined}
-                    aria-label={canSelect ? 'Select ' + name : undefined}
+                    data-geometry-type={feature.geometry.type}
+                    role={canSelect ? 'button' : feature.geometry.type === 'Point' ? 'img' : undefined}
+                    tabIndex={canSelect || feature.geometry.type === 'Point' ? 0 : undefined}
+                    aria-label={canSelect ? 'Select ' + name : feature.geometry.type === 'Point' ? name + ' · small-area marker' : undefined}
                     aria-pressed={canSelect ? selected : undefined}
                     onClick={
                       canSelect && countryCode
@@ -462,21 +410,6 @@ export function MenaGlobe({
                   </path>
                 );
               })}
-              {visibleCities.map(({ feature, position }) => (
-                <g className="signal-map__city" key={feature.properties.name} aria-hidden="true">
-                  <circle cx={position[0]} cy={position[1]} r="2.1" />
-                  {view.zoom >= CITY_LABEL_ZOOM &&
-                    (feature.properties.capital || feature.properties.population >= 1_500_000) && (
-                      <text x={position[0] + 5} y={position[1] - 5}>
-                        {feature.properties.name}
-                      </text>
-                    )}
-                  <title>
-                    {feature.properties.name}
-                    {feature.properties.countryName ? ', ' + feature.properties.countryName : ''}
-                  </title>
-                </g>
-              ))}
               {visibleMarkers.map(({ marker, position }) => (
                 <g
                   key={marker.id}
@@ -544,7 +477,7 @@ export function MenaGlobe({
             GLOBAL / 110M REFERENCE
           </text>
           <text x="972" y="617" textAnchor="end" className="signal-map__coordinate-label">
-            GLOBAL COUNTRY COVERAGE
+            SELECTABLE MENA COVERAGE
           </text>
         </svg>
 
@@ -558,14 +491,17 @@ export function MenaGlobe({
           <span aria-hidden="true" />
           <button
             type="button"
-            onClick={resetGlobe}
-            aria-label="Animate reset globe view"
+            onClick={() => {
+              didDragRef.current = false;
+              setView(INITIAL_VIEW);
+            }}
+            aria-label="Reset globe view"
           >
             <RotateCcw size={17} aria-hidden="true" />
           </button>
         </div>
         <div className="signal-map__stage-hint" aria-hidden="true">
-          Drag to rotate <span>·</span> Scroll to zoom <span>·</span> Select any country
+          Drag to rotate <span>·</span> Scroll to zoom <span>·</span> Select a MENA country
         </div>
       </div>
 
@@ -582,7 +518,7 @@ export function MenaGlobe({
       <div className="signal-map__country-panel">
         <div className="signal-map__country-panel-heading">
           <span>SELECT BY COUNTRY</span>
-          <span>{MENA_COUNTRIES.length.toString().padStart(2, '0')} MENA SHORTCUTS</span>
+          <span>{MENA_COUNTRIES.length.toString().padStart(2, '0')} MENA AVAILABLE</span>
         </div>
         <div className="signal-map__country-list" aria-label="Choose a MENA country">
           {MENA_COUNTRIES.map(({ code, name }) => (
