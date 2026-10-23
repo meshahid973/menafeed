@@ -192,17 +192,21 @@ pub fn save(conn: &mut Connection, response: &Value) -> rusqlite::Result<usize> 
             continue;
         }
         let payload = article.to_string();
+        let published_at = article.get("publishedAt").and_then(Value::as_str);
+        let published_epoch = published_at
+            .and_then(|value| chrono::DateTime::parse_from_rfc3339(value).ok())
+            .map(|date| date.timestamp());
         tx.execute(
             "INSERT INTO news_articles
-             (canonical_url,payload_json,title,summary,source_id,category,cluster_id,published_at,first_seen,last_seen)
-             VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?9)
+             (canonical_url,payload_json,title,summary,source_id,category,cluster_id,published_at,published_epoch,first_seen,last_seen)
+             VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?10)
              ON CONFLICT(canonical_url) DO UPDATE SET
              payload_json=excluded.payload_json,title=excluded.title,summary=excluded.summary,
              source_id=excluded.source_id,category=excluded.category,cluster_id=excluded.cluster_id,
-             published_at=excluded.published_at,last_seen=excluded.last_seen",
+             published_at=excluded.published_at,published_epoch=excluded.published_epoch,last_seen=excluded.last_seen",
             params![url,payload,text(article,"title"),text(article,"summary"),
                 text(article,"sourceId"),text(article,"category"),text(article,"clusterId"),
-                article.get("publishedAt").and_then(Value::as_str),now],
+                published_at,published_epoch,now],
         )?;
         count += 1;
     }
@@ -336,6 +340,8 @@ mod tests {
         let mut conn = Connection::open_in_memory().unwrap();
         conn.execute_batch(include_str!("../../migrations/0002_news_intelligence.sql"))
             .unwrap();
+        conn.execute_batch(include_str!("../../migrations/0003_reporting_history.sql"))
+            .unwrap();
         let mut response = json!({"articles":[{"url":"https://example.org/sudan","title":"Sudan humanitarian aid","summary":"Relief report","sourceId":"s","sourceName":"Publisher","id":"s1","publishedAt":"2026-10-21T10:00:00Z","location":{"precision":"unknown"}}]});
         enrich(&mut response);
         save(&mut conn, &response).unwrap();
@@ -350,6 +356,8 @@ mod tests {
     fn can_restore_persisted_history_when_sources_fail() {
         let mut conn = Connection::open_in_memory().unwrap();
         conn.execute_batch(include_str!("../../migrations/0002_news_intelligence.sql"))
+            .unwrap();
+        conn.execute_batch(include_str!("../../migrations/0003_reporting_history.sql"))
             .unwrap();
         let mut response = json!({"articles":[{"id":"1","url":"https://example.org/offline","title":"Offline saved article","sourceId":"bbc","publishedAt":"2026-10-21T10:00:00Z","location":{"precision":"unknown"}}]});
         enrich(&mut response);

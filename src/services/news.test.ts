@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { getNewsFeed, openArticle } from './news';
+import { getNewsFeed, getReportingHistory, openArticle } from './news';
 
 vi.mock('@tauri-apps/api/core', () => ({
   isTauri: vi.fn(),
@@ -23,6 +23,23 @@ describe('news boundary', () => {
     vi.mocked(invoke).mockResolvedValue({ articles: [], sources: [], receivedAt: '' });
     await getNewsFeed(true);
     expect(invoke).toHaveBeenCalledWith('get_news_feed', { force: true });
+  });
+
+  it('passes bounded historical reporting queries to Rust', async () => {
+    vi.mocked(isTauri).mockReturnValue(true);
+    vi.mocked(invoke).mockResolvedValue({
+      articles: [],
+      buckets: [],
+      geo: { markers: [], countries: [] },
+    });
+    await getReportingHistory(1000, 87400, 24, 23, 'BH');
+    expect(invoke).toHaveBeenCalledWith('get_reporting_history', {
+      startEpoch: 1000,
+      endEpoch: 87400,
+      bucketCount: 24,
+      selectedIndex: 23,
+      countryCode: 'BH',
+    });
   });
 
   it('rejects unsafe outbound article URLs', async () => {

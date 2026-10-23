@@ -3,6 +3,7 @@ import type { FeedArticle } from '../../features/news/contracts';
 import { searchCachedNews } from '../../services/news';
 import { ExpandingSearch } from '../arc/expanding-search/expanding-search';
 import { NewsFeed } from '../../features/news/NewsFeed';
+import { HistoryWorkspace } from '../../features/history/HistoryWorkspace';
 import { useBookmarks } from '../../features/news/useBookmarks';
 import { useNewsFeed } from '../../features/news/useNewsFeed';
 import { getMenaCountryName } from '../../features/map';
@@ -41,7 +42,9 @@ export function AppShell({ desktopStatus }: AppShellProps) {
   const [country, setCountry] = useState<MenaCountryCode | null>(null);
   const [selectedStory, setSelectedStory] = useState<string | null>(null);
   const bookmarks = useBookmarks();
-  const feed = useNewsFeed(desktopStatus.kind === 'ready' && view !== 'saved');
+  const feed = useNewsFeed(
+    desktopStatus.kind === 'ready' && view !== 'saved' && view !== 'history',
+  );
   const onMarkerSelect = useCallback((marker: MenaMarker) => setSelectedStory(marker.id), []);
 
   const markers = useMemo(
@@ -188,7 +191,9 @@ export function AppShell({ desktopStatus }: AppShellProps) {
         ? 'Explore'
         : view === 'news'
           ? 'News'
-          : 'Saved';
+          : view === 'history'
+            ? 'History'
+            : 'Saved';
   const news = (
     <NewsFeed
       desktopStatus={desktopStatus}
@@ -268,6 +273,14 @@ export function AppShell({ desktopStatus }: AppShellProps) {
         <div className={`signal-shell__workspace signal-shell__workspace--${view}`}>
           {view === 'explore' ? (
             <WorkspaceSplit map={mapView} feed={news} />
+          ) : view === 'history' ? (
+            <HistoryWorkspace
+              desktopStatus={desktopStatus}
+              country={country}
+              onCountrySelect={setCountry}
+              bookmarks={bookmarks.items}
+              onToggleBookmark={bookmarks.toggle}
+            />
           ) : (
             <section className="signal-shell__feed" aria-label="Regional news">
               {news}

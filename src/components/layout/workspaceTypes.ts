@@ -1,1 +1,1 @@
-export type WorkspaceView = 'explore' | 'news' | 'saved';
+export type WorkspaceView = 'explore' | 'news' | 'saved' | 'history';
