@@ -24,7 +24,7 @@ describe('workspace', () => {
   it('renders the offline geographic map with collapsed navigation', async () => {
     render(<App />);
     expect(screen.getByRole('button', { name: 'Expand sidebar' })).toBeInTheDocument();
-    const maps = screen.getAllByRole('region', { name: /Interactive map/ });
+    const maps = screen.getAllByRole('region', { name: /Interactive world globe/ });
     expect(maps.length).toBeGreaterThan(0);
     expect(await screen.findByText('Open the desktop app to read live RSS.')).toBeInTheDocument();
   });

@@ -98,8 +98,7 @@
 .signal-map__stage {
   position: relative;
   overflow: hidden;
-  background:
-    radial-gradient(ellipse at 50% 48%, #0b1516 0%, #050909 54%, #020303 100%);
+  background: radial-gradient(ellipse at 50% 48%, #0b1516 0%, #050909 54%, #020303 100%);
   border-bottom: 1px solid var(--signal-border);
 }
 

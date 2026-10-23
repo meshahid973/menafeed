@@ -37,7 +37,9 @@ const CENTER_X = MAP_WIDTH / 2;
 const CENTER_Y = MAP_HEIGHT / 2;
 const WORLD_FEATURES = JSON.parse(rawCountryData) as CountryCollection;
 const COUNTRY_FEATURES = WORLD_FEATURES.features as CountryFeature[];
-const WORLD_POLYGON_COUNT = COUNTRY_FEATURES.filter(({ geometry }) => geometry.type !== 'Point').length;
+const WORLD_POLYGON_COUNT = COUNTRY_FEATURES.filter(
+  ({ geometry }) => geometry.type !== 'Point',
+).length;
 const SMALL_AREA_MARKER_COUNT = COUNTRY_FEATURES.length - WORLD_POLYGON_COUNT;
 const GRATICULE = geoGraticule().step([15, 15])();
 
@@ -50,7 +52,7 @@ function createGlobeProjection(view: GlobeView) {
 }
 
 function normalizeLongitude(value: number): number {
-  return ((value + 180) % 360 + 360) % 360 - 180;
+  return ((((value + 180) % 360) + 360) % 360) - 180;
 }
 
 function clampLatitude(value: number): number {
@@ -76,10 +78,7 @@ function validMarker(marker: MenaMarker): boolean {
 
 function isFacingCamera(marker: MenaMarker, view: GlobeView): boolean {
   return (
-    geoDistance(
-      [marker.longitude, marker.latitude],
-      [view.longitude, view.latitude],
-    ) <=
+    geoDistance([marker.longitude, marker.latitude], [view.longitude, view.latitude]) <=
     Math.PI / 2 + 0.000001
   );
 }
@@ -380,9 +379,17 @@ export function MenaGlobe({
                       .join(' ')}
                     data-country-code={code}
                     data-geometry-type={feature.geometry.type}
-                    role={canSelect ? 'button' : feature.geometry.type === 'Point' ? 'img' : undefined}
+                    role={
+                      canSelect ? 'button' : feature.geometry.type === 'Point' ? 'img' : undefined
+                    }
                     tabIndex={canSelect || feature.geometry.type === 'Point' ? 0 : undefined}
-                    aria-label={canSelect ? 'Select ' + name : feature.geometry.type === 'Point' ? name + ' · small-area marker' : undefined}
+                    aria-label={
+                      canSelect
+                        ? 'Select ' + name
+                        : feature.geometry.type === 'Point'
+                          ? name + ' · small-area marker'
+                          : undefined
+                    }
                     aria-pressed={canSelect ? selected : undefined}
                     onClick={
                       canSelect && countryCode
