@@ -525,30 +525,13 @@
 }
 
 
-
-.signal-map__country-labels {
-  pointer-events: none;
-}
-
-.signal-map__country-labels text {
-  fill: #dbe8dc;
-  font-family: var(--signal-font-mono);
-  font-size: 8px;
-  font-weight: 500;
-  letter-spacing: -0.02em;
-  paint-order: stroke;
-  stroke: #07100e;
-  stroke-width: 2.6px;
-  stroke-linejoin: round;
-}
-
 .signal-map__city {
   pointer-events: none;
 }
 
 .signal-map__city circle {
   fill: #d6f6bf;
-  fill-opacity: 0.88;
+  fill-opacity: 0.82;
   stroke: #07120e;
   stroke-width: 0.8;
   vector-effect: non-scaling-stroke;

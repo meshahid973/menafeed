@@ -71,18 +71,6 @@ describe('MenaGlobe', () => {
     expect(selection).not.toBeNull();
     expect(within(selection!).getByText('Saudi Arabia')).toBeInTheDocument();
   });
-  it('shows country labels without rendering every city on the default globe', () => {
-    render(<MenaGlobe />);
-    expect(screen.getByTestId('country-label-layer')).toBeInTheDocument();
-    expect(screen.queryByTestId('city-layer')).not.toBeInTheDocument();
-  });
-
-  it('shows cities only for the selected country', () => {
-    render(<MenaGlobe selectedCountry="IN" />);
-    expect(screen.getByTestId('city-layer')).toBeInTheDocument();
-    expect(screen.queryByText('Tokyo')).not.toBeInTheDocument();
-  });
-
   it('selects countries outside MENA through their geographic shapes', () => {
     const onCountrySelect = vi.fn();
     render(<MenaGlobe onCountrySelect={onCountrySelect} />);
