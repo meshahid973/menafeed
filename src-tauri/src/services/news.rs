@@ -100,7 +100,7 @@ pub async fn load(app: AppHandle, force: bool) -> Result<NewsFeedResponse, Strin
                 attempt.follow()
             }
         }))
-        .user_agent("MenaFeed/0.3 (desktop RSS reader)")
+        .user_agent("SIGNAL-MENA/0.2 (desktop RSS reader)")
         .build()
         .map_err(|_| "Could not initialize the news service")?;
 
@@ -109,24 +109,19 @@ pub async fn load(app: AppHandle, force: bool) -> Result<NewsFeedResponse, Strin
         let app_name = std::env::var("SIGNAL_RELIEFWEB_APPNAME").ok()?;
         Some(load_reliefweb(&app, &client, &app_name, force).await)
     };
-    let (a, b, c, d, e, f, g, h, i, j, k, reliefweb) = tokio::join!(
+    let (a, b, c, d, e, f, reliefweb) = tokio::join!(
         load_source(&app, &client, SOURCES[0], force),
         load_source(&app, &client, SOURCES[1], force),
         load_source(&app, &client, SOURCES[2], force),
         load_source(&app, &client, SOURCES[3], force),
         load_source(&app, &client, SOURCES[4], force),
         load_source(&app, &client, SOURCES[5], force),
-        load_source(&app, &client, SOURCES[6], force),
-        load_source(&app, &client, SOURCES[7], force),
-        load_source(&app, &client, SOURCES[8], force),
-        load_source(&app, &client, SOURCES[9], force),
-        load_source(&app, &client, SOURCES[10], force),
         reliefweb_task
     );
 
     let mut articles = Vec::new();
     let mut sources = Vec::new();
-    for result in [a, b, c, d, e, f, g, h, i, j, k] {
+    for result in [a, b, c, d, e, f] {
         sources.push(result.state);
         articles.extend(result.articles);
     }

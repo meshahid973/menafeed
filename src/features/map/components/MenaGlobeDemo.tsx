@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { MenaGlobe } from './MenaGlobe';
-import type { MenaMarker } from '../types';
+import type { MenaCountryCode, MenaMarker } from '../types';
 
 const EXAMPLE_MARKERS: readonly MenaMarker[] = [
   {
@@ -13,7 +13,7 @@ const EXAMPLE_MARKERS: readonly MenaMarker[] = [
 ];
 
 export function MenaGlobeDemo() {
-  const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
+  const [selectedCountry, setSelectedCountry] = useState<MenaCountryCode | null>(null);
   const [selectedMarker, setSelectedMarker] = useState<MenaMarker | null>(null);
 
   return (

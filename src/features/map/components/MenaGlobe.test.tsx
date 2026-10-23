@@ -2,10 +2,10 @@ import { fireEvent, render, screen, within } from '@testing-library/react';
 import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { MenaGlobe } from './MenaGlobe';
-import type { MenaMarker } from '../types';
+import type { MenaCountryCode, MenaMarker } from '../types';
 
 function ControlledMap() {
-  const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
+  const [selectedCountry, setSelectedCountry] = useState<MenaCountryCode | null>(null);
   return <MenaGlobe selectedCountry={selectedCountry} onCountrySelect={setSelectedCountry} />;
 }
 
@@ -70,14 +70,5 @@ describe('MenaGlobe', () => {
     const selection = screen.getByText('ACTIVE TERRITORY').parentElement;
     expect(selection).not.toBeNull();
     expect(within(selection!).getByText('Saudi Arabia')).toBeInTheDocument();
-  });
-  it('selects countries outside MENA through their geographic shapes', () => {
-    const onCountrySelect = vi.fn();
-    render(<MenaGlobe onCountrySelect={onCountrySelect} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Select India' }));
-    expect(onCountrySelect).toHaveBeenCalledWith('IN');
-    const selection = screen.getByText('ACTIVE TERRITORY').parentElement;
-    expect(selection).not.toBeNull();
-    expect(within(selection!).getByText('India')).toBeInTheDocument();
   });
 });

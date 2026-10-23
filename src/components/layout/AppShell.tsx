@@ -3,8 +3,8 @@ import { Search } from 'lucide-react';
 import { NewsFeed } from '../../features/news/NewsFeed';
 import { useBookmarks } from '../../features/news/useBookmarks';
 import { useNewsFeed } from '../../features/news/useNewsFeed';
-import { getWorldCountryName } from '../../features/map';
-import type { MenaMarker } from '../../features/map';
+import { getMenaCountryName } from '../../features/map';
+import type { MenaCountryCode, MenaMarker } from '../../features/map';
 import type { DesktopStatus } from '../../services/desktop';
 import { MapSlot } from './MapSlot';
 import { Sidebar } from './Sidebar';
@@ -30,7 +30,7 @@ export function AppShell({ desktopStatus }: AppShellProps) {
   const [expanded, setExpanded] = useState(readExpanded);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [searchRequest, setSearchRequest] = useState(0);
-  const [country, setCountry] = useState<string | null>(null);
+  const [country, setCountry] = useState<MenaCountryCode | null>(null);
   const [selectedStory, setSelectedStory] = useState<string | null>(null);
   const bookmarks = useBookmarks();
   const feed = useNewsFeed(desktopStatus.kind === 'ready');
@@ -108,7 +108,7 @@ export function AppShell({ desktopStatus }: AppShellProps) {
 
   const headline =
     country && view === 'explore'
-      ? getWorldCountryName(country) ?? country
+      ? getMenaCountryName(country)
       : view === 'explore'
         ? 'Explore'
         : view === 'news'
@@ -162,7 +162,7 @@ export function AppShell({ desktopStatus }: AppShellProps) {
                 All countries ×
               </button>
             )}
-            <span>World news · geographic context</span>
+            <span>Middle East &amp; North Africa</span>
             <button
               className="signal-shell__search"
               type="button"
