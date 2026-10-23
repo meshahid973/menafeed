@@ -53,6 +53,8 @@ export function AppShell({ desktopStatus }: AppShellProps) {
             longitude: location.longitude,
             latitude: location.latitude,
             detail: article.sourceName,
+            countryCode: location.countryCode,
+            cityName: location.cityName,
           },
         ];
       }),
@@ -108,7 +110,7 @@ export function AppShell({ desktopStatus }: AppShellProps) {
 
   const headline =
     country && view === 'explore'
-      ? getWorldCountryName(country) ?? country
+      ? (getWorldCountryName(country) ?? country)
       : view === 'explore'
         ? 'Explore'
         : view === 'news'

@@ -6,7 +6,10 @@ export interface CountryFeatureProperties {
   name: string;
   code: string;
   selectable: boolean;
-  sourceResolution?: '10m' | '110m';
+  sourceResolution?: '10m' | '50m' | '110m';
+  /** Natural Earth's interior label point; avoids offshore centroids. */
+  labelLongitude?: number;
+  labelLatitude?: number;
 }
 
 export interface MenaMarker {
@@ -17,6 +20,9 @@ export interface MenaMarker {
   latitude: number;
   /** Optional neutral metadata, not a news-story payload. */
   detail?: string;
+  /** Used to match a verified story location to its bundled urban footprint. */
+  countryCode?: string;
+  cityName?: string;
 }
 
 export interface MenaGlobeProps {

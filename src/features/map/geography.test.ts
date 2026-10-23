@@ -1,16 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import rawCountryData from './data/world-countries.geojson?raw';
 import { MENA_COUNTRIES } from './data/coverage';
+import { COUNTRY_FEATURES } from './mapData';
 import {
   getCountryPath,
   isInsideMap,
   isValidGeoCoordinate,
   markerPosition,
   projectCoordinate,
-  type CountryCollection,
 } from './geography';
 
-const dataset = JSON.parse(rawCountryData) as CountryCollection;
+const dataset = { features: COUNTRY_FEATURES };
 
 describe('world coverage data', () => {
   it('includes global country-boundary features with unique feature codes', () => {
@@ -45,7 +44,7 @@ describe('world coverage data', () => {
     const bahrain = dataset.features.find((feature) => feature.properties.code === 'BH');
 
     expect(bahrain).toBeDefined();
-    expect(bahrain?.geometry.type).toBe('Polygon');
+    expect(bahrain?.geometry.type).not.toBe('Point');
     expect(bahrain?.properties.sourceResolution).toBe('10m');
     expect(getCountryPath(bahrain!)).toContain('M');
   });

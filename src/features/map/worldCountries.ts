@@ -1,10 +1,7 @@
-import rawCountryData from './data/world-countries.geojson?raw';
-import type { CountryCollection } from './geography';
-
-const COUNTRY_FEATURES = (JSON.parse(rawCountryData) as CountryCollection).features;
+import { COUNTRY_FEATURES, isCountryCode } from './mapData';
 
 export const WORLD_COUNTRIES = COUNTRY_FEATURES.filter((feature) =>
-  /^[A-Z]{2}$/.test(feature.properties.code),
+  isCountryCode(feature.properties.code),
 ).map((feature) => ({
   code: feature.properties.code,
   name: feature.properties.name,
