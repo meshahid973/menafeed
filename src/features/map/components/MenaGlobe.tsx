@@ -1,4 +1,4 @@
-import { geoDistance, geoGraticule, geoOrthographic, geoPath } from 'd3-geo';
+import { geoCentroid, geoDistance, geoGraticule, geoOrthographic, geoPath } from 'd3-geo';
 import { RotateCcw, ZoomIn, ZoomOut } from 'lucide-react';
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent, PointerEvent, WheelEvent } from 'react';
@@ -56,6 +56,24 @@ interface CityCollection {
   features: CityFeature[];
 }
 const CITY_FEATURES = (JSON.parse(rawCityData) as CityCollection).features;
+const COUNTRY_LABELS = COUNTRY_FEATURES.map((feature) => {
+  const [longitude, latitude] = geoCentroid(feature);
+  return {
+    code: feature.properties.code,
+    name: feature.properties.name,
+    longitude,
+    latitude,
+  };
+}).filter(
+  ({ longitude, latitude }) => Number.isFinite(longitude) && Number.isFinite(latitude),
+);
+const COUNTRY_LOCATIONS = new Map<string, { longitude: number; latitude: number }>(
+  COUNTRY_LABELS.map(({ code, longitude, latitude }) => [
+    code,
+    { longitude, latitude },
+  ]),
+);
+const VIEW_UPDATE_INTERVAL = 1000 / 30;
 const GRATICULE = geoGraticule().step([15, 15])();
 
 function createGlobeProjection(view: GlobeView) {
@@ -121,6 +139,9 @@ export function MenaGlobe({
   const dragStartRef = useRef<DragStart | null>(null);
   const didDragRef = useRef(false);
   const animationFrameRef = useRef<number | null>(null);
+  const wheelFrameRef = useRef<number | null>(null);
+  const accumulatedWheelDeltaRef = useRef(0);
+  const lastViewUpdateRef = useRef(0);
 
   const isControlled = selectedCountry !== undefined;
   const activeCountry = isControlled ? selectedCountry : internalSelection;
@@ -148,14 +169,50 @@ export function MenaGlobe({
     [markers, projection, view],
   );
   const visibleCities = useMemo(() => {
-    if (view.zoom < 1.02) return [];
+    if (!activeCountry) return [];
     return CITY_FEATURES.flatMap((feature) => {
+      if (feature.properties.countryCode !== activeCountry) return [];
       const [longitude, latitude] = feature.geometry.coordinates;
       if (!isFacingCamera(longitude, latitude, view)) return [];
       const position = projection([longitude, latitude]);
       return position && position.every(Number.isFinite) ? [{ feature, position }] : [];
     });
-  }, [projection, view]);
+  }, [activeCountry, projection, view]);
+
+  const visibleCountryLabels = useMemo(() => {
+    if (view.zoom < 0.88) return [];
+    const minimumDistance =
+      view.zoom < 1.18 ? 66 : view.zoom < 1.7 ? 43 : view.zoom < 2.5 ? 28 : 16;
+    const candidates = COUNTRY_LABELS.flatMap((country) => {
+      if (!isFacingCamera(country.longitude, country.latitude, view)) return [];
+      const position = projection([country.longitude, country.latitude]);
+      if (!position || !position.every(Number.isFinite)) return [];
+      return [
+        {
+          ...country,
+          x: position[0],
+          y: position[1],
+          width: Math.max(22, country.name.length * 4.7),
+        },
+      ];
+    }).sort((a, b) => {
+      if (a.code === activeCountry) return -1;
+      if (b.code === activeCountry) return 1;
+      const aDistance = Math.hypot(a.x - CENTER_X, a.y - CENTER_Y);
+      const bDistance = Math.hypot(b.x - CENTER_X, b.y - CENTER_Y);
+      return aDistance - bDistance;
+    });
+
+    const placed: typeof candidates = [];
+    for (const candidate of candidates) {
+      const overlaps = placed.some((other) =>
+        Math.abs(candidate.x - other.x) < (candidate.width + other.width) / 2 + 7 &&
+        Math.abs(candidate.y - other.y) < minimumDistance * 0.28 + 6,
+      );
+      if (!overlaps) placed.push(candidate);
+    }
+    return placed;
+  }, [activeCountry, projection, view]);
 
   const selectCountry = useCallback(
     (country: string | null) => {
@@ -202,6 +259,9 @@ export function MenaGlobe({
     }
     if (!didDragRef.current) return;
 
+    const now = performance.now();
+    if (now - lastViewUpdateRef.current < VIEW_UPDATE_INTERVAL) return;
+    lastViewUpdateRef.current = now;
     const degreesPerPixel = 90 / (GLOBE_RADIUS * start.zoom);
     setView({
       longitude: normalizeLongitude(start.longitude - deltaX * degreesPerPixel),
@@ -239,6 +299,56 @@ export function MenaGlobe({
     setView((current) => ({ ...current, zoom: Math.max(MIN_ZOOM, current.zoom * factor) }));
   }, []);
 
+  const animateViewTo = useCallback((target: GlobeView, duration = 900) => {
+    if (animationFrameRef.current !== null) cancelAnimationFrame(animationFrameRef.current);
+    const start = view;
+    const longitudeDelta = normalizeLongitude(target.longitude - start.longitude);
+    const startTime = performance.now();
+    const motionDuration = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      ? 1
+      : duration;
+    const animate = (now: number) => {
+      const progress = Math.min(1, (now - startTime) / motionDuration);
+      const eased =
+        progress < 0.5
+          ? 4 * progress * progress * progress
+          : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+      const zoomBase = start.zoom + (target.zoom - start.zoom) * eased;
+      const zoom = zoomBase * (1 - 0.12 * Math.sin(Math.PI * progress));
+      if (progress >= 1 || now - lastViewUpdateRef.current >= VIEW_UPDATE_INTERVAL) {
+        lastViewUpdateRef.current = now;
+        setView(
+          progress >= 1
+            ? target
+            : {
+                longitude: normalizeLongitude(start.longitude + longitudeDelta * eased),
+                latitude: start.latitude + (target.latitude - start.latitude) * eased,
+                zoom: Math.max(MIN_ZOOM, zoom),
+              },
+        );
+      }
+      if (progress < 1) {
+        animationFrameRef.current = requestAnimationFrame(animate);
+      } else {
+        animationFrameRef.current = null;
+      }
+    };
+    animationFrameRef.current = requestAnimationFrame(animate);
+  }, [view]);
+
+  const animateToCountry = useCallback((code: string) => {
+    const location = COUNTRY_LOCATIONS.get(code);
+    if (!location) return;
+    animateViewTo(
+      {
+        longitude: location.longitude,
+        latitude: clampLatitude(location.latitude),
+        zoom: 2.55,
+      },
+      920,
+    );
+  }, [animateViewTo]);
+
   const resetGlobe = useCallback(() => {
     if (animationFrameRef.current !== null) cancelAnimationFrame(animationFrameRef.current);
     const start = view;
@@ -250,27 +360,55 @@ export function MenaGlobe({
       const eased = 1 - Math.pow(1 - progress, 3);
       const interpolatedZoom = start.zoom + (INITIAL_VIEW.zoom - start.zoom) * eased;
       const zoom = interpolatedZoom * (1 - 0.28 * Math.sin(Math.PI * progress));
-      setView({
-        longitude: normalizeLongitude(start.longitude + longitudeTravel * eased),
-        latitude: start.latitude + (INITIAL_VIEW.latitude - start.latitude) * eased,
-        zoom: Math.max(MIN_ZOOM, zoom),
-      });
-      if (progress < 1) animationFrameRef.current = requestAnimationFrame(animate);
-      else { animationFrameRef.current = null; setView(INITIAL_VIEW); }
+      if (progress >= 1 || now - lastViewUpdateRef.current >= VIEW_UPDATE_INTERVAL) {
+        lastViewUpdateRef.current = now;
+        setView(
+          progress >= 1
+            ? INITIAL_VIEW
+            : {
+                longitude: normalizeLongitude(start.longitude + longitudeTravel * eased),
+                latitude: start.latitude + (INITIAL_VIEW.latitude - start.latitude) * eased,
+                zoom: Math.max(MIN_ZOOM, zoom),
+              },
+        );
+      }
+      if (progress < 1) {
+        animationFrameRef.current = requestAnimationFrame(animate);
+      } else {
+        animationFrameRef.current = null;
+      }
     };
     animationFrameRef.current = requestAnimationFrame(animate);
   }, [view]);
 
   useEffect(() => () => {
     if (animationFrameRef.current !== null) cancelAnimationFrame(animationFrameRef.current);
+    if (wheelFrameRef.current !== null) cancelAnimationFrame(wheelFrameRef.current);
   }, []);
 
   const handleWheel = useCallback(
     (event: WheelEvent<SVGSVGElement>) => {
       event.preventDefault();
-      zoomAt(Math.exp(-event.deltaY * 0.0012));
+      accumulatedWheelDeltaRef.current += event.deltaY;
+      if (wheelFrameRef.current !== null) return;
+
+      const flushWheelZoom = (now: number) => {
+        if (now - lastViewUpdateRef.current < VIEW_UPDATE_INTERVAL) {
+          wheelFrameRef.current = requestAnimationFrame(flushWheelZoom);
+          return;
+        }
+        const delta = accumulatedWheelDeltaRef.current;
+        accumulatedWheelDeltaRef.current = 0;
+        wheelFrameRef.current = null;
+        lastViewUpdateRef.current = now;
+        setView((current) => ({
+          ...current,
+          zoom: Math.max(MIN_ZOOM, current.zoom * Math.exp(-delta * 0.0012)),
+        }));
+      };
+      wheelFrameRef.current = requestAnimationFrame(flushWheelZoom);
     },
-    [zoomAt],
+    [],
   );
 
   const handleMapKeyDown = useCallback(
@@ -440,6 +578,7 @@ export function MenaGlobe({
                               return;
                             }
                             selectCountry(countryCode);
+                            animateToCountry(countryCode);
                           }
                         : undefined
                     }
@@ -449,6 +588,7 @@ export function MenaGlobe({
                             if (event.key === 'Enter' || event.key === ' ') {
                               event.preventDefault();
                               selectCountry(countryCode);
+                              animateToCountry(countryCode);
                             }
                           }
                         : undefined
@@ -462,21 +602,43 @@ export function MenaGlobe({
                   </path>
                 );
               })}
-              {visibleCities.map(({ feature, position }) => (
-                <g className="signal-map__city" key={feature.properties.name} aria-hidden="true">
-                  <circle cx={position[0]} cy={position[1]} r="2.1" />
-                  {view.zoom >= CITY_LABEL_ZOOM &&
-                    (feature.properties.capital || feature.properties.population >= 1_500_000) && (
-                      <text x={position[0] + 5} y={position[1] - 5}>
-                        {feature.properties.name}
-                      </text>
-                    )}
-                  <title>
-                    {feature.properties.name}
-                    {feature.properties.countryName ? ', ' + feature.properties.countryName : ''}
-                  </title>
+              {visibleCountryLabels.length > 0 && (
+                <g
+                  className="signal-map__country-labels"
+                  data-testid="country-label-layer"
+                  aria-hidden="true"
+                >
+                  {visibleCountryLabels.map((country) => (
+                    <text key={country.code} x={country.x} y={country.y} textAnchor="middle">
+                      {country.name}
+                    </text>
+                  ))}
                 </g>
-              ))}
+              )}
+              {visibleCities.length > 0 && (
+                <g data-testid="city-layer">
+                  {visibleCities.map(({ feature, position }) => (
+                    <g
+                      className="signal-map__city"
+                      key={feature.properties.name}
+                      aria-hidden="true"
+                    >
+                      <circle cx={position[0]} cy={position[1]} r="2.1" />
+                      {view.zoom >= CITY_LABEL_ZOOM &&
+                        (feature.properties.capital ||
+                          feature.properties.population >= 1_500_000) && (
+                          <text x={position[0] + 5} y={position[1] - 5}>
+                            {feature.properties.name}
+                          </text>
+                        )}
+                      <title>
+                        {feature.properties.name}
+                        {feature.properties.countryName ? ', ' + feature.properties.countryName : ''}
+                      </title>
+                    </g>
+                  ))}
+                </g>
+              )}
               {visibleMarkers.map(({ marker, position }) => (
                 <g
                   key={marker.id}
@@ -596,7 +758,10 @@ export function MenaGlobe({
                 .filter(Boolean)
                 .join(' ')}
               aria-pressed={activeCountry === code}
-              onClick={() => selectCountry(code)}
+              onClick={() => {
+                selectCountry(code);
+                animateToCountry(code);
+              }}
             >
               <span>{name}</span>
               <span className="signal-map__country-option-code">{code}</span>
