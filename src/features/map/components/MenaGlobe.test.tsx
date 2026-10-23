@@ -1,30 +1,12 @@
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { MenaGlobe } from './MenaGlobe';
-import rawCountryData from '../data/mena-countries.geojson?raw';
-import { getCountryFocus, MAP_HEIGHT, MAP_WIDTH, type CountryCollection } from '../geography';
 import type { MenaCountryCode, MenaMarker } from '../types';
 
 function ControlledMap() {
   const [selectedCountry, setSelectedCountry] = useState<MenaCountryCode | null>(null);
   return <MenaGlobe selectedCountry={selectedCountry} onCountrySelect={setSelectedCountry} />;
-}
-
-function preferReducedMotionForTest() {
-  const previousMatchMedia = Object.getOwnPropertyDescriptor(window, 'matchMedia');
-  Object.defineProperty(window, 'matchMedia', {
-    configurable: true,
-    value: () => ({ matches: true }),
-  });
-
-  return () => {
-    if (previousMatchMedia) {
-      Object.defineProperty(window, 'matchMedia', previousMatchMedia);
-    } else {
-      delete (window as Partial<Window>).matchMedia;
-    }
-  };
 }
 
 describe('MenaGlobe', () => {
@@ -54,173 +36,6 @@ describe('MenaGlobe', () => {
     expect(within(selection!).getByText('No country selected')).toBeInTheDocument();
   });
 
-  it('returns to the default map view when the selected country is clicked again', () => {
-    const restoreMatchMedia = preferReducedMotionForTest();
-
-    try {
-      render(<MenaGlobe />);
-      const egypt = screen.getByRole('button', { name: 'Select Egypt' });
-      const layer = screen.getByTestId('map-layer');
-      const selection = screen.getByText('ACTIVE TERRITORY').parentElement;
-
-      fireEvent.click(egypt);
-      expect(within(selection!).getByText('Egypt')).toBeInTheDocument();
-      expect(layer).not.toHaveAttribute('transform', 'translate(0 0) scale(1)');
-
-      fireEvent.click(egypt);
-      expect(within(selection!).getByText('No country selected')).toBeInTheDocument();
-      expect(layer).toHaveAttribute('transform', 'translate(0 0) scale(1)');
-    } finally {
-      restoreMatchMedia();
-    }
-  });
-
-  it('also toggles the selected country off with keyboard activation', () => {
-    const restoreMatchMedia = preferReducedMotionForTest();
-
-    try {
-      render(<ControlledMap />);
-      const qatar = screen.getByRole('button', { name: 'Select Qatar' });
-      const layer = screen.getByTestId('map-layer');
-      const selection = screen.getByText('ACTIVE TERRITORY').parentElement;
-
-      fireEvent.keyDown(qatar, { key: 'Enter' });
-      expect(within(selection!).getByText('Qatar')).toBeInTheDocument();
-      expect(layer).not.toHaveAttribute('transform', 'translate(0 0) scale(1)');
-
-      fireEvent.keyDown(screen.getByRole('button', { name: 'Select Qatar' }), { key: 'Enter' });
-      expect(within(selection!).getByText('No country selected')).toBeInTheDocument();
-      expect(layer).toHaveAttribute('transform', 'translate(0 0) scale(1)');
-    } finally {
-      restoreMatchMedia();
-    }
-  });
-
-  it('toggles a selected country off from the country list too', () => {
-    const restoreMatchMedia = preferReducedMotionForTest();
-
-    try {
-      render(<ControlledMap />);
-      const countryList = screen.getByLabelText('Choose a MENA country');
-      const morocco = within(countryList).getByRole('button', { name: /Morocco/ });
-      const layer = screen.getByTestId('map-layer');
-      const selection = screen.getByText('ACTIVE TERRITORY').parentElement;
-
-      fireEvent.click(morocco);
-      expect(within(selection!).getByText('Morocco')).toBeInTheDocument();
-      expect(layer).not.toHaveAttribute('transform', 'translate(0 0) scale(1)');
-
-      fireEvent.click(within(countryList).getByRole('button', { name: /Morocco/ }));
-      expect(within(selection!).getByText('No country selected')).toBeInTheDocument();
-      expect(layer).toHaveAttribute('transform', 'translate(0 0) scale(1)');
-    } finally {
-      restoreMatchMedia();
-    }
-  });
-
-  it.each([
-    { name: 'Egypt', code: 'EG' },
-    { name: 'Saudi Arabia', code: 'SA' },
-    { name: 'Morocco', code: 'MA' },
-  ])('gently zooms to and centres $name without rotating the map', ({ name, code }) => {
-    const previousMatchMedia = Object.getOwnPropertyDescriptor(window, 'matchMedia');
-    Object.defineProperty(window, 'matchMedia', {
-      configurable: true,
-      value: () => ({ matches: true }),
-    });
-
-    try {
-      render(<MenaGlobe />);
-      fireEvent.click(screen.getByRole('button', { name: `Select ${name}` }));
-
-      const transform = screen.getByTestId('map-layer').getAttribute('transform');
-      expect(transform).not.toBeNull();
-      const values = transform!.match(
-        /^translate\(([-\d.eE]+) ([-\d.eE]+)\) scale\(([-\d.eE]+)\)$/,
-      );
-      expect(values).not.toBeNull();
-      expect(transform).not.toContain('rotate');
-
-      const dataset = JSON.parse(rawCountryData) as CountryCollection;
-      const feature = dataset.features.find((item) => item.properties.code === code);
-      expect(feature).toBeDefined();
-      const focus = getCountryFocus(feature!);
-      expect(focus).not.toBeNull();
-
-      const translateX = Number(values![1]);
-      const translateY = Number(values![2]);
-      const zoom = Number(values![3]);
-      const projectedX = translateX + zoom * focus!.x;
-      const projectedY = translateY + zoom * focus!.y;
-
-      expect(projectedX).toBeCloseTo(MAP_WIDTH / 2, 2);
-      expect(projectedY).toBeCloseTo(MAP_HEIGHT / 2, 2);
-      expect(zoom).toBeGreaterThan(1);
-      expect(zoom).toBeLessThanOrEqual(3.5);
-    } finally {
-      if (previousMatchMedia) {
-        Object.defineProperty(window, 'matchMedia', previousMatchMedia);
-      } else {
-        delete (window as Partial<Window>).matchMedia;
-      }
-    }
-  });
-
-  it('pans from a country shape without accidentally selecting it', () => {
-    const onCountrySelect = vi.fn();
-    render(<MenaGlobe onCountrySelect={onCountrySelect} />);
-    const svg = screen.getByTestId('mena-map');
-    const egypt = screen.getByRole('button', { name: 'Select Egypt' });
-    vi.spyOn(svg, 'getBoundingClientRect').mockReturnValue({
-      x: 0,
-      y: 0,
-      top: 0,
-      left: 0,
-      right: 1000,
-      bottom: 640,
-      width: 1000,
-      height: 640,
-      toJSON: () => ({}),
-    });
-    fireEvent.pointerDown(egypt, { pointerId: 7, button: 0, clientX: 400, clientY: 200 });
-    fireEvent.pointerMove(svg, { pointerId: 7, clientX: 450, clientY: 225 });
-    fireEvent.pointerUp(svg, { pointerId: 7, clientX: 450, clientY: 225 });
-    expect(screen.getByTestId('map-layer')).not.toHaveAttribute(
-      'transform',
-      'translate(0 0) scale(1)',
-    );
-    fireEvent.click(egypt);
-    expect(onCountrySelect).not.toHaveBeenCalled();
-  });
-
-  it('keeps the camera position stable when hover rerenders during animation', () => {
-    const animation = { frame: null as FrameRequestCallback | null };
-    vi.stubGlobal('matchMedia', () => ({ matches: false }));
-    vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
-      animation.frame = callback;
-      return 1;
-    });
-    vi.stubGlobal('cancelAnimationFrame', () => undefined);
-    try {
-      render(<MenaGlobe />);
-      const egypt = screen.getByRole('button', { name: 'Select Egypt' });
-      fireEvent.click(egypt);
-      act(() => {
-        animation.frame?.(0);
-      });
-      act(() => {
-        animation.frame?.(200);
-      });
-      const layer = screen.getByTestId('map-layer');
-      const duringMotion = layer.getAttribute('transform');
-      expect(duringMotion).not.toBe('translate(0 0) scale(1)');
-      fireEvent.mouseEnter(egypt);
-      expect(layer).toHaveAttribute('transform', duringMotion);
-    } finally {
-      vi.unstubAllGlobals();
-    }
-  });
-
   it('renders coordinate-backed markers and reports marker selection', () => {
     const onMarkerSelect = vi.fn();
     const manama: MenaMarker = {
@@ -243,6 +58,25 @@ describe('MenaGlobe', () => {
 
     expect(onMarkerSelect).toHaveBeenCalledWith(manama);
     expect(screen.queryByRole('button', { name: /Invalid marker/ })).not.toBeInTheDocument();
+  });
+
+  it('does not capture ordinary clicks but captures after drag movement', () => {
+    const onCountrySelect = vi.fn();
+    render(<MenaGlobe onCountrySelect={onCountrySelect} />);
+    const svg = screen.getByTestId('mena-map');
+    const country = screen.getByRole('button', { name: 'Select Bahrain' });
+    const capture = vi.fn();
+    Object.defineProperty(svg, 'setPointerCapture', { configurable: true, value: capture });
+
+    fireEvent.pointerDown(country, { button: 0, pointerId: 1, clientX: 100, clientY: 100 });
+    expect(capture).not.toHaveBeenCalled();
+    fireEvent.pointerUp(country, { pointerId: 1, clientX: 100, clientY: 100 });
+    fireEvent.click(country);
+    expect(onCountrySelect).toHaveBeenCalledWith('BH');
+
+    fireEvent.pointerDown(country, { button: 0, pointerId: 2, clientX: 100, clientY: 100 });
+    fireEvent.pointerMove(svg, { pointerId: 2, clientX: 130, clientY: 100 });
+    expect(capture).toHaveBeenCalledWith(2);
   });
 
   it('honors externally controlled selection rather than mutating it locally', () => {

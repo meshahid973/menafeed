@@ -6,7 +6,7 @@ export interface CountryFeatureProperties {
   name: string;
   code: string;
   selectable: boolean;
-  sourceResolution?: '10m' | '110m';
+  sourceResolution?: '10m' | '110m' | '50m-point';
 }
 
 export interface MenaMarker {

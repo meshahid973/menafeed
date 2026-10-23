@@ -2,7 +2,7 @@ name: Verify SIGNAL
 
 on:
   push:
-    branches: [main]
+    branches: [main, integration/pr21-globe-verify]
   pull_request:
 
 permissions:
